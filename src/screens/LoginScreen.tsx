@@ -155,8 +155,8 @@ const LoginScreen: React.FC = () => {
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
               
               {/* Logo */}
-              <View className="items-center mb-6">
-                <Logo size="xl" />
+              <View className="">
+                <Logo size="3xl" />
               </View>
 
               {/* Title */}
@@ -176,6 +176,7 @@ const LoginScreen: React.FC = () => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 error={emailError}
+                required
               />
 
               <Input
@@ -185,6 +186,7 @@ const LoginScreen: React.FC = () => {
                 placeholder="••••••••"
                 secureTextEntry
                 error={passwordError}
+                required
               />
 
               {/* Forgot */}
@@ -206,20 +208,20 @@ const LoginScreen: React.FC = () => {
               />
 
               {/* Divider */}
-              <View className="flex-row items-center my-6">
+              {/* <View className="flex-row items-center my-6">
                 <View className="flex-1 h-px bg-gray-200" />
                 <Text className="mx-3 text-gray-400 font-rubik text-sm">OR</Text>
                 <View className="flex-1 h-px bg-gray-200" />
-              </View>
+              </View> */}
 
               {/* Google */}
-              <Button
+              {/* <Button
                 title="Continue with Google"
                 onPress={handleGoogleLogin}
                 loading={googleLoading}
                 variant="outline"
                 fullWidth
-              />
+              /> */}
 
               {/* Signup */}
               <View className="flex-row justify-center mt-6">

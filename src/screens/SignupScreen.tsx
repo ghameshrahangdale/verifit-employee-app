@@ -179,24 +179,24 @@ const SignupScreen: React.FC = () => {
           <View className="px-6">
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
 
-              <View className="items-center mb-6">
-                <Logo size="xl" />
+              <View className="">
+                <Logo size="3xl" />
               </View>
 
               <Text className="text-2xl font-rubik-bold text-center text-gray-900">
-                Create your account
+                Sign Up
               </Text>
               <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                It takes less than a minute
+                Create account in less than a minute
               </Text>
 
-              <Input
+              {/* <Input
                 label="Full Name"
                 value={displayName}
                 onChangeText={setDisplayName}
                 error={errors.displayName}
                 placeholder="John Doe"
-              />
+              /> */}
 
               <Input
                 label="Email"
@@ -206,6 +206,7 @@ const SignupScreen: React.FC = () => {
                 keyboardType="email-address"
                 error={errors.email}
                 placeholder="eg. example@gmail.com"
+                required
               />
 
               <Input
@@ -215,6 +216,7 @@ const SignupScreen: React.FC = () => {
                 secureTextEntry
                 error={errors.password}
                 placeholder="••••••••"
+                required
               />
 
               <Input
@@ -224,6 +226,7 @@ const SignupScreen: React.FC = () => {
                 secureTextEntry
                 error={errors.confirmPassword}
                 placeholder="••••••••"
+                required
               />
 
               <Button

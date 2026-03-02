@@ -30,21 +30,21 @@ const SplashScreen: React.FC = () => {
       <View className="items-center">
         <Logo size='3xl'/>
         
-        <Text
+        {/* <Text
   className="text-3xl mt-6 font-rubik-semibold mb-2"
   style={{ color: colors.primary }}  
 >
   {clientName}
-</Text>
-        <Text className="text-gray-600 font-rubik text-md">Welcome to {clientName} App</Text>
+</Text> */}
+        {/* <Text className="text-gray-600 font-rubik text-md">Welcome to {clientName} App</Text> */}
         
-        {isLoading && (
+        {/* {isLoading && (
           <View className="mt-8">
             <Text
             style={{ color: colors.primary }}
              className="text-gray-500 font-rubik">Loading...</Text>
           </View>
-        )}
+        )} */}
       </View>
     </View>
   );

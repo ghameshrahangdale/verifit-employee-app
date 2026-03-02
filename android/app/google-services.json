@@ -91,7 +91,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:533489391926:android:d50f2ea1c3487691863b97",
         "android_client_info": {
-          "package_name": "com.rnignite"
+          "package_name": "com.verifiit"
         }
       },
       "oauth_client": [
@@ -99,7 +99,7 @@
           "client_id": "533489391926-33b0vhgkk7t8q49s1tmtbvf4uc9novvg.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.rnignite",
+            "package_name": "com.verifiit",
             "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
           }
         },
@@ -107,7 +107,7 @@
           "client_id": "533489391926-ie3q8qkp6mipg2s0at04goeqnrvou0bt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.rnignite",
+            "package_name": "com.verifiit",
             "certificate_hash": "18130a8dba42f7d58da257da76a593250b612171"
           }
         },

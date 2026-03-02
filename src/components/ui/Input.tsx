@@ -13,6 +13,7 @@ interface InputProps {
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   className?: string;
+  required?: boolean;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -25,6 +26,7 @@ const Input: React.FC<InputProps> = ({
   keyboardType = 'default',
   autoCapitalize = 'none',
   className = '',
+  required = false,
 }) => {
   const { colors } = useTheme();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -34,14 +36,16 @@ const Input: React.FC<InputProps> = ({
   return (
     <View className={`mb-4 ${className}`}>
       {label && (
-        <Text className="mb-2 font-rubik-medium text-gray-700">{label}</Text>
+        <Text className="mb-2 font-rubik-medium text-gray-700">
+          {label}
+          {required && <Text className="text-red-500"> *</Text>}
+        </Text>
       )}
 
       <View className="relative">
         <TextInput
-          className={`border rounded-lg px-4 pr-12 text-base font-rubik ${
-            error ? 'border-red-500' : 'border-gray-300'
-          } focus:border-blue-500`}
+          className={`border rounded-lg px-4 pr-12 text-base font-rubik ${error ? 'border-red-500' : 'border-gray-300'
+            } focus:border-blue-500`}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
