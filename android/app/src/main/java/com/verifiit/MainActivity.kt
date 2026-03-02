@@ -1,4 +1,4 @@
-package com.rnignite
+package com.verifiit
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

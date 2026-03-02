@@ -1,4 +1,4 @@
-package com.rnignite
+package com.verifiit
 
 import android.app.Application
 import com.facebook.react.PackageList
