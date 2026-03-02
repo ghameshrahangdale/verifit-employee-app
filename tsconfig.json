@@ -1,0 +1,19 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "types": [
+      "jest"
+    ],
+    "moduleResolution": "bundler", 
+    "strict": true,
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts"
+, "react-native.config.js"  ],
+  "exclude": [
+    "**/node_modules",
+    "**/Pods"
+  ]
+}
