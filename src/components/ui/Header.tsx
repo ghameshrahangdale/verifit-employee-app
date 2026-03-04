@@ -27,6 +27,18 @@ const Header: React.FC<HeaderProps> = ({
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
 
+  /**
+   * ⚠️ TODO:
+   * Currently using static USER config.
+   * Replace this with Redux auth user once auth flow is fully integrated.
+   */
+
+  const USER = {
+    displayName: 'Ghamesh Rahangdale',
+    email: 'ghamesh@example.com',
+    photoURL: 'https://i.pravatar.cc/150?img=12',
+  };
+
   const handleAvatarPress = () => {
     navigation.navigate('Tabs', {
       screen: 'Account',
@@ -40,24 +52,30 @@ const Header: React.FC<HeaderProps> = ({
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingVertical: 14,
           backgroundColor: '#fff',
           justifyContent: 'space-between',
-          elevation: 1,
+          elevation: 2,
+          shadowColor: '#000',
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
         },
         style,
       ]}
     >
+      {/* Left Section */}
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {showBack && (
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Feather name="arrow-left" size={22} color={colors.text} />
           </TouchableOpacity>
         )}
+
         <Text
           style={{
             marginLeft: showBack ? 12 : 0,
-            fontSize: 16,
+            fontSize: 18,
             fontFamily: 'Rubik-Medium',
             color: colors.text,
           }}
@@ -66,16 +84,15 @@ const Header: React.FC<HeaderProps> = ({
         </Text>
       </View>
 
-      {(avatarName || avatarEmail || avatarImageUrl) && (
-        <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
-          <Avatar
-            name={avatarName}
-            email={avatarEmail}
-            imageUrl={avatarImageUrl || undefined}
-            size={avatarSize as any}
-          />
-        </TouchableOpacity>
-      )}
+      {/* Right Avatar Section */}
+      <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+        <Avatar
+          name={avatarName || USER.displayName}
+          email={avatarEmail || USER.email}
+          imageUrl={avatarImageUrl || USER.photoURL}
+          size={avatarSize as any}
+        />
+      </TouchableOpacity>
     </View>
   );
 };

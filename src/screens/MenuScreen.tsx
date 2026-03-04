@@ -8,8 +8,6 @@ import {
   Share,
   Platform,
 } from 'react-native';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store/store';
 import Feather from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
@@ -19,15 +17,18 @@ import Toast from 'react-native-toast-message';
 import ConfirmationPopup from '../components/ui/ConfirmationPopup';
 import { AuthService } from '../services/auth';
 import { getApplicationName } from 'react-native-device-info';
-
 import { MENU_ITEMS } from '../config/menu.config';
 
+const USER = {
+  displayName: 'Ghamesh Rahangdale',
+  email: 'ghamesh@example.com',
+  photoURL: 'https://i.pravatar.cc/150?img=12',
+};
+
 const MenuScreen: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
 
-  const [photoURL] = useState(user?.photoURL || '');
   const [showLogout, setShowLogout] = useState(false);
 
   const handleShareApp = async () => {
@@ -80,26 +81,42 @@ const MenuScreen: React.FC = () => {
       {/* Header */}
       <Header
         title="Account & Menu"
-        avatarImageUrl={photoURL || undefined}
+        avatarImageUrl={USER.photoURL}
       />
 
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
-        <View className="bg-white mx-4 mt-6 p-5 rounded-2xl shadow-sm flex-row items-center">
-          <Avatar imageUrl={photoURL || undefined} size="xl" />
+        <View
+          className="bg-white mx-4 mt-6 p-5 rounded-2xl flex-row items-center"
+          style={{
+            shadowColor: '#000',
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+        >
+          <Avatar imageUrl={USER.photoURL} size="xl" />
 
           <View className="ml-4 flex-1">
             <Text className="text-xl font-rubik-bold text-gray-900">
-              {user?.displayName || 'User'}
+              {USER.displayName}
             </Text>
             <Text className="text-sm font-rubik text-gray-500 mt-1">
-              {user?.email}
+              {USER.email}
             </Text>
           </View>
         </View>
 
         {/* Menu Items */}
-        <View className="bg-white mx-4 mt-6 rounded-2xl shadow-sm overflow-hidden">
+        <View
+          className="bg-white mx-4 mt-6 rounded-2xl overflow-hidden"
+          style={{
+            shadowColor: '#000',
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+        >
           {MENU_ITEMS.map((item, index) => (
             <MenuItem
               key={index}
@@ -112,19 +129,28 @@ const MenuScreen: React.FC = () => {
           ))}
         </View>
 
-
         {/* Logout */}
-        <View className="bg-white mx-4 mt-6 rounded-2xl shadow-sm">
+        <View
+          className="bg-white mx-4 mt-6 rounded-2xl"
+          style={{
+            shadowColor: '#000',
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+          }}
+        >
           <TouchableOpacity
             onPress={() => setShowLogout(true)}
             className="flex-row items-center px-5 py-4"
           >
             <Feather name="log-out" size={20} color={colors.error} />
             <Text className="ml-4 text-red-500 font-rubik-medium">
-              Logout
+              Sign out
             </Text>
           </TouchableOpacity>
         </View>
+
+        <View className="h-10" />
       </ScrollView>
 
       <ConfirmationPopup
@@ -157,7 +183,8 @@ const MenuItem = ({
 }) => (
   <TouchableOpacity
     onPress={onPress}
-    className="flex-row items-center px-5 py-4 border-b border-gray-200 last:border-b-0"
+    className="flex-row items-center px-5 py-4 border-b border-gray-100 last:border-b-0"
+    activeOpacity={0.7}
   >
     <Feather name={icon as any} size={20} color={color} />
 
@@ -173,13 +200,8 @@ const MenuItem = ({
       ) : null}
     </View>
 
-    <Feather
-      name="chevron-right"
-      size={18}
-      color="#9CA3AF"
-    />
+    <Feather name="chevron-right" size={18} color="#9CA3AF" />
   </TouchableOpacity>
 );
-
 
 export default MenuScreen;

@@ -5,17 +5,22 @@ export const TAB_CONFIG = [
     icon: 'home',
     label: 'Home',
   },
-
   {
-    name: 'Account',
-    component: 'MenuScreen',
-    icon: 'user',
-    label: 'Account',
+    name: 'Employees',
+    component: 'EmployeeListScreen',
+    icon: 'users',
+    label: 'Employees',
   },
   {
-    name: 'Settings',
-    component: 'SettingsScreen',
-    icon: 'settings',
-    label: 'Settings',
+    name: 'Verified',
+    component: 'VerifiedEmployeeListScreen',
+    icon: 'check-circle',
+    label: 'Verified',
+  },
+  {
+    name: 'Profile',
+    component: 'MenuScreen',
+    icon: 'user', // Rounded minimal user icon in Feather
+    label: 'Profile',
   },
 ] as const;

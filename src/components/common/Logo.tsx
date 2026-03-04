@@ -9,15 +9,18 @@ interface LogoProps {
   source?: ImageSourcePropType;
   text?: string;
   color?: string;
+  width?: number; // Optional custom width
+  height?: number; // Optional custom height
 }
 
+// For horizontal/wide logo, we maintain aspect ratio
 const sizeMap = {
-  sm: 24,
-  md: 32,
-  lg: 48,
-  xl: 64,
-  '2xl': 80,
-  '3xl': 100,
+  sm: { width: 60, height: 24 },   // 2.5:1 aspect ratio
+  md: { width: 80, height: 32 },   // 2.5:1 aspect ratio
+  lg: { width: 120, height: 48 },  // 2.5:1 aspect ratio
+  xl: { width: 160, height: 64 },  // 2.5:1 aspect ratio
+  '2xl': { width: 200, height: 80 }, // 2.5:1 aspect ratio
+  '3xl': { width: 250, height: 100 }, // 2.5:1 aspect ratio
 };
 
 const fontSizeMap = {
@@ -31,11 +34,16 @@ const fontSizeMap = {
 
 const Logo: React.FC<LogoProps> = ({
   size = 'md',
-  source = Images.logo, // ✅ default local asset
+  source = Images.logo,
   text = 'LOGO',
   color = '#111827',
+  width,
+  height,
 }) => {
-  const dimension = sizeMap[size];
+  // Use custom dimensions if provided, otherwise use sizeMap
+  const dimensions = sizeMap[size];
+  const imageWidth = width || dimensions.width;
+  const imageHeight = height || dimensions.height;
   const fontSize = fontSizeMap[size];
 
   return (
@@ -43,7 +51,10 @@ const Logo: React.FC<LogoProps> = ({
       {source ? (
         <Image
           source={source}
-          style={{ width: dimension, height: dimension, borderRadius: dimension / 8 }}
+          style={{ 
+            width: imageWidth, 
+            height: imageHeight,
+          }}
           resizeMode="contain"
         />
       ) : (

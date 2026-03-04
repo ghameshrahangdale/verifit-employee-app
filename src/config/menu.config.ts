@@ -14,13 +14,31 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     route: 'MyProfile',
   },
   {
+    icon: 'user-plus',
+    label: 'Invite Ex-Employee',
+    subtitle: 'Send invitation to former employees',
+    route: 'InviteExEmployee',
+  },
+  {
+    icon: 'settings',
+    label: 'Account Settings',
+    subtitle: 'Manage account preferences and security',
+    route: 'AccountSettings',
+  },
+  {
+    icon: 'bell',
+    label: 'Notifications',
+    subtitle: 'Manage notification preferences',
+    route: 'Notifications',
+  },
+  {
     icon: 'info',
     label: 'Legal & App Info',
     subtitle: 'Privacy Policy, Terms & Conditions, Version details',
     route: 'AppInfo',
   },
   {
-    icon: 'info', // or 'book-open'
+    icon: 'book-open',
     label: 'About Us',
     subtitle: 'Learn more about RNIgnite',
     route: 'AboutUs',

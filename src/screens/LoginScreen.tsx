@@ -202,7 +202,8 @@ const LoginScreen: React.FC = () => {
               {/* Login Button */}
               <Button
                 title="Sign In"
-                onPress={handleLogin}
+                // onPress={handleLogin}
+                onPress={()=>navigation.navigate('Tabs')}
                 loading={emailLoading}
                 fullWidth
               />

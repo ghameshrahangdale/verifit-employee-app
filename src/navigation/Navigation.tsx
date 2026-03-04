@@ -27,9 +27,9 @@ const Navigation: React.FC = () => {
   }
 
   // Handle authentication states
-  if (!isAuthenticated || isSigningUp) {
-    return <AuthNavigator />;
-  }
+  // if (!isAuthenticated || isSigningUp) {
+  //   return <AuthNavigator />;
+  // }
 
   // Wrap authenticated app with biometric gate
   return (

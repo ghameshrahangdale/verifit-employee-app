@@ -9,6 +9,8 @@ export type AppTabParamList = {
   Home: undefined;
   Profile: undefined;
   Menu: undefined;
+  Verified: undefined;
+  EmployeeListScreen: undefined;
 };
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
