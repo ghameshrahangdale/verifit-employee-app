@@ -19,17 +19,23 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     subtitle: 'Send invitation to former employees',
     route: 'InviteExEmployee',
   },
-  {
-    icon: 'settings',
-    label: 'Account Settings',
-    subtitle: 'Manage account preferences and security',
-    route: 'AccountSettings',
-  },
+  // {
+  //   icon: 'settings',
+  //   label: 'Account Settings',
+  //   subtitle: 'Manage account preferences and security',
+  //   route: 'AccountSettings',
+  // },
   {
     icon: 'bell',
     label: 'Notifications',
     subtitle: 'Manage notification preferences',
     route: 'Notifications',
+  },
+  {
+    icon: 'settings',
+    label: 'Settings',
+    subtitle: 'Manage Setting preferences',
+    route: 'Settings',
   },
   {
     icon: 'info',

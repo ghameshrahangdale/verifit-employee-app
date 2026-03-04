@@ -155,8 +155,8 @@ const LoginScreen: React.FC = () => {
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
               
               {/* Logo */}
-              <View className="">
-                <Logo size="3xl" />
+              <View className="mb-6">
+                <Logo size="lg" />
               </View>
 
               {/* Title */}

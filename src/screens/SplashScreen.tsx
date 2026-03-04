@@ -28,7 +28,7 @@ const SplashScreen: React.FC = () => {
   return (
     <View className="flex-1 justify-center items-center bg-white">
       <View className="items-center">
-        <Logo size='3xl'/>
+        <Logo size='xl'/>
         
         {/* <Text
   className="text-3xl mt-6 font-rubik-semibold mb-2"

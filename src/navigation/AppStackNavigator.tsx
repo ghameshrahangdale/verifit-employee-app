@@ -10,10 +10,10 @@ import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsScreen from '../screens/TermsScreen';
 import DocumentationScreen from '../screens/DocumentationScreen';
 import InviteExEmployeeScreen from '../screens/InviteExEmployeeScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 export type AppStackParamList = {
   Tabs: undefined;
-  Settings: undefined;
   AppInfo: undefined;
   MyProfile: undefined;
   Login:undefined;
@@ -23,6 +23,7 @@ export type AppStackParamList = {
   Terms: undefined;
   Documentation: undefined;
   InviteExEmployee: undefined;
+  Settings: undefined;
 };
 
 const Stack = createStackNavigator<AppStackParamList>();
@@ -39,6 +40,7 @@ const AppStackNavigator: React.FC = () => {
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Documentation" component={DocumentationScreen} />
       <Stack.Screen name="InviteExEmployee" component={InviteExEmployeeScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 };

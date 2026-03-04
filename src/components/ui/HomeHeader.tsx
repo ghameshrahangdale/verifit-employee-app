@@ -1,4 +1,5 @@
-import React from 'react';
+// components/common/HomeHeader.tsx
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import { useTheme } from '../../context/ThemeContext';
 import Avatar from './Avatar';
 import Logo from '../common/Logo';
 import Icon from 'react-native-vector-icons/Feather';
+import NotificationModal from './NotificationModal';
 import { name as clientName } from '../../../app.json';
 
 interface HomeHeaderProps {
@@ -34,8 +36,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   showNotificationBadge = false,
   notificationBadgeCount = 0,
 }) => {
-  const { colors, isDarkMode, toggleTheme } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const navigation = useNavigation<any>();
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
   const handleAvatarPress = () => {
     navigation.navigate('Tabs', {
@@ -47,95 +50,113 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     if (onNotificationPress) {
       onNotificationPress();
     } else {
+      setNotificationModalVisible(true);
+    }
+  };
+
+  const handleViewAllNotifications = () => {
+    setNotificationModalVisible(false);
+    navigation.navigate('Tabs', {
+      screen: 'Notifications',
+    });
+  };
+
+  const handleNotificationItemPress = (notification: any) => {
+    setNotificationModalVisible(false);
+    // Handle individual notification press
+    console.log('Notification pressed:', notification);
+    // You can navigate to specific screens based on notification type
+    if (notification.type === 'info') {
       navigation.navigate('Tabs', {
-        screen: 'Notifications',
+        screen: 'Home',
       });
     }
   };
 
   return (
-    <View
-      style={[
-        {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: colors.background,
-          elevation: isDarkMode ? 0 : 1, // Remove elevation in dark mode for flat design
-          borderBottomWidth: 1,
-          borderBottomColor:  '#E5E7EB', // Add transparency in dark mode
-        },
-        style,
-      ]}
-    >
-      {/* Left: Logo */}
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Logo size="md" />
-      </View>
+    <>
+      <View
+        style={[
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: colors.background,
+            elevation: isDarkMode ? 0 : 1,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E7EB',
+          },
+          style,
+        ]}
+      >
+        {/* Left: Logo */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Logo size="md" />
+        </View>
 
-      {/* Right: Actions + Avatar */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        {/* Dark Mode Toggle */}
-        {/* <TouchableOpacity onPress={toggleTheme} activeOpacity={0.7}>
-          <Icon
-            name={isDarkMode ? 'sun' : 'moon'}
-            size={24}
-            color={colors.text}
-          />
-        </TouchableOpacity> */}
-
-        {/* Notification Button */}
-        <TouchableOpacity onPress={handleNotificationPress} activeOpacity={0.7}>
-          <View>
-            <Icon
-              name="bell"
-              size={24}
-              color={colors.text}
-            />
-            {showNotificationBadge && notificationBadgeCount > 0 && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  backgroundColor: colors.error,
-                  borderRadius: 10,
-                  minWidth: 18,
-                  height: 18,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  paddingHorizontal: 4,
-                }}
-              >
-                <Text
+        {/* Right: Actions + Avatar */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          {/* Notification Button */}
+          <TouchableOpacity onPress={handleNotificationPress} activeOpacity={0.7}>
+            <View>
+              <Icon
+                name="bell"
+                size={20}
+                color={colors.text}
+              />
+              {showNotificationBadge && notificationBadgeCount > 0 && (
+                <View
                   style={{
-                    color: '#FFFFFF',
-                    fontSize: 10,
-                    fontWeight: 'bold',
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    backgroundColor: colors.error,
+                    borderRadius: 10,
+                    minWidth: 18,
+                    height: 18,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 4,
                   }}
                 >
-                  {notificationBadgeCount > 99 ? '99+' : notificationBadgeCount}
-                </Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        {/* Avatar */}
-        {(avatarName || avatarEmail || avatarImageUrl) && (
-          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
-            <Avatar
-              name={avatarName}
-              email={avatarEmail}
-              imageUrl={avatarImageUrl || undefined}
-              size={avatarSize as any}
-            />
+                  <Text
+                    style={{
+                      color: '#FFFFFF',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {notificationBadgeCount > 99 ? '99+' : notificationBadgeCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
-        )}
+
+          {/* Avatar */}
+          {(avatarName || avatarEmail || avatarImageUrl) && (
+            <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+              <Avatar
+                name={avatarName}
+                email={avatarEmail}
+                imageUrl={avatarImageUrl || undefined}
+                size={avatarSize as any}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+        onViewAllPress={handleViewAllNotifications}
+        onNotificationPress={handleNotificationItemPress}
+      />
+    </>
   );
 };
 

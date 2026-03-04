@@ -179,8 +179,8 @@ const SignupScreen: React.FC = () => {
           <View className="px-6">
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
 
-              <View className="">
-                <Logo size="3xl" />
+              <View className="mb-6">
+                <Logo size="lg" />
               </View>
 
               <Text className="text-2xl font-rubik-bold text-center text-gray-900">
