@@ -54,6 +54,10 @@ const VerifyEmailScreen: React.FC = () => {
       setIsVerifying(true);
       setError(null);
 
+      if (!token) {
+        throw new Error('Verification token is missing');
+      }
+
       const response = await AuthService.verifyEmail(token);
       
       setIsVerified(true);
