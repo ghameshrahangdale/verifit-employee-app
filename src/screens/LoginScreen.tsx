@@ -17,25 +17,24 @@ import { AuthStackParamList } from '../navigation/AuthNavigator';
 import Logo from '../components/common/Logo';
 import Toast from 'react-native-toast-message';
 import { AuthService } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
 const LoginScreen: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('org2@yopmail.com');
+  const [password, setPassword] = useState('Admin@123');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const { colors } = useTheme();
+  const { login, isLoading, error, clearError } = useAuth();
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
-  // Clear errors when user starts typing
-  useEffect(() => {
+   useEffect(() => {
     if (email) setEmailError('');
     if (password) setPasswordError('');
-    if (error) setError('');
+    if (error) clearError();
   }, [email, password]);
 
   const validateForm = () => {
@@ -68,46 +67,28 @@ const LoginScreen: React.FC = () => {
     if (!validateForm()) return;
     
     try {
-      setIsLoading(true);
-      setError('');
-
-      // Call the login API
-      const response = await AuthService.login(email, password);
-
-      console.log(response);
+      await login(email, password);
       
-      // Show success message
       Toast.show({
         type: 'success',
         text1: 'Login Successful',
         text2: 'Welcome back! 👋',
         visibilityTime: 3000,
       });
-
+      
       
     } catch (error: any) {
-      console.log('Login error:', error);
       
-      const errorMessage = error.message || 'Failed to login. Please try again.';
-      setError(errorMessage);
-      
-      // Show error toast
       Toast.show({
         type: 'error',
         text1: 'Login Failed',
-        text2: errorMessage,
+        text2: error.message || 'Failed to login',
         visibilityTime: 4000,
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    return () => {
-      setError('');
-    };
-  }, []);
+  
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -199,8 +180,6 @@ const LoginScreen: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-
-             
             </View>
           </View>
         </ScrollView>
