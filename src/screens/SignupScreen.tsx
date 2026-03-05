@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// screens/SignupScreen.tsx
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { AuthService } from '../services/auth';
 import Button from '../components/ui/Button';
@@ -15,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import Toast from 'react-native-toast-message';
 import Logo from '../components/common/Logo';
+// import Checkbox from '../components/ui/Checkbox'; 
 
 type SignupScreenNavigationProp = StackNavigationProp<
   AuthStackParamList,
@@ -22,144 +25,146 @@ type SignupScreenNavigationProp = StackNavigationProp<
 >;
 
 const SignupScreen: React.FC = () => {
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  // Form state matching web version
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    organizationName: '',
+    organizationAddress: '',
+  });
+
+  const [isChecked, setIsChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [signupError, setSignupError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigation = useNavigation<SignupScreenNavigationProp>();
 
-  // Immediate email validation
-  useEffect(() => {
-    if (email.length === 0) {
-      setErrors(prev => ({ ...prev, email: '' }));
-      return;
-    }
+  // Handle input changes
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
 
-    if (!email.includes('@')) {
-      setErrors(prev => ({ 
-        ...prev, 
-        email: 'Please include "@" in your email address' 
-      }));
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setErrors(prev => ({ 
-        ...prev, 
-        email: 'Please enter a valid email address (e.g., name@example.com)' 
-      }));
-    } else {
-      setErrors(prev => ({ ...prev, email: '' }));
-    }
-  }, [email]);
-
-  // Immediate password validation
-  useEffect(() => {
-    if (password.length === 0) {
-      setErrors(prev => ({ ...prev, password: '' }));
-      return;
-    }
-
-    const missingRequirements: string[] = [];
-
-    if (password.length < 6) {
-      missingRequirements.push('6 characters');
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      missingRequirements.push('one uppercase letter');
-    }
-
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      missingRequirements.push('one special character (!@#$% etc.)');
-    }
-
-    if (missingRequirements.length > 0) {
-      setErrors(prev => ({ 
-        ...prev, 
-        password: `Must include: ${missingRequirements.join(', ')}` 
-      }));
-    } else {
-      setErrors(prev => ({ ...prev, password: '' }));
-    }
-  }, [password]);
-
-  // Immediate confirm password validation
-  useEffect(() => {
-    if (confirmPassword.length === 0) {
-      setErrors(prev => ({ ...prev, confirmPassword: '' }));
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setErrors(prev => ({ 
-        ...prev, 
-        confirmPassword: 'Passwords do not match. Please try again.' 
-      }));
-    } else {
-      setErrors(prev => ({ ...prev, confirmPassword: '' }));
-    }
-  }, [password, confirmPassword]);
-
-  const validateForm = () => {
-    const e: any = {};
-    
-    if (!displayName.trim()) {
-      e.displayName = 'Please enter your name';
+    // Clear password error when user types in either password field
+    if (field === 'password' || field === 'confirmPassword') {
+      setPasswordError(null);
     }
     
-    if (!email) {
-      e.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      e.email = 'Please enter a valid email address';
-    }
-    
-    if (!password) {
-      e.password = 'Password is required';
-    } else if (password.length < 6 || !/[A-Z]/.test(password) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      // Use the same validation logic but with a cleaner message for final validation
-      const missing = [];
-      if (password.length < 6) missing.push('6 characters');
-      if (!/[A-Z]/.test(password)) missing.push('one uppercase letter');
-      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) missing.push('one special character');
-      e.password = `Password must include: ${missing.join(', ')}`;
-    }
-    
-    if (password !== confirmPassword) {
-      e.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    // Clear general error when user makes changes
+    if (error) setError(null);
   };
 
+  // Validate form
+  const validateForm = (): boolean => {
+    // Reset messages
+    setError(null);
+    setPasswordError(null);
+
+    // Check passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return false;
+    }
+
+    // Check password strength
+    if (formData.password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return false;
+    }
+
+    // Check terms acceptance
+    if (!isChecked) {
+      setError("Please accept the Terms and Conditions and Privacy Policy");
+      return false;
+    }
+
+    // Check organization name
+    if (!formData.organizationName.trim()) {
+      setError("Organization name is required");
+      return false;
+    }
+
+    // Basic email validation
+    if (!formData.email.includes('@') || !/\S+@\S+\.\S+/.test(formData.email)) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+
+    // Check required fields
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError("First name and last name are required");
+      return false;
+    }
+
+    return true;
+  };
+
+  // Handle form submission
   const handleSignup = async () => {
-    // Clear previous errors
-    setSignupError(null);
-    
     if (!validateForm()) return;
 
     setIsLoading(true);
-    
+    setError(null);
+    setSuccessMessage(null);
+
     try {
-      const res = await AuthService.signupWithEmail(email, password, displayName);
+      // Prepare payload
+      const payload = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        organizationName: formData.organizationName.trim(),
+        organizationAddress: formData.organizationAddress.trim() || undefined,
+      };
+
+      const response = await AuthService.register(payload);
+      
+      // Show success message
+      setSuccessMessage(response.message || "Registration successful! Please check your email to verify your account.");
+      
       Toast.show({
         type: 'success',
-        text1: 'Account created',
-        text2: 'Please login to continue',
+        text1: 'Registration Successful',
+        text2: response.message || 'Please check your email to verify your account',
+        visibilityTime: 5000,
       });
 
-      navigation.navigate('Login');
-    
-    } catch (err: any) {
-      const message = err?.message || 'Signup failed';
-      setSignupError(message);
+      // Clear form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        organizationName: '',
+        organizationAddress: '',
+      });
+      setIsChecked(false);
 
+      // Navigate to verification screen after delay
+      // setTimeout(() => {
+      //   navigation.navigate('VerifyEmail'); 
+      // }, 3000);
+
+    } catch (err: any) {
+      // Handle error
+      const errorMessage = err.message || "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
+      
       Toast.show({
         type: 'error',
-        text1: 'Signup Failed',
-        text2: message,
+        text1: 'Registration Failed',
+        text2: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -175,88 +180,172 @@ const SignupScreen: React.FC = () => {
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View className="px-6">
+          <View className="px-6 py-8">
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
-
-              <View className="mb-6">
+              
+              <View className="mb-6 items-center">
                 <Logo size="lg" />
               </View>
 
               <Text className="text-2xl font-rubik-bold text-center text-gray-900">
-                Sign Up
+                Organization Registration
               </Text>
-              <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                Create account in less than a minute
+              <Text className="text-gray-500 text-center font-rubik mt-1 mb-6">
+                Enter your details to create an organization account!
               </Text>
 
-              {/* <Input
-                label="Full Name"
-                value={displayName}
-                onChangeText={setDisplayName}
-                error={errors.displayName}
-                placeholder="John Doe"
-              /> */}
-
-              <Input
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                error={errors.email}
-                placeholder="eg. example@gmail.com"
-                required
-              />
-
-              <Input
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                error={errors.password}
-                placeholder="••••••••"
-                required
-              />
-
-              <Input
-                label="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                error={errors.confirmPassword}
-                placeholder="••••••••"
-                required
-              />
-
-              <Button
-                title="Create Account"
-                onPress={handleSignup}
-                loading={isLoading}
-                fullWidth
-                className="mt-4"
-              />
-
-              <View className="flex-row justify-center mt-6">
-                <Text className="text-gray-600 font-rubik">
-                  Already have an account?
-                </Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Login')}
-                >
-                  <Text className="text-blue-600 font-rubik-medium ml-1">
-                    Sign in
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {signupError && (
-                <View className="mt-4 bg-red-50 p-3 rounded-xl">
+              {/* Error Message Display */}
+              {error && (
+                <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
                   <Text className="text-red-600 text-center font-rubik">
-                    {signupError}
+                    {error}
                   </Text>
                 </View>
               )}
+
+              {/* Success Message Display */}
+              {successMessage && (
+                <View className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                  <Text className="text-green-600 text-center font-rubik">
+                    {successMessage}
+                  </Text>
+                </View>
+              )}
+
+              {/* Password Error Display */}
+              {passwordError && (
+                <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <Text className="text-red-600 text-center font-rubik">
+                    {passwordError}
+                  </Text>
+                </View>
+              )}
+
+              {/* Form Fields */}
+              <View className="space-y-4">
+                {/* First Name & Last Name Row */}
+                <View className="flex-row space-x-3">
+                  <View className="flex-1">
+                    <Input
+                      label="First Name"
+                      value={formData.firstName}
+                      onChangeText={(value) => handleChange('firstName', value)}
+                      placeholder="Enter first name"
+                      required
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Input
+                      label="Last Name"
+                      value={formData.lastName}
+                      onChangeText={(value) => handleChange('lastName', value)}
+                      placeholder="Enter last name"
+                      required
+                    />
+                  </View>
+                </View>
+
+                {/* Email */}
+                <Input
+                  label="Email"
+                  value={formData.email}
+                  onChangeText={(value) => handleChange('email', value)}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholder="Enter your email"
+                  required
+                />
+
+                {/* Password */}
+                <Input
+                  label="Password"
+                  value={formData.password}
+                  onChangeText={(value) => handleChange('password', value)}
+                  secureTextEntry={!showPassword}
+                  placeholder="Enter your password"
+                  required
+                  
+                />
+
+                {/* Confirm Password */}
+                <Input
+                  label="Confirm Password"
+                  value={formData.confirmPassword}
+                  onChangeText={(value) => handleChange('confirmPassword', value)}
+                  secureTextEntry={!showConfirmPassword}
+                  placeholder="Confirm your password"
+                  required
+                  
+                />
+
+                {/* Organization Fields */}
+                <Input
+                  label="Organization Name"
+                  value={formData.organizationName}
+                  onChangeText={(value) => handleChange('organizationName', value)}
+                  placeholder="Enter organization name"
+                  required
+                />
+
+                <Input
+                  label="Organization Address (Optional)"
+                  value={formData.organizationAddress}
+                  onChangeText={(value) => handleChange('organizationAddress', value)}
+                  placeholder="Enter organization address"
+                />
+
+                {/* Terms Checkbox */}
+                <TouchableOpacity
+                  onPress={() => setIsChecked(!isChecked)}
+                  className="flex-row items-start space-x-3 mt-2"
+                >
+                  <View className={`w-5 h-5 border-2 rounded mt-0.5 ${
+                    isChecked 
+                      ? 'bg-blue-600 border-blue-600' 
+                      : 'border-gray-300 bg-white'
+                  }`}>
+                    {isChecked && (
+                      <Text className="text-white text-center">✓</Text>
+                    )}
+                  </View>
+                  <Text className="flex-1 text-gray-600 font-rubik text-sm">
+                    By creating an account means you agree to the{' '}
+                    <Text className="text-gray-900 font-rubik-medium">
+                      Terms and Conditions,
+                    </Text>{' '}
+                    and our{' '}
+                    <Text className="text-gray-900 font-rubik-medium">
+                      Privacy Policy
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Submit Button */}
+                <Button
+                  title={isLoading ? "Creating organization..." : "Register Organization"}
+                  onPress={handleSignup}
+                  loading={isLoading}
+                  fullWidth
+                  className="mt-4"
+                  disabled={isLoading}
+                />
+
+                {/* Login Link */}
+                <View className="flex-row justify-center mt-4">
+                  <Text className="text-gray-600 font-rubik">
+                    Already have an account?
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Login')}
+                  >
+                    <Text className="text-blue-600 font-rubik-medium ml-1">
+                      Sign In
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>

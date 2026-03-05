@@ -1,3 +1,4 @@
+// screens/LoginScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,7 +14,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
-import { configureGoogleSignIn, signInWithGoogle } from '../services/googleSignIn';
 import Logo from '../components/common/Logo';
 import Toast from 'react-native-toast-message';
 import { AuthService } from '../services/auth';
@@ -26,15 +26,10 @@ const LoginScreen: React.FC = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { colors } = useTheme();
   const navigation = useNavigation<LoginScreenNavigationProp>();
-
-  useEffect(() => {
-    configureGoogleSignIn();
-  }, []);
 
   // Clear errors when user starts typing
   useEffect(() => {
@@ -50,17 +45,21 @@ const LoginScreen: React.FC = () => {
       setEmailError('Email is required');
       valid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Invalid email');
+      setEmailError('Please enter a valid email address');
       valid = false;
-    } else setEmailError('');
+    } else {
+      setEmailError('');
+    }
 
     if (!password) {
       setPasswordError('Password is required');
       valid = false;
     } else if (password.length < 6) {
-      setPasswordError('Min 6 characters');
+      setPasswordError('Password must be at least 6 characters');
       valid = false;
-    } else setPasswordError('');
+    } else {
+      setPasswordError('');
+    }
 
     return valid;
   };
@@ -69,68 +68,38 @@ const LoginScreen: React.FC = () => {
     if (!validateForm()) return;
     
     try {
-      
-      setEmailLoading(true);
+      setIsLoading(true);
       setError('');
 
-      await AuthService.loginWithEmail(email, password);
-      // If login is successful, show success message
+      // Call the login API
+      const response = await AuthService.login(email, password);
+
+      console.log(response);
+      
+      // Show success message
       Toast.show({
         type: 'success',
         text1: 'Login Successful',
-        text2: 'Welcome back 👋',
-        
+        text2: 'Welcome back! 👋',
+        visibilityTime: 3000,
       });
-    } catch (error: any) {
-      console.log(error);
+
       
-      setError(error.message);
+    } catch (error: any) {
+      console.log('Login error:', error);
+      
+      const errorMessage = error.message || 'Failed to login. Please try again.';
+      setError(errorMessage);
       
       // Show error toast
       Toast.show({
         type: 'error',
         text1: 'Login Failed',
-        text2: error.message,
+        text2: errorMessage,
+        visibilityTime: 4000,
       });
     } finally {
-      setEmailLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setGoogleLoading(true);
-      setError('');
-
-      const credential = await signInWithGoogle();
-      if (!credential) {
-        Toast.show({
-          type: 'error',
-          text1: 'Sign In Cancelled',
-          text2: 'Google sign in was cancelled',
-        });
-        return;
-      }
-      
-      await AuthService.signInWithGoogle();
-      
-      // If login is successful, show success message
-      Toast.show({
-        type: 'success',
-        text1: 'Login Successful',
-        text2: 'Welcome back 👋',
-      });
-    } catch (error: any) {
-      setError(error.message || 'Failed to sign in with Google');
-      
-      // Show error toast
-      Toast.show({
-        type: 'error',
-        text1: 'Google Login Failed',
-        text2: error.message || 'Failed to sign in with Google',
-      });
-    } finally {
-      setGoogleLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -149,13 +118,14 @@ const LoginScreen: React.FC = () => {
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          showsVerticalScrollIndicator={false}
         >
-          <View className="px-6">
+          <View className="px-6 py-8">
             {/* Card */}
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
               
               {/* Logo */}
-              <View className="mb-6">
+              <View className="mb-6 items-center">
                 <Logo size="lg" />
               </View>
 
@@ -164,17 +134,27 @@ const LoginScreen: React.FC = () => {
                 Sign in to your account
               </Text>
               <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                Welcome back, let's continue
+                Welcome back! Please enter your details
               </Text>
+
+              {/* Error Display */}
+              {error ? (
+                <View className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                  <Text className="text-red-600 text-center font-rubik text-sm">
+                    {error}
+                  </Text>
+                </View>
+              ) : null}
 
               {/* Inputs */}
               <Input
                 label="Email"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="you@example.com"
+                placeholder="Enter your email"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                // autoComplete="email"
                 error={emailError}
                 required
               />
@@ -183,13 +163,13 @@ const LoginScreen: React.FC = () => {
                 label="Password"
                 value={password}
                 onChangeText={setPassword}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 secureTextEntry
                 error={passwordError}
                 required
               />
 
-              {/* Forgot */}
+              {/* Forgot Password */}
               <TouchableOpacity 
                 className="self-end mb-6"
                 onPress={() => navigation.navigate('ForgotPassword')}
@@ -201,30 +181,14 @@ const LoginScreen: React.FC = () => {
 
               {/* Login Button */}
               <Button
-                title="Sign In"
-                // onPress={handleLogin}
-                onPress={()=>navigation.navigate('Tabs')}
-                loading={emailLoading}
+                title={isLoading ? "Signing in..." : "Sign In"}
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={isLoading}
                 fullWidth
               />
 
-              {/* Divider */}
-              {/* <View className="flex-row items-center my-6">
-                <View className="flex-1 h-px bg-gray-200" />
-                <Text className="mx-3 text-gray-400 font-rubik text-sm">OR</Text>
-                <View className="flex-1 h-px bg-gray-200" />
-              </View> */}
-
-              {/* Google */}
-              {/* <Button
-                title="Continue with Google"
-                onPress={handleGoogleLogin}
-                loading={googleLoading}
-                variant="outline"
-                fullWidth
-              /> */}
-
-              {/* Signup */}
+              {/* Signup Link */}
               <View className="flex-row justify-center mt-6">
                 <Text className="text-gray-600 font-rubik">
                   Don't have an account?
@@ -236,14 +200,7 @@ const LoginScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Error Display */}
-              {error && (
-                <View className="mt-4 bg-red-50 p-3 rounded-xl">
-                  <Text className="text-red-600 text-center font-rubik">
-                    {error}
-                  </Text>
-                </View>
-              )}
+             
             </View>
           </View>
         </ScrollView>

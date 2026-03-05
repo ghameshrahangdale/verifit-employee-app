@@ -1,3 +1,4 @@
+// screens/MenuScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -9,13 +10,13 @@ import {
   Platform,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import Header from '../components/ui/Header';
 import Avatar from '../components/ui/Avatar';
 import Toast from 'react-native-toast-message';
 import ConfirmationPopup from '../components/ui/ConfirmationPopup';
-import { AuthService } from '../services/auth';
+import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 import { getApplicationName } from 'react-native-device-info';
 import { MENU_ITEMS } from '../config/menu.config';
 
@@ -28,8 +29,19 @@ const USER = {
 const MenuScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const { logout, user } = useAuth(); // Get logout function and user from auth context
 
   const [showLogout, setShowLogout] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Use actual user data from auth context if available, otherwise fallback to static data
+  const displayUser = {
+    displayName: user 
+      ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split('@')[0] || 'User'
+      : USER.displayName,
+    email: user?.email || USER.email,
+    photoURL: user?.photoURL || USER.photoURL,
+  };
 
   const handleShareApp = async () => {
     try {
@@ -58,21 +70,41 @@ const MenuScreen: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await AuthService.logout();
-
+      setIsLoggingOut(true);
+      
+      // Call logout from auth context
+      await logout();
+      
+      // Show success toast
       Toast.show({
         type: 'success',
         text1: 'Logged out',
         text2: 'You have been logged out successfully',
         position: 'bottom',
+        visibilityTime: 3000,
       });
-    } catch {
+
+      // Reset navigation to Auth stack
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Auth' }], // Make sure this matches your auth navigator name
+        })
+      );
+      
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      
       Toast.show({
         type: 'error',
         text1: 'Logout failed',
-        text2: 'Please try again',
+        text2: error.message || 'Please try again',
         position: 'bottom',
+        visibilityTime: 4000,
       });
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogout(false);
     }
   };
 
@@ -81,7 +113,7 @@ const MenuScreen: React.FC = () => {
       {/* Header */}
       <Header
         title="Account & Menu"
-        avatarImageUrl={USER.photoURL}
+        avatarImageUrl={displayUser.photoURL}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -95,14 +127,14 @@ const MenuScreen: React.FC = () => {
             shadowOffset: { width: 0, height: 4 },
           }}
         >
-          <Avatar imageUrl={USER.photoURL} size="xl" />
+          <Avatar imageUrl={displayUser.photoURL} size="xl" />
 
           <View className="ml-4 flex-1">
             <Text className="text-xl font-rubik-bold text-gray-900">
-              {USER.displayName}
+              {displayUser.displayName}
             </Text>
             <Text className="text-sm font-rubik text-gray-500 mt-1">
-              {USER.email}
+              {displayUser.email}
             </Text>
           </View>
         </View>
@@ -142,10 +174,15 @@ const MenuScreen: React.FC = () => {
           <TouchableOpacity
             onPress={() => setShowLogout(true)}
             className="flex-row items-center px-5 py-4"
+            disabled={isLoggingOut}
           >
-            <Feather name="log-out" size={20} color={colors.error} />
+            <Feather 
+              name={isLoggingOut ? "loader" : "log-out"} 
+              size={20} 
+              color={colors.error} 
+            />
             <Text className="ml-4 text-red-500 font-rubik-medium">
-              Sign out
+              {isLoggingOut ? "Signing out..." : "Sign out"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -159,10 +196,8 @@ const MenuScreen: React.FC = () => {
         message="Are you sure you want to logout?"
         confirmText="Logout"
         onCancel={() => setShowLogout(false)}
-        onConfirm={() => {
-          setShowLogout(false);
-          handleLogout();
-        }}
+        onConfirm={handleLogout}
+        // isLoading={isLoggingOut} // If your ConfirmationPopup supports loading state
       />
     </View>
   );

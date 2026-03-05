@@ -1,5 +1,6 @@
+// src/navigation/Navigation.tsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext'; // Changed from '../hooks/useAuth'
 import AuthNavigator from './AuthNavigator';
 import AppStackNavigator from './AppStackNavigator';
 import SplashScreen from '../screens/SplashScreen';
@@ -7,15 +8,20 @@ import BiometricGate from '../screens/BiometricGateScreen';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
 
 const Navigation: React.FC = () => {
-  const { isAuthenticated, isLoading, isSigningUp } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth(); // Removed isSigningUp as it might not exist in AuthContext
   const { isBiometricEnabled, loadBiometricSettings } = useBiometricAuth();
   const [isBiometricLoaded, setIsBiometricLoaded] = useState(false);
 
   // Load biometric settings
   useEffect(() => {
     const loadSettings = async () => {
-      await loadBiometricSettings();
-      setIsBiometricLoaded(true);
+      try {
+        await loadBiometricSettings();
+      } catch (error) {
+        console.error('Error loading biometric settings:', error);
+      } finally {
+        setIsBiometricLoaded(true);
+      }
     };
     
     loadSettings();
@@ -27,21 +33,25 @@ const Navigation: React.FC = () => {
   }
 
   // Handle authentication states
-  // if (!isAuthenticated || isSigningUp) {
-  //   return <AuthNavigator />;
-  // }
+  if (!isAuthenticated) {
+    return <AuthNavigator />;
+  }
 
-  // Wrap authenticated app with biometric gate
-  return (
-    <BiometricGate
-      onAuthSuccess={() => {
-        // This callback is called when biometric auth succeeds
-        console.log('Biometric authentication successful');
-      }}
-    >
-      <AppStackNavigator />
-    </BiometricGate>
-  );
+  // Check if biometric is enabled
+  if (isBiometricEnabled) {
+    return (
+      <BiometricGate
+        onAuthSuccess={() => {
+          console.log('Biometric authentication successful');
+        }}
+      >
+        <AppStackNavigator />
+      </BiometricGate>
+    );
+  }
+
+  // If biometric is not enabled, go directly to app
+  return <AppStackNavigator />;
 };
 
 export default Navigation;
