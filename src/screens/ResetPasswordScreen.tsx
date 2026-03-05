@@ -1,4 +1,4 @@
-// screens/ForgotPasswordScreen.tsx
+// screens/ResetPasswordScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,8 +9,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -19,40 +20,71 @@ import Toast from 'react-native-toast-message';
 import { AuthService } from '../services/auth';
 import Feather from 'react-native-vector-icons/Feather';
 
-type ForgotPasswordNavProp = StackNavigationProp<
+type ResetPasswordNavProp = StackNavigationProp<
   AuthStackParamList,
-  'ForgotPassword'
+  'ResetPassword'
 >;
 
-const ForgotPasswordScreen: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
+type ResetPasswordRouteProp = RouteProp<
+  AuthStackParamList,
+  'ResetPassword'
+>;
+
+const ResetPasswordScreen: React.FC = () => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { colors } = useTheme();
-  const navigation = useNavigation<ForgotPasswordNavProp>();
+  const navigation = useNavigation<ResetPasswordNavProp>();
+  const route = useRoute<ResetPasswordRouteProp>();
+  
+  // Get token from route params
+  const { token } = route.params || {};
 
   // Clear errors when user starts typing
   useEffect(() => {
-    if (email) {
-      setEmailError('');
-      setError(null);
+    if (password) {
+      setPasswordError('');
+      validatePassword(password);
     }
-  }, [email]);
+    if (confirmPassword) setConfirmPasswordError('');
+    if (error) setError(null);
+  }, [password, confirmPassword]);
+
+  // Validate password strength
+  const validatePassword = (value: string) => {
+    if (value.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
 
   const validateForm = () => {
     let valid = true;
 
-    if (!email) {
-      setEmailError('Email is required');
+    if (!password) {
+      setPasswordError('Password is required');
       valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Please enter a valid email address');
+    } else if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
       valid = false;
-    } else {
-      setEmailError('');
+    }
+
+    if (!confirmPassword) {
+      setConfirmPasswordError('Please confirm your password');
+      valid = false;
+    } else if (password !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match');
+      valid = false;
     }
 
     return valid;
@@ -65,22 +97,22 @@ const ForgotPasswordScreen: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      // Call the forgot password API
-      await AuthService.forgotPassword(email);
+      // Call the reset password API with token
+      await AuthService.resetPassword(token, password, confirmPassword);
 
       // Show success toast
       Toast.show({
         type: 'success',
-        text1: 'Email Sent',
-        text2: 'Password reset link sent to your email 📧',
+        text1: 'Password Reset Successful',
+        text2: 'Your password has been updated. Please sign in with your new password.',
         visibilityTime: 5000,
       });
 
       // Set success state
-      setIsSubmitted(true);
+      setIsSuccess(true);
       
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to send reset email';
+      const errorMessage = error.message || 'Failed to reset password';
       setError(errorMessage);
       
       Toast.show({
@@ -94,37 +126,12 @@ const ForgotPasswordScreen: React.FC = () => {
     }
   };
 
-  const handleResendEmail = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      await AuthService.forgotPassword(email);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Email Resent',
-        text2: 'Password reset link sent again to your email 📧',
-        visibilityTime: 5000,
-      });
-      
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to resend email';
-      setError(errorMessage);
-      
-      Toast.show({
-        type: 'error',
-        text1: 'Resend Failed',
-        text2: errorMessage,
-        visibilityTime: 4000,
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGoToLogin = () => {
+    navigation.navigate('Login');
   };
 
   const handleGoBack = () => {
-    if (isSubmitted) {
+    if (isSuccess) {
       navigation.navigate('Login');
     } else {
       navigation.goBack();
@@ -161,17 +168,17 @@ const ForgotPasswordScreen: React.FC = () => {
 
               {/* Title */}
               <Text className="text-2xl font-rubik-bold text-gray-900 text-center">
-                {!isSubmitted ? 'Forgot Password?' : 'Check Your Email'}
+                {!isSuccess ? 'Reset Password' : 'Password Reset!'}
               </Text>
               <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                {!isSubmitted 
-                  ? 'Enter your email to reset your password'
-                  : `We've sent a password reset link to`
+                {!isSuccess 
+                  ? 'Enter your new password below'
+                  : 'Your password has been successfully reset'
                 }
               </Text>
 
               {/* Error Display */}
-              {error && !isSubmitted && (
+              {error && !isSuccess && (
                 <View className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
                   <Text className="text-red-600 text-center font-rubik text-sm">
                     {error}
@@ -179,29 +186,47 @@ const ForgotPasswordScreen: React.FC = () => {
                 </View>
               )}
 
-              {!isSubmitted ? (
+              {!isSuccess ? (
                 <>
-                  {/* Email Input */}
+                  {/* Password Input */}
                   <Input
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="you@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    // autoComplete="email"
-                    error={emailError}
+                    label="New Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter new password"
+                    secureTextEntry={!showPassword}
+                    error={passwordError}
                     required
+                    
                   />
+
+                  {/* Confirm Password Input */}
+                  <Input
+                    label="Confirm Password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm new password"
+                    secureTextEntry={!showConfirmPassword}
+                    error={confirmPasswordError}
+                    required
+                    
+                  />
+
+                  {/* Password Requirements */}
+                  <View className="mt-2 mb-4">
+                    <Text className="text-xs text-gray-500 font-rubik">
+                      Password must be at least 6 characters long
+                    </Text>
+                  </View>
 
                   {/* Reset Button */}
                   <Button
-                    title={isLoading ? "Sending..." : "Send Reset Link"}
+                    title={isLoading ? "Resetting..." : "Reset Password"}
                     onPress={handleResetPassword}
                     loading={isLoading}
                     disabled={isLoading}
                     fullWidth
-                    className="mt-4"
+                    className="mt-2"
                   />
                 </>
               ) : (
@@ -210,61 +235,36 @@ const ForgotPasswordScreen: React.FC = () => {
                   {/* Success Icon */}
                   <View className="items-center mb-6">
                     <View className="w-20 h-20 bg-green-100 rounded-full items-center justify-center">
-                      <Feather name="mail" size={40} color="#10B981" />
+                      <Feather name="check-circle" size={40} color="#10B981" />
                     </View>
                   </View>
 
-                  {/* Email Display */}
-                  <View className="bg-gray-50 p-4 rounded-xl mb-6">
-                    <Text className="text-gray-600 text-center font-rubik">
-                      We sent instructions to:
-                    </Text>
-                    <Text className="text-gray-900 font-rubik-medium text-center mt-1">
-                      {email}
-                    </Text>
-                  </View>
-
-                  <Text className="text-gray-500 text-center font-rubik mb-6">
-                    Please check your inbox and follow the link to reset your password.
+                  <Text className="text-gray-600 text-center font-rubik mb-6">
+                    Your password has been successfully reset. You can now sign in with your new password.
                   </Text>
 
-                  {/* Resend Button */}
+                  {/* Go to Login Button */}
                   <Button
-                    title={isLoading ? "Resending..." : "Resend Email"}
-                    onPress={handleResendEmail}
-                    loading={isLoading}
-                    disabled={isLoading}
-                    variant="outline"
+                    title="Go to Sign In"
+                    onPress={handleGoToLogin}
                     fullWidth
                   />
 
-                  {/* Note about spam */}
+                  {/* Security Note */}
                   <Text className="text-xs text-gray-400 text-center font-rubik mt-4">
-                    Didn't receive the email? Check your spam folder or try resending.
+                    For security reasons, please use your new password the next time you sign in.
                   </Text>
                 </View>
               )}
 
-              {/* Back to Login Link */}
-              {!isSubmitted && (
+              {/* Back to Login Link - Only show in non-success state */}
+              {!isSuccess && (
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Login')}
                   className="mt-6 self-center"
                 >
                   <Text className="text-blue-600 font-rubik-medium">
                     Back to Sign In
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {/* Success State - Alternative login link */}
-              {isSubmitted && (
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Login')}
-                  className="mt-6 self-center"
-                >
-                  <Text className="text-blue-600 font-rubik-medium">
-                    Return to Sign In
                   </Text>
                 </TouchableOpacity>
               )}
@@ -276,4 +276,4 @@ const ForgotPasswordScreen: React.FC = () => {
   );
 };
 
-export default ForgotPasswordScreen;
+export default ResetPasswordScreen;

@@ -5,6 +5,8 @@ import SignupScreen from '../screens/SignupScreen';
 import SplashScreen from '../screens/SplashScreen';
 import AppInfoScreen from '../screens/AppInfoScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
+import VerifyEmailScreen from '../screens/VerifyEmailScreen';
 
 export type AuthStackParamList = {
   Splash: undefined;
@@ -12,6 +14,9 @@ export type AuthStackParamList = {
   Signup: undefined;
   AppInfo: undefined;
   ForgotPassword: undefined;
+  ResetPassword: { token: string };
+  VerifyEmail: { token?: string };
+
 };
 
 const Stack = createStackNavigator<AuthStackParamList>();
@@ -30,6 +35,8 @@ const AuthNavigator: React.FC = () => {
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="AppInfo" component={AppInfoScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+      <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
     </Stack.Navigator>
   );
 };
