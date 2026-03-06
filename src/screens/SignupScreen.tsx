@@ -32,8 +32,8 @@ const SignupScreen: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    organizationName: '',
-    organizationAddress: '',
+    // organizationName: '',
+    // organizationAddress: '',
   });
 
   const [isChecked, setIsChecked] = useState(false);
@@ -87,10 +87,10 @@ const SignupScreen: React.FC = () => {
     }
 
     // Check organization name
-    if (!formData.organizationName.trim()) {
-      setError("Organization name is required");
-      return false;
-    }
+    // if (!formData.organizationName.trim()) {
+    //   setError("Organization name is required");
+    //   return false;
+    // }
 
     // Basic email validation
     if (!formData.email.includes('@') || !/\S+@\S+\.\S+/.test(formData.email)) {
@@ -123,8 +123,8 @@ const SignupScreen: React.FC = () => {
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
         confirmPassword: formData.confirmPassword,
-        organizationName: formData.organizationName.trim(),
-        organizationAddress: formData.organizationAddress.trim() || undefined,
+        // organizationName: formData.organizationName.trim(),
+        // organizationAddress: formData.organizationAddress.trim() || undefined,
       };
 
       const response = await AuthService.register(payload);
@@ -146,8 +146,8 @@ const SignupScreen: React.FC = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        organizationName: '',
-        organizationAddress: '',
+        // organizationName: '',
+        // organizationAddress: '',
       });
       setIsChecked(false);
 
@@ -226,7 +226,7 @@ const SignupScreen: React.FC = () => {
               {/* Form Fields */}
               <View className="space-y-4">
                 {/* First Name & Last Name Row */}
-                <View className="flex-row space-x-3">
+                <View className="flex-row gap-3">
                   <View className="flex-1">
                     <Input
                       label="First Name"
@@ -280,21 +280,7 @@ const SignupScreen: React.FC = () => {
                   
                 />
 
-                {/* Organization Fields */}
-                <Input
-                  label="Organization Name"
-                  value={formData.organizationName}
-                  onChangeText={(value) => handleChange('organizationName', value)}
-                  placeholder="Enter organization name"
-                  required
-                />
-
-                <Input
-                  label="Organization Address (Optional)"
-                  value={formData.organizationAddress}
-                  onChangeText={(value) => handleChange('organizationAddress', value)}
-                  placeholder="Enter organization address"
-                />
+                
 
                 {/* Terms Checkbox */}
                 <TouchableOpacity
@@ -310,7 +296,7 @@ const SignupScreen: React.FC = () => {
                       <Text className="text-white text-center">✓</Text>
                     )}
                   </View>
-                  <Text className="flex-1 text-gray-600 font-rubik text-sm">
+                  <Text className="flex-1 text-gray-600 font-rubik ml-2 text-sm">
                     By creating an account means you agree to the{' '}
                     <Text className="text-gray-900 font-rubik-medium">
                       Terms and Conditions,
