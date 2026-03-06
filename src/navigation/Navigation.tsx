@@ -8,7 +8,7 @@ import BiometricGate from '../screens/BiometricGateScreen';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
 
 const Navigation: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth(); // Removed isSigningUp as it might not exist in AuthContext
+  const { isAuthenticated, isLoading, user } = useAuth(); // Removed isSigningUp as it might not exist in AuthContext
   const { isBiometricEnabled, loadBiometricSettings } = useBiometricAuth();
   const [isBiometricLoaded, setIsBiometricLoaded] = useState(false);
 

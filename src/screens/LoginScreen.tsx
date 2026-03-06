@@ -64,29 +64,34 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleLogin = async () => {
-    if (!validateForm()) return;
+  if (!validateForm()) return;
+  
+  try {
+    const response = await login(email, password);
+    console.log('Login response:', response); // Debug log
     
-    try {
-      await login(email, password);
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Login Successful',
-        text2: 'Welcome back! 👋',
-        visibilityTime: 3000,
-      });
-      
-      
-    } catch (error: any) {
-      
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: error.message || 'Failed to login',
-        visibilityTime: 4000,
-      });
+    // Check if organizationId exists in the response
+    if (response.user && !response.user.organizationId) {
+      console.log('User has no organization, will show onboarding');
     }
-  };
+    
+    Toast.show({
+      type: 'success',
+      text1: 'Login Successful',
+      text2: 'Welcome back! 👋',
+      visibilityTime: 3000,
+    });
+    
+  } catch (error: any) {
+    Toast.show({
+      type: 'error',
+      text1: 'Login Failed',
+      text2: error.message || 'Failed to login',
+      visibilityTime: 4000,
+    });
+  }
+};
+
 
   
 

@@ -17,6 +17,23 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface OrganizationOnboardPayload {
+  name: string;
+  mobileNumber: string;
+  panNumber: string;
+  companyType: string;
+  address: string;
+  country: string;
+  state: string;
+  city: string;
+  businessEmail: string;
+  companyWebsite?: string;
+  logoUrl?: string;
+  udyamNumber?: string;
+  cinNumber?: string;
+  companySize: string;
+}
+
 export interface ForgotPasswordPayload {
   email: string;
 }
@@ -37,6 +54,12 @@ export interface VerifyEmailResponse {
   message: string;
   verified?: boolean;
 }
+
+export interface OrganizationOnboardResponse {
+  message: string;
+  organization?: any;
+}
+
 
 export const AuthService = {
   /**
@@ -90,6 +113,59 @@ export const AuthService = {
         throw new Error(error.response.data.error);
       }
       throw error;
+    }
+  },
+
+  /**
+   * Complete organization onboarding
+   * @param payload - Organization details for onboarding
+   */
+  async organizationOnboard(payload: OrganizationOnboardPayload): Promise<OrganizationOnboardResponse> {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('Authentication token not found. Please login again.');
+      }
+
+      const response = await http.post('api/organization/onboard', payload, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Update stored user data with organization information if returned
+      if (response.data?.organization) {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const parsedUserData = JSON.parse(userData);
+          const updatedUserData = {
+            ...parsedUserData,
+            organization: response.data.organization,
+          };
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+        }
+      }
+
+      return response.data as OrganizationOnboardResponse;
+    } catch (error: any) {
+      // Handle different error formats
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else if (error.response?.data?.errors) {
+        // Handle validation errors
+        const validationErrors = error.response.data.errors;
+        const errorMessages = Object.entries(validationErrors)
+          .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
+          .join('; ');
+        throw new Error(errorMessages);
+      } else if (error.message) {
+        throw error;
+      }
+      throw new Error('Organization onboarding failed. Please try again.');
     }
   },
 

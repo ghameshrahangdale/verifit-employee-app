@@ -7,6 +7,8 @@ import AppInfoScreen from '../screens/AppInfoScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import VerifyEmailScreen from '../screens/VerifyEmailScreen';
+import OrganizationOnboardingScreen from '../screens/OrganizationOnboardingScreen';
+import { useAuth } from '../context/AuthContext';
 
 export type AuthStackParamList = {
   Splash: undefined;
@@ -16,15 +18,18 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: { token: string };
   VerifyEmail: { token?: string };
+  
 
 };
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
 const AuthNavigator: React.FC = () => {
+  
+
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      initialRouteName='Login'
       screenOptions={{
         headerShown: false,
         cardStyle: { backgroundColor: 'white' },

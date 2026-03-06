@@ -21,12 +21,13 @@ interface AuthContextData {
   isLoading: boolean;
   isAuthenticated: boolean;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   clearError: () => void;
   error: string | null;
+  refreshUser: () => Promise<void>; // Add this line
 }
 
 // Create context
@@ -58,23 +59,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Load stored authentication data
-  const loadStoredAuth = async () => {
+  // In AuthContext.tsx - update the loadStoredAuth function
+const loadStoredAuth = async () => {
+  try {
+    setIsLoading(true);
+    setError(null);
+
+    const [storedToken, storedUser] = await Promise.all([
+      AsyncStorage.getItem('authToken'),
+      AsyncStorage.getItem('userData'),
+    ]);
+
+    if (storedToken && storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setToken(storedToken);
+      setUser(parsedUser);
+      
+      // Log for debugging
+      console.log('Loaded user from storage:', parsedUser);
+      console.log('Organization ID:', parsedUser.organizationId);
+    }
+  } catch (error) {
+    console.error('Error loading stored auth:', error);
+    setError('Failed to load authentication data');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const refreshUser = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const [storedToken, storedUser] = await Promise.all([
-        AsyncStorage.getItem('authToken'),
-        AsyncStorage.getItem('userData'),
-      ]);
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+      // Get current user data from API
+      const userData = await AuthService.getCurrentUser();
+      
+      if (userData) {
+        // Update user state
+        setUser(userData);
+        
+        // Update stored user data
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        
+        console.log('User refreshed:', userData);
+        console.log('Organization ID after refresh:', userData.organizationId);
       }
-    } catch (error) {
-      console.error('Error loading stored auth:', error);
-      setError('Failed to load authentication data');
+    } catch (error: any) {
+      console.error('Error refreshing user:', error);
+      setError(error.message || 'Failed to refresh user data');
+      
+      // If token is invalid, logout
+      if (error.message?.includes('token') || error.status === 401) {
+        await logout();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -99,6 +137,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         await AsyncStorage.setItem('authToken', response.token);
       }
+
+      return response;
+
     } catch (error: any) {
       const errorMessage = error.message || 'Login failed. Please try again.';
       setError(errorMessage);
@@ -177,6 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateUser,
         clearError,
         error,
+        refreshUser,
       }}
     >
       {children}

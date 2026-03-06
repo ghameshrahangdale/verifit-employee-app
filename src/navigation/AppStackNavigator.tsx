@@ -1,3 +1,4 @@
+// AppStackNavigator.tsx
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import BottomTabsNavigations from './BottomTabsNavigations';
@@ -11,12 +12,14 @@ import TermsScreen from '../screens/TermsScreen';
 import DocumentationScreen from '../screens/DocumentationScreen';
 import InviteExEmployeeScreen from '../screens/InviteExEmployeeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import OrganizationOnboardingScreen from '../screens/OrganizationOnboardingScreen';
+import { useAuth } from '../context/AuthContext';
 
 export type AppStackParamList = {
   Tabs: undefined;
   AppInfo: undefined;
   MyProfile: undefined;
-  Login:undefined;
+  Login: undefined;
   Support: undefined;
   AboutUs: undefined;
   PrivacyPolicy: undefined;
@@ -24,11 +27,30 @@ export type AppStackParamList = {
   Documentation: undefined;
   InviteExEmployee: undefined;
   Settings: undefined;
+  Onboarding: undefined;
 };
 
 const Stack = createStackNavigator<AppStackParamList>();
 
 const AppStackNavigator: React.FC = () => {
+  const { user, isLoading } = useAuth();
+
+  // Show nothing while loading to prevent flash of wrong screen
+  if (isLoading) {
+    return null; // Or a loading spinner
+  }
+
+  if (user?.organizationId === null) {
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="Onboarding"
+          component={OrganizationOnboardingScreen}
+        />
+      </Stack.Navigator>
+    );
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={BottomTabsNavigations} />
