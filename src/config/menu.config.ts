@@ -14,6 +14,12 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     route: 'MyProfile',
   },
   {
+    icon: 'user',
+    label: 'HR Management',
+    subtitle: 'View and edit your team members',
+    route: 'teams',
+  },
+  {
     icon: 'user-plus',
     label: 'Invite Ex-Employee',
     subtitle: 'Send invitation to former employees',

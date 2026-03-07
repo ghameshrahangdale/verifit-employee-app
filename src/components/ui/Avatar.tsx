@@ -1,16 +1,17 @@
 import React from 'react';
 import { View, Text, Image, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 
 interface AvatarProps {
-  name?: string;         // User display name
-  email?: string;        // User email (fallback initial)
-  imageUrl?: string;     // Profile image url
-  size?: AvatarSize;     // Predefined sizes
-  customSize?: number;   // Custom width/height in px
-  style?: StyleProp<ViewStyle>; // Additional style
+  name?: string;
+  email?: string;
+  imageUrl?: string;
+  size?: AvatarSize;
+  customSize?: number;
+  style?: StyleProp<ViewStyle>;
 }
 
 const SIZE_MAP: Record<AvatarSize, number> = {
@@ -31,13 +32,31 @@ const Avatar: React.FC<AvatarProps> = ({
   style,
 }) => {
   const { colors } = useTheme();
+  const { user } = useAuth();
 
   const avatarSize = customSize || SIZE_MAP[size];
 
-  const initial =
-    name?.charAt(0)?.toUpperCase() ||
-    email?.charAt(0)?.toUpperCase() ||
-    'U';
+  // Priority: props > auth user
+  const firstName = name
+    ? name.split(' ')[0]
+    : user?.firstName || '';
+
+  const lastName = name
+    ? name.split(' ')[1] || ''
+    : user?.lastName || '';
+
+  const userEmail = email || user?.email || '';
+  const profileImage = imageUrl || user?.profileImage;
+
+  // Generate initials
+  let initials = 'U';
+
+  if (firstName || lastName) {
+    initials =
+      (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  } else if (userEmail) {
+    initials = userEmail.charAt(0).toUpperCase();
+  }
 
   return (
     <View
@@ -46,16 +65,17 @@ const Avatar: React.FC<AvatarProps> = ({
           width: avatarSize,
           height: avatarSize,
           borderRadius: avatarSize / 2,
-          backgroundColor: colors.primary,
+          backgroundColor: colors.foreground+70,
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         },
         style,
       ]}
     >
-      {imageUrl ? (
+      {profileImage ? (
         <Image
-          source={{ uri: imageUrl }}
+          source={{ uri: profileImage }}
           style={{
             width: avatarSize,
             height: avatarSize,
@@ -71,7 +91,7 @@ const Avatar: React.FC<AvatarProps> = ({
             fontWeight: '700',
           }}
         >
-          {initial}
+          {initials}
         </Text>
       )}
     </View>

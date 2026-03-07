@@ -21,6 +21,7 @@ interface AuthContextData {
   isLoading: boolean;
   isAuthenticated: boolean;
   token: string | null;
+  isOnboarding: boolean;
   login: (email: string, password: string) => Promise<any>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
@@ -52,6 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
 
   // Check for stored auth data on mount
   useEffect(() => {
@@ -120,34 +122,42 @@ const refreshUser = async () => {
 
   // Login function
   const login = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  try {
+    setIsLoading(true);
+    setError(null);
 
-      const response = await AuthService.login(email, password);
-      console.log(response);
-      
-      if (response.token) {
-        setToken(response.token);
-        
-        if (response.user) {
-          setUser(response.user);
-          await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+    const response = await AuthService.login(email, password);
+    console.log(response);
+
+    if (response.token) {
+      setToken(response.token);
+
+      if (response.user) {
+        setUser(response.user);
+
+        // ✅ check organizationId
+        if (!response.user.organizationId) {
+          setIsOnboarding(true);
+        } else {
+          setIsOnboarding(false);
         }
-        
-        await AsyncStorage.setItem('authToken', response.token);
+
+        await AsyncStorage.setItem('userData', JSON.stringify(response.user));
       }
 
-      return response;
-
-    } catch (error: any) {
-      const errorMessage = error.message || 'Login failed. Please try again.';
-      setError(errorMessage);
-      throw error;
-    } finally {
-      setIsLoading(false);
+      await AsyncStorage.setItem('authToken', response.token);
     }
-  };
+
+    return response;
+
+  } catch (error: any) {
+    const errorMessage = error.message || 'Login failed. Please try again.';
+    setError(errorMessage);
+    throw error;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Register function
   const register = async (userData: any) => {
@@ -212,6 +222,7 @@ const refreshUser = async () => {
         isLoading,
         isAuthenticated: !!token,
         token,
+        isOnboarding,
         login,
         register,
         logout,

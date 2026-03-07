@@ -139,9 +139,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           {(avatarName || avatarEmail || avatarImageUrl) && (
             <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
               <Avatar
-                name={avatarName}
-                email={avatarEmail}
-                imageUrl={avatarImageUrl || undefined}
+               
                 size={avatarSize as any}
               />
             </TouchableOpacity>

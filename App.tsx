@@ -12,13 +12,26 @@ import { AuthProvider } from './src/context/AuthContext'; // Import AuthProvider
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/components/ui/toast';
 
+const linking = {
+  prefixes: [
+    'verifiit://',
+    'https://verifiit-nextjs.vercel.app',
+  ],
+  config: {
+    screens: {
+      VerifyEmail: 'verify-email',
+      ResetPassword: 'reset-password',
+    },
+  },
+};
+
 export default function App() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider> {/* Wrap with AuthProvider */}
-            <NavigationContainer>
+             <NavigationContainer linking={linking}>
               <StatusBar />
               <Navigation />
               <Toast config={toastConfig} />

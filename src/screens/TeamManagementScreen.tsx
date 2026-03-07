@@ -1,28 +1,29 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
   Modal,
   KeyboardAvoidingView,
   Platform,
-  RefreshControl,
-  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import Header from '../components/ui/Header';
+import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Avatar from '../components/ui/Avatar';
-import Button from '../components/ui/Button';
+import Header from '../components/ui/Header';
 import Toast from 'react-native-toast-message';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 
-interface Employee {
+interface TeamMember {
   id: string;
   organizationId: string;
   firstName: string;
@@ -36,14 +37,13 @@ interface Employee {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
-  profileImage?: string;
 }
 
 interface TeamResponse {
   success: boolean;
   message: string;
   data: {
-    members: Employee[];
+    members: TeamMember[];
     pagination: {
       total: number;
       page: number;
@@ -53,65 +53,65 @@ interface TeamResponse {
   };
 }
 
-interface AddEmployeeData {
+interface AddMemberData {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'employee';
+  role: 'hr'; // Fixed to only allow hr role
 }
 
-const EmployeeListScreen: React.FC = () => {
+const TeamManagementScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
-
-  // Check if current user can add employees (HR or Admin)
-  const canAddEmployee = user?.role === 'hr' || user?.role === 'admin';
-
-  // State for employees
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  
+  // Check if current user is HR or Admin (only they can add members)
+  const canAddMember = user?.role === 'hr' || user?.role === 'admin';
+  
+  // State for team members
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
-
+  
   // Search state
-  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
+  
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-
-  // Form state for add employee
-  const [formData, setFormData] = useState<AddEmployeeData>({
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  
+  // Form state for add member - default role is hr
+  const [formData, setFormData] = useState<AddMemberData>({
     firstName: '',
     lastName: '',
     email: '',
-    role: 'employee',
+    role: 'hr', // Always hr
   });
-
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof AddEmployeeData, string>>>({});
+  
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof AddMemberData, string>>>({});
 
   // Debounce search
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      setDebouncedSearchQuery(search);
+      setDebouncedSearchQuery(searchQuery);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [search]);
+  }, [searchQuery]);
 
-  // Fetch employees when search or pagination changes
+  // Fetch team members when search or pagination changes
   useEffect(() => {
-    fetchEmployees(1, true);
+    fetchTeamMembers(1, true);
   }, [debouncedSearchQuery]);
 
-  const fetchEmployees = async (page: number = 1, reset: boolean = false) => {
+  const fetchTeamMembers = async (page: number = 1, reset: boolean = false) => {
     try {
       if (reset) {
         setIsLoading(true);
@@ -123,34 +123,33 @@ const EmployeeListScreen: React.FC = () => {
         params: {
           page,
           limit: 10,
-          role: 'employee', // Filter by employee role
           ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
         },
       });
 
+      console.log('API Response:', response.data);
+
       const members = response?.data?.members || [];
-      const pagination = response?.data?.pagination || {};
+const pagination = response?.data?.pagination || {};
 
-      // Filter only employees (though API should already filter)
-      const employeeMembers = members.filter((member: Employee) => 
-        member.role.toLowerCase() === 'employee'
-      );
+console.log("Extracted Members:", members);
 
-      setEmployees(prev =>
-        reset ? employeeMembers : [...prev, ...employeeMembers]
-      );
+setTeamMembers(prev =>
+  reset ? members : [...prev, ...members]
+);
 
-      setCurrentPage(pagination?.page || 1);
-      setTotalPages(pagination?.totalPages || 1);
-      setTotalItems(pagination?.total || employeeMembers.length);
-      setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
-
+setCurrentPage(pagination?.page || 1);
+setTotalPages(pagination?.totalPages || 1);
+setTotalItems(pagination?.total || members.length);
+setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
+      
+      
     } catch (error: any) {
-      console.error('Error fetching employees:', error);
+      console.error('Error fetching team members:', error);
       Toast.show({
         type: 'error',
-        text1: 'Failed to Load Employees',
-        text2: error.response?.data?.message || 'Unable to fetch employees',
+        text1: 'Failed to Load Team',
+        text2: error.response?.data?.message || 'Unable to fetch team members',
       });
     } finally {
       setIsLoading(false);
@@ -161,68 +160,78 @@ const EmployeeListScreen: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchEmployees(1, true);
+    fetchTeamMembers(1, true);
   }, [debouncedSearchQuery]);
 
   const handleLoadMore = () => {
     if (hasNextPage && !isLoadingMore && !isLoading) {
-      fetchEmployees(currentPage + 1, false);
+      fetchTeamMembers(currentPage + 1, false);
     }
   };
 
-  const validateForm = (): boolean => {
-    const errors: Partial<Record<keyof AddEmployeeData, string>> = {};
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+  };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Partial<Record<keyof AddMemberData, string>> = {};
+    
     if (!formData.firstName.trim()) {
       errors.firstName = 'First name is required';
     }
-
+    
     if (!formData.lastName.trim()) {
       errors.lastName = 'Last name is required';
     }
-
+    
     if (!formData.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Email is invalid';
     }
-
+    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddEmployee = async () => {
+  const handleAddMember = async () => {
     if (!validateForm()) {
       return;
     }
 
     try {
-      setIsAddingEmployee(true);
-
+      setIsAddingMember(true);
+      
+      // Role is always 'hr' so no need to include it in the request if not required
+      // But if API requires role, it's already set in formData
       const response = await http.post('/api/organization/team', formData);
+      
 
-      Toast.show({
-        type: 'success',
-        text1: 'Employee Added',
-        text2: `${formData.firstName} ${formData.lastName} has been added`,
-      });
-
-      // Reset form and close modal
-      resetForm();
-      setIsModalVisible(false);
-
-      // Refresh the list
-      handleRefresh();
-
+        Toast.show({
+          type: 'success',
+          text1: 'Member Added',
+          text2: `${formData.firstName} ${formData.lastName} has been added to the team`,
+        });
+        
+        // Reset form and close modal
+        resetForm();
+        setIsModalVisible(false);
+        
+        handleRefresh();
+        
     } catch (error: any) {
-      console.error('Error adding employee:', error);
+      console.error('Error adding team member:', error);
       Toast.show({
         type: 'error',
-        text1: 'Failed to Add Employee',
-        text2: error.response?.data?.message || 'Unable to add employee',
+        text1: 'Failed to Add Member',
+        text2: error.response?.data?.message || 'Unable to add team member',
       });
     } finally {
-      setIsAddingEmployee(false);
+      setIsAddingMember(false);
     }
   };
 
@@ -231,7 +240,7 @@ const EmployeeListScreen: React.FC = () => {
       firstName: '',
       lastName: '',
       email: '',
-      role: 'employee',
+      role: 'hr', // Always hr
     });
     setFormErrors({});
   };
@@ -241,8 +250,21 @@ const EmployeeListScreen: React.FC = () => {
     resetForm();
   };
 
+  const getRoleBadgeColor = (role: string) => {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return { bg: '#FEF3C7', text: '#92400E' };
+      case 'hr':
+        return { bg: '#DBEAFE', text: '#1E40AF' };
+      case 'accounts':
+        return { bg: '#D1FAE5', text: '#065F46' };
+      default:
+        return { bg: '#F3F4F6', text: '#374151' };
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -254,189 +276,128 @@ const EmployeeListScreen: React.FC = () => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
 
-  const filteredEmployees = useMemo(() => {
-    return employees.filter(emp =>
-      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-      emp.email.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [employees, search]);
+  console.log('Team Members state:', teamMembers); // Add this to debug
 
-  const renderEmployeeCard = ({ item }: { item: Employee }) => {
+  const renderTeamMember = ({ item }: { item: TeamMember }) => {
+    const roleBadge = getRoleBadgeColor(item.role);
     const fullName = `${item.firstName} ${item.lastName}`.trim();
     const isCurrentUser = item.email === user?.email;
-
+    
     return (
-      <View
-        className="bg-white rounded-2xl p-5 mb-4"
+      <TouchableOpacity
+        className="bg-white rounded-2xl p-4 mb-3 mx-4"
         style={{
           shadowColor: '#000',
           shadowOpacity: 0.04,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 4 },
-          borderColor: colors.primary + '30',
-          borderWidth: 1,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+        }}
+        onPress={() => {
+          // Handle member press (view details, edit, etc.)
+          Toast.show({
+            type: 'info',
+            text1: fullName,
+            text2: `Role: ${item.role}${isCurrentUser ? ' (You)' : ''}`,
+          });
         }}
       >
-        {/* Top Row */}
         <View className="flex-row items-center">
           <Avatar
             size="lg"
             // initials={getInitials(item.firstName, item.lastName)}
-            // imageUrl={item.profileImage}
           />
-
-          <View className="ml-4 flex-1">
-            <View className="flex-row items-center">
-              <Text className="text-base font-rubik-bold text-gray-900">
-                {fullName}
-              </Text>
-              {isCurrentUser && (
-                <View className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full">
-                  <Text className="font-rubik text-xs text-gray-600">You</Text>
-                </View>
-              )}
+          
+          <View className="flex-1 ml-3">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                <Text className="font-rubik-bold text-gray-900 text-base">
+                  {fullName}
+                </Text>
+                {isCurrentUser && (
+                  <View className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full">
+                    <Text className="font-rubik text-xs text-gray-600">You</Text>
+                  </View>
+                )}
+              </View>
+              <View
+                className="px-3 py-1 rounded-full ml-2"
+                style={{ backgroundColor: roleBadge.bg }}
+              >
+                <Text
+                  className="font-rubik-medium text-xs"
+                  style={{ color: roleBadge.text }}
+                >
+                  {item.role.toUpperCase()}
+                </Text>
+              </View>
             </View>
-
-            <Text className="text-sm text-gray-500 mt-1 font-rubik">
+            
+            <Text className="font-rubik text-gray-500 text-sm mt-1">
               {item.email}
             </Text>
-          </View>
-        </View>
-
-        {/* Details */}
-        <View className="mt-4 flex-row justify-between">
-          <View>
-            <Text className="text-xs text-gray-400 font-rubik">Joined</Text>
-            <Text className="text-sm text-gray-600 font-rubik-medium">
-              {formatDate(item.createdAt)}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-xs text-gray-400 font-rubik">Status</Text>
-            <View className="flex-row items-center">
-              <View
-                className={`w-2 h-2 rounded-full ${
-                  item.isActive ? 'bg-green-500' : 'bg-gray-300'
-                } mr-1`}
-              />
-              <Text className="text-sm text-gray-600 font-rubik-medium">
-                {item.isActive ? 'Active' : 'Inactive'}
-              </Text>
+            
+            <View className="flex-row items-center mt-2">
+              
+              
+              <View className="flex-row items-center">
+                <View
+                  className={`w-2 h-2 rounded-full ${
+                    item.isActive ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                />
+                <Text className="font-rubik text-gray-400 text-xs ml-1">
+                  {item.isActive ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
             </View>
+
+            {/* {item.isEmailVerified && (
+              <View className="">
+                <Icon name="check-decagram" size={16} color="#3B82F6" />
+              </View>
+            )} */}
           </View>
-          {item.lastLoginAt && (
-            <View>
-              <Text className="text-xs text-gray-400 font-rubik">Last Login</Text>
-              <Text className="text-sm text-gray-600 font-rubik-medium">
-                {formatDate(item.lastLoginAt)}
-              </Text>
-            </View>
-          )}
         </View>
-
-        {/* Action Buttons */}
-        <View className="flex-row justify-end mt-4 gap-3">
-          <TouchableOpacity
-            className="px-4 py-2 rounded-lg flex-row items-center"
-            style={{ backgroundColor: colors.primary + '15' }}
-            activeOpacity={0.7}
-            onPress={() => {
-              Toast.show({
-                type: 'info',
-                text1: fullName,
-                text2: `Employee details`,
-              });
-            }}
-          >
-            <Feather name="eye" size={16} color={colors.primary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="px-4 py-2 rounded-lg flex-row items-center"
-            style={{ backgroundColor: '#D9770620' }}
-            activeOpacity={0.7}
-          >
-            <Feather name="edit-2" size={16} color="#D97706" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="px-4 py-2 rounded-lg flex-row items-center"
-            style={{ backgroundColor: '#DC262620' }}
-            activeOpacity={0.7}
-          >
-            <Feather name="trash-2" size={16} color="#DC2626" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   const renderHeader = () => (
-    <View className="px-4 mt-6">
-      <View className="flex-row items-center space-x-3">
-        <View className="flex-1 relative">
-          <Input
-            placeholder="Search employee by name or email..."
-            value={search}
-            onChangeText={setSearch}
-            className="pr-12"
-          />
-          <View className="absolute right-4 top-4">
-            <Feather name="search" size={18} color={colors.primary} />
-          </View>
-        </View>
-        {canAddEmployee && (
-          <TouchableOpacity
-            className="px-4 py-3 rounded-lg flex-row items-center"
-            style={{ backgroundColor: colors.primary }}
-            activeOpacity={0.7}
-            onPress={() => setIsModalVisible(true)}
-          >
-            <Feather name="user-plus" size={18} color="#FFFFFF" />
-            <Text className="ml-2 text-sm font-rubik-medium text-white">Add</Text>
+    <View className="px-4 pt-4 pb-2">
+      {/* Search Bar */}
+      <View className="flex-row items-center bg-white rounded-xl px-4 py-2 mb-4">
+        <Icon name="magnify" size={20} color="#9CA3AF" />
+        <TextInput
+          className="flex-1 ml-2 font-rubik text-gray-900"
+          placeholder="Search team members..."
+          placeholderTextColor="#9CA3AF"
+          value={searchQuery}
+          onChangeText={handleSearchChange}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={clearSearch}>
+            <Icon name="close" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Filter, Export & Import Buttons */}
-      <View className="flex-row justify-end mt-3 gap-3">
-        <TouchableOpacity
-          className="px-2 py-2 rounded-lg items-center justify-center"
-          style={{ backgroundColor: colors.primary + '15' }}
-          activeOpacity={0.7}
-        >
-          <Feather name="filter" size={16} color={colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="px-4 py-2 rounded-lg flex-row items-center"
-          style={{ backgroundColor: colors.primary + '15' }}
-          activeOpacity={0.7}
-        >
-          <Feather name="download" size={16} color={colors.primary} />
-          <Text className="ml-2 text-sm font-rubik" style={{ color: colors.primary }}>
-            Export
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="px-4 py-2 rounded-lg flex-row items-center"
-          style={{ backgroundColor: colors.primary + '15' }}
-          activeOpacity={0.7}
-        >
-          <Feather name="upload" size={16} color={colors.primary} />
-          <Text className="ml-2 text-sm font-rubik" style={{ color: colors.primary }}>
-            Import
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Stats */}
       {totalItems > 0 && (
-        <View className="flex-row justify-between items-center mt-4">
+        <View className="flex-row justify-between items-center mb-2">
           <Text className="font-rubik text-gray-500 text-sm">
-            {totalItems} employee{totalItems !== 1 ? 's' : ''}
+            {totalItems} team member{totalItems !== 1 ? 's' : ''}
           </Text>
+          {canAddMember && (
+            <TouchableOpacity
+              onPress={() => setIsModalVisible(true)}
+              className="flex-row items-center"
+            >
+              <Icon name="account-plus" size={20} color={colors.primary} />
+              <Text className="font-rubik-medium text-primary-500 ml-1">
+                Add
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -444,7 +405,7 @@ const EmployeeListScreen: React.FC = () => {
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-
+    
     return (
       <View className="py-4">
         <ActivityIndicator size="small" color={colors.primary} />
@@ -454,21 +415,21 @@ const EmployeeListScreen: React.FC = () => {
 
   const renderEmpty = () => {
     if (isLoading) return null;
-
+    
     return (
       <View className="flex-1 items-center justify-center py-12 px-4">
-        <Feather name="users" size={64} color="#D1D5DB" />
+        <Icon name="account-group-outline" size={64} color="#D1D5DB" />
         <Text className="font-rubik-bold text-gray-900 text-lg mt-4">
-          {search ? 'No employees found' : 'No employees yet'}
+          {searchQuery ? 'No members found' : 'No team members yet'}
         </Text>
         <Text className="font-rubik text-gray-500 text-center mt-2">
-          {search
-            ? `No employees matching "${search}"`
-            : 'Add your first employee to get started'}
+          {searchQuery
+            ? `No members matching "${searchQuery}"`
+            : 'Add your first team member to get started'}
         </Text>
-        {!search && canAddEmployee && (
+        {!searchQuery && canAddMember && (
           <Button
-            title="Add Employee"
+            title="Add Member"
             className="mt-4"
             onPress={() => setIsModalVisible(true)}
           />
@@ -477,22 +438,36 @@ const EmployeeListScreen: React.FC = () => {
     );
   };
 
-  if (isLoading && employees.length === 0) {
-    return (
-      <View className="flex-1 bg-gray-50">
-        <Header title="Employees" />
-        <Loader fullScreen />
-      </View>
-    );
-  }
+  if (isLoading && teamMembers.length === 0) {
+  return (
+    <View className="flex-1 bg-gray-50">
+      <Header title="HR Management" />
+      <Loader fullScreen />
+    </View>
+  );
+}
 
   return (
     <View className="flex-1 bg-gray-50">
-      <Header title="Employees" />
+      <Header
+        title="HR Management"
+        // rightComponent={
+        //   canAddMember ? (
+        //     <TouchableOpacity
+        //       onPress={() => setIsModalVisible(true)}
+        //       className="mr-4"
+        //     >
+        //       <Icon name="account-plus" size={24} color={colors.primary} />
+        //     </TouchableOpacity>
+        //   ) : undefined
+        // }
+      />
+
+      
 
       <FlatList
-        data={filteredEmployees}
-        renderItem={renderEmployeeCard}
+        data={teamMembers}
+        renderItem={renderTeamMember}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
@@ -514,8 +489,8 @@ const EmployeeListScreen: React.FC = () => {
         }}
       />
 
-      {/* Add Employee Modal */}
-      {canAddEmployee && (
+      {/* Add Member Modal - Only shown if user can add members */}
+      {canAddMember && (
         <Modal
           visible={isModalVisible}
           animationType="slide"
@@ -546,10 +521,10 @@ const EmployeeListScreen: React.FC = () => {
                   {/* Modal Header */}
                   <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
                     <Text className="font-rubik-bold text-gray-900 text-xl">
-                      Add Employee
+                      Add Team Member
                     </Text>
                     <TouchableOpacity onPress={handleCloseModal}>
-                      <Feather name="x" size={24} color="#9CA3AF" />
+                      <Icon name="close" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
                   </View>
 
@@ -599,22 +574,23 @@ const EmployeeListScreen: React.FC = () => {
                       className="mb-4"
                     />
 
-                    {/* Role is fixed as 'employee' */}
+                    {/* Hidden role field - always hr */}
+                    {/* Removed role selection UI as per requirement */}
 
                     {/* Action Buttons */}
-                    <View className="flex-row gap-4 mb-20">
+                    <View className="flex-row gap-4 mb-6">
                       <Button
                         title="Cancel"
                         variant="outline"
                         className="flex-1"
                         onPress={handleCloseModal}
-                        disabled={isAddingEmployee}
+                        disabled={isAddingMember}
                       />
                       <Button
-                        title="Add Employee"
+                        title="Add Member"
                         className="flex-1"
-                        loading={isAddingEmployee}
-                        onPress={handleAddEmployee}
+                        loading={isAddingMember}
+                        onPress={handleAddMember}
                       />
                     </View>
                   </ScrollView>
@@ -628,4 +604,4 @@ const EmployeeListScreen: React.FC = () => {
   );
 };
 
-export default EmployeeListScreen;
+export default TeamManagementScreen;

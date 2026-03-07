@@ -12,13 +12,14 @@ import { AuthService } from '../services/auth';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation,} from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
 import Logo from '../components/common/Logo';
 import { AppStackParamList } from '../navigation/AppStackNavigator';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext'; 
 
 type OrganizationOnboardingScreenNavigationProp = StackNavigationProp<
   AppStackParamList,
@@ -48,6 +49,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { colors } = useTheme();
 
   const navigation = useNavigation<OrganizationOnboardingScreenNavigationProp>();
     const { refreshUser } = useAuth();
@@ -221,6 +223,8 @@ const OrganizationOnboardingScreen: React.FC = () => {
         companySize: '1-10',
       });
 
+      navigation.navigate("Tabs")
+
       
 
     } catch (err: any) {
@@ -240,36 +244,54 @@ const OrganizationOnboardingScreen: React.FC = () => {
 
   // Render step indicator
   const renderStepIndicator = () => {
-    return (
-      <View className="flex-row justify-center mb-6">
-        {[1, 2, 3].map((step) => (
-          <React.Fragment key={step}>
-            <View className="items-center">
-              <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                currentStep >= step ? 'bg-blue-600' : 'bg-gray-200'
-              }`}>
-                <Text className={`font-rubik-bold ${
-                  currentStep >= step ? 'text-white' : 'text-gray-500'
-                }`}>
-                  {step}
-                </Text>
-              </View>
-              <Text className={`text-xs mt-1 font-rubik ${
-                currentStep >= step ? 'text-blue-600' : 'text-gray-400'
-              }`}>
-                {step === 1 ? 'Company' : step === 2 ? 'Address' : 'Contact'}
+  return (
+    <View className="flex-row justify-center mb-6">
+      {[1, 2, 3].map((step) => (
+        <React.Fragment key={step}>
+          <View className="items-center">
+            
+            <View
+              className="w-10 h-10 rounded-full items-center justify-center"
+              style={{
+                backgroundColor:
+                  currentStep >= step ? colors.primary : '#E5E7EB',
+              }}
+            >
+              <Text
+                className="font-rubik-bold"
+                style={{
+                  color: currentStep >= step ? '#fff' : '#6B7280',
+                }}
+              >
+                {step}
               </Text>
             </View>
-            {step < 3 && (
-              <View className={`w-12 h-[2px] self-center mx-2 ${
-                currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
-              }`} />
-            )}
-          </React.Fragment>
-        ))}
-      </View>
-    );
-  };
+
+            <Text
+              className="text-xs mt-1 font-rubik"
+              style={{
+                color: currentStep >= step ? colors.primary : '#9CA3AF',
+              }}
+            >
+              {step === 1 ? 'Company' : step === 2 ? 'Address' : 'Contact'}
+            </Text>
+
+          </View>
+
+          {step < 3 && (
+            <View
+              className="w-12 h-[2px] self-center mx-2"
+              style={{
+                backgroundColor:
+                  currentStep > step ? colors.primary : '#E5E7EB',
+              }}
+            />
+          )}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+};
 
   // Render step 1: Company Information
   const renderStep1 = () => (
@@ -470,9 +492,10 @@ const OrganizationOnboardingScreen: React.FC = () => {
                 {currentStep < 3 ? (
                   <TouchableOpacity
                     onPress={handleNext}
-                    className={`flex-1 flex-row items-center justify-center bg-blue-600 py-3 rounded-lg ${
+                    className={`flex-1 flex-row items-center justify-center py-3 rounded-lg ${
                       currentStep > 1 ? 'ml-4' : ''
                     }`}
+                    style={{backgroundColor: colors.primary}}
                     disabled={isLoading}
                   >
                     <Text className="text-white font-rubik-medium mr-2">
@@ -482,7 +505,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
                   </TouchableOpacity>
                 ) : (
                   <Button
-                    title={isLoading ? "Saving..." : "Complete Onboarding"}
+                    title={isLoading ? "Saving..." : "Onboard"}
                     onPress={handleOnboarding}
                     loading={isLoading}
                     className={`flex-1 ${currentStep > 1 ? 'ml-4' : ''}`}

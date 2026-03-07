@@ -14,6 +14,7 @@ import InviteExEmployeeScreen from '../screens/InviteExEmployeeScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import OrganizationOnboardingScreen from '../screens/OrganizationOnboardingScreen';
 import { useAuth } from '../context/AuthContext';
+import TeamManagementScreen from '../screens/TeamManagementScreen';
 
 export type AppStackParamList = {
   Tabs: undefined;
@@ -28,32 +29,25 @@ export type AppStackParamList = {
   InviteExEmployee: undefined;
   Settings: undefined;
   Onboarding: undefined;
+  teams: undefined;
 };
 
 const Stack = createStackNavigator<AppStackParamList>();
 
 const AppStackNavigator: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const {  user } = useAuth();
+  const isOnboarding = !user?.organizationId;
+  const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
 
-  // Show nothing while loading to prevent flash of wrong screen
-  if (isLoading) {
-    return null; // Or a loading spinner
-  }
-
-  if (user?.organizationId === null) {
-    return (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen
+  return (
+    <Stack.Navigator 
+    initialRouteName={initialRoute } 
+    screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Tabs" component={BottomTabsNavigations} />
+      <Stack.Screen
           name="Onboarding"
           component={OrganizationOnboardingScreen}
         />
-      </Stack.Navigator>
-    );
-  }
-
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Tabs" component={BottomTabsNavigations} />
       <Stack.Screen name="AppInfo" component={AppInfoScreen} />
       <Stack.Screen name="MyProfile" component={ProfileScreen} />
       <Stack.Screen name="Support" component={HelpSupportScreen} />
@@ -63,6 +57,7 @@ const AppStackNavigator: React.FC = () => {
       <Stack.Screen name="Documentation" component={DocumentationScreen} />
       <Stack.Screen name="InviteExEmployee" component={InviteExEmployeeScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="teams" component={TeamManagementScreen} />
     </Stack.Navigator>
   );
 };

@@ -18,6 +18,7 @@ export interface ThemeColors {
   primary: string;
   secondary: string;
   background: string;
+  foreground: string;
   text: string;
   error: string;
   success: string;

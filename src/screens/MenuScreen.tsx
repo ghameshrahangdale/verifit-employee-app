@@ -20,11 +20,6 @@ import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 import { getApplicationName } from 'react-native-device-info';
 import { MENU_ITEMS } from '../config/menu.config';
 
-const USER = {
-  displayName: 'Ghamesh Rahangdale',
-  email: 'ghamesh@example.com',
-  photoURL: 'https://i.pravatar.cc/150?img=12',
-};
 
 const MenuScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -38,9 +33,9 @@ const MenuScreen: React.FC = () => {
   const displayUser = {
     displayName: user 
       ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split('@')[0] || 'User'
-      : USER.displayName,
-    email: user?.email || USER.email,
-    photoURL: user?.photoURL || USER.photoURL,
+      : "user",
+    email: user?.email ,
+    photoURL: user?.photoURL,
   };
 
   const handleShareApp = async () => {
@@ -113,7 +108,7 @@ const MenuScreen: React.FC = () => {
       {/* Header */}
       <Header
         title="Account & Menu"
-        avatarImageUrl={displayUser.photoURL}
+        // avatarImageUrl={displayUser.photoURL}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>

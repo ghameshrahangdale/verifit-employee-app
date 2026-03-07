@@ -69,12 +69,7 @@ const LoginScreen: React.FC = () => {
   try {
     const response = await login(email, password);
     console.log('Login response:', response); // Debug log
-    
-    // Check if organizationId exists in the response
-    if (response.user && !response.user.organizationId) {
-      console.log('User has no organization, will show onboarding');
-    }
-    
+
     Toast.show({
       type: 'success',
       text1: 'Login Successful',

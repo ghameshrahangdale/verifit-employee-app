@@ -87,9 +87,7 @@ const Header: React.FC<HeaderProps> = ({
       {/* Right Avatar Section */}
       <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
         <Avatar
-          name={avatarName || USER.displayName}
-          email={avatarEmail || USER.email}
-          imageUrl={avatarImageUrl || USER.photoURL}
+          
           size={avatarSize as any}
         />
       </TouchableOpacity>

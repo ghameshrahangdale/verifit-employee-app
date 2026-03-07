@@ -27,7 +27,6 @@ const Navigation: React.FC = () => {
     loadSettings();
   }, []);
 
-  // Show splash screen while loading
   if (isLoading || !isBiometricLoaded) {
     return <SplashScreen />;
   }
