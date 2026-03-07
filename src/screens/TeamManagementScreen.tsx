@@ -22,6 +22,7 @@ import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
+import { Switch } from 'react-native';
 
 interface TeamMember {
   id: string;
@@ -63,30 +64,30 @@ interface AddMemberData {
 const TeamManagementScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
-  
+
   // Check if current user is HR or Admin (only they can add members)
   const canAddMember = user?.role === 'hr' || user?.role === 'admin';
-  
+
   // State for team members
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
-  
+
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  
+
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
-  
+
   // Form state for add member - default role is hr
   const [formData, setFormData] = useState<AddMemberData>({
     firstName: '',
@@ -94,7 +95,7 @@ const TeamManagementScreen: React.FC = () => {
     email: '',
     role: 'hr', // Always hr
   });
-  
+
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof AddMemberData, string>>>({});
 
   // Debounce search
@@ -127,23 +128,21 @@ const TeamManagementScreen: React.FC = () => {
         },
       });
 
-      console.log('API Response:', response.data);
 
       const members = response?.data?.members || [];
-const pagination = response?.data?.pagination || {};
+      const pagination = response?.data?.pagination || {};
 
-console.log("Extracted Members:", members);
 
-setTeamMembers(prev =>
-  reset ? members : [...prev, ...members]
-);
+      setTeamMembers(prev =>
+        reset ? members : [...prev, ...members]
+      );
 
-setCurrentPage(pagination?.page || 1);
-setTotalPages(pagination?.totalPages || 1);
-setTotalItems(pagination?.total || members.length);
-setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
-      
-      
+      setCurrentPage(pagination?.page || 1);
+      setTotalPages(pagination?.totalPages || 1);
+      setTotalItems(pagination?.total || members.length);
+      setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
+
+
     } catch (error: any) {
       console.error('Error fetching team members:', error);
       Toast.show({
@@ -179,21 +178,21 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
 
   const validateForm = (): boolean => {
     const errors: Partial<Record<keyof AddMemberData, string>> = {};
-    
+
     if (!formData.firstName.trim()) {
       errors.firstName = 'First name is required';
     }
-    
+
     if (!formData.lastName.trim()) {
       errors.lastName = 'Last name is required';
     }
-    
+
     if (!formData.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Email is invalid';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -205,24 +204,24 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
 
     try {
       setIsAddingMember(true);
-      
+
       // Role is always 'hr' so no need to include it in the request if not required
       // But if API requires role, it's already set in formData
       const response = await http.post('/api/organization/team', formData);
-      
 
-        Toast.show({
-          type: 'success',
-          text1: 'Member Added',
-          text2: `${formData.firstName} ${formData.lastName} has been added to the team`,
-        });
-        
-        // Reset form and close modal
-        resetForm();
-        setIsModalVisible(false);
-        
-        handleRefresh();
-        
+
+      Toast.show({
+        type: 'success',
+        text1: 'Member Added',
+        text2: `${formData.firstName} ${formData.lastName} has been added to the team`,
+      });
+
+      // Reset form and close modal
+      resetForm();
+      setIsModalVisible(false);
+
+      handleRefresh();
+
     } catch (error: any) {
       console.error('Error adding team member:', error);
       Toast.show({
@@ -248,6 +247,45 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
   const handleCloseModal = () => {
     setIsModalVisible(false);
     resetForm();
+  };
+
+  const toggleMemberStatus = async (member: TeamMember) => {
+    try {
+      const newStatus = !member.isActive;
+
+      // Optimistic UI update
+      setTeamMembers(prev =>
+        prev.map(m =>
+          m.id === member.id ? { ...m, isActive: newStatus } : m
+        )
+      );
+
+      const response = await http.patch(`/api/organization/team`, {
+        isActive: newStatus,
+        userId:member.id
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: response?.message || "Team member status updated",
+        text2: `${member.firstName} ${member.lastName}`,
+    });
+
+    } catch (error: any) {
+
+      // revert if API fails
+      setTeamMembers(prev =>
+        prev.map(m =>
+          m.id === member.id ? { ...m, isActive: !member.isActive } : m
+        )
+      );
+
+      Toast.show({
+        type: 'error',
+        text1: 'Status Update Failed',
+        text2: error.response?.data?.message || 'Unable to update status',
+      });
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -276,13 +314,11 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
 
-  console.log('Team Members state:', teamMembers); // Add this to debug
-
   const renderTeamMember = ({ item }: { item: TeamMember }) => {
     const roleBadge = getRoleBadgeColor(item.role);
     const fullName = `${item.firstName} ${item.lastName}`.trim();
     const isCurrentUser = item.email === user?.email;
-    
+
     return (
       <TouchableOpacity
         className="bg-white rounded-2xl p-4 mb-3 mx-4"
@@ -304,9 +340,9 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
         <View className="flex-row items-center">
           <Avatar
             size="lg"
-            // initials={getInitials(item.firstName, item.lastName)}
+          // initials={getInitials(item.firstName, item.lastName)}
           />
-          
+
           <View className="flex-1 ml-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
@@ -331,26 +367,42 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
                 </Text>
               </View>
             </View>
-            
+
             <Text className="font-rubik text-gray-500 text-sm mt-1">
               {item.email}
             </Text>
-            
-            <View className="flex-row items-center mt-2">
-              
-              
-              <View className="flex-row items-center">
-                <View
-                  className={`w-2 h-2 rounded-full ${
-                    item.isActive ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                />
-                <Text className="font-rubik text-gray-400 text-xs ml-1">
-                  {item.isActive ? 'Active' : 'Inactive'}
-                </Text>
-              </View>
-            </View>
 
+           <View className="flex-row items-center mt-2 justify-between">
+
+  <View className="flex-row items-center">
+    <View
+      className={`w-2 h-2 rounded-full ${
+        item.isActive ? 'bg-green-500' : 'bg-gray-300'
+      }`}
+    />
+    <Text className="font-rubik text-gray-400 text-xs ml-1">
+      {item.isActive ? 'Active' : 'Inactive'}
+    </Text>
+  </View>
+
+  {(user?.role === 'admin' || user?.role === 'hr') && (
+    <View className="flex-row items-center">
+      
+      <Text className="font-rubik text-xs text-gray-500 mr-2">
+        {item.isActive ? 'Deactivate' : 'Activate'}
+      </Text>
+
+      <Switch
+        value={item.isActive}
+        onValueChange={() => toggleMemberStatus(item)}
+        trackColor={{ false: '#D1D5DB', true: colors.primary }}
+        thumbColor={'#ffffff'}
+      />
+
+    </View>
+  )}
+
+</View>
             {/* {item.isEmailVerified && (
               <View className="">
                 <Icon name="check-decagram" size={16} color="#3B82F6" />
@@ -405,7 +457,7 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-    
+
     return (
       <View className="py-4">
         <ActivityIndicator size="small" color={colors.primary} />
@@ -415,7 +467,7 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
 
   const renderEmpty = () => {
     if (isLoading) return null;
-    
+
     return (
       <View className="flex-1 items-center justify-center py-12 px-4">
         <Icon name="account-group-outline" size={64} color="#D1D5DB" />
@@ -439,31 +491,31 @@ setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
   };
 
   if (isLoading && teamMembers.length === 0) {
-  return (
-    <View className="flex-1 bg-gray-50">
-      <Header title="HR Management" />
-      <Loader fullScreen />
-    </View>
-  );
-}
+    return (
+      <View className="flex-1 bg-gray-50">
+        <Header title="HR Management" />
+        <Loader fullScreen />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50">
       <Header
         title="HR Management"
-        // rightComponent={
-        //   canAddMember ? (
-        //     <TouchableOpacity
-        //       onPress={() => setIsModalVisible(true)}
-        //       className="mr-4"
-        //     >
-        //       <Icon name="account-plus" size={24} color={colors.primary} />
-        //     </TouchableOpacity>
-        //   ) : undefined
-        // }
+      // rightComponent={
+      //   canAddMember ? (
+      //     <TouchableOpacity
+      //       onPress={() => setIsModalVisible(true)}
+      //       className="mr-4"
+      //     >
+      //       <Icon name="account-plus" size={24} color={colors.primary} />
+      //     </TouchableOpacity>
+      //   ) : undefined
+      // }
       />
 
-      
+
 
       <FlatList
         data={teamMembers}

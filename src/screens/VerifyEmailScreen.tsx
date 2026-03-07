@@ -37,7 +37,7 @@ const VerifyEmailScreen: React.FC = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<VerifyEmailNavProp>();
   const route = useRoute<VerifyEmailRouteProp>();
-  
+
   // Get token from route params (if coming from email link)
   const { token } = route.params || {};
 
@@ -59,20 +59,24 @@ const VerifyEmailScreen: React.FC = () => {
       }
 
       const response = await AuthService.verifyEmail(token);
-      
+
       setIsVerified(true);
-      
+
       Toast.show({
         type: 'success',
         text1: 'Email Verified',
         text2: response.message || 'Your email has been successfully verified!',
         visibilityTime: 5000,
       });
-      
+
+      setTimeout(() => {
+        navigation.navigate("Login");
+      }, 3000);
+
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to verify email';
       setError(errorMessage);
-      
+
       Toast.show({
         type: 'error',
         text1: 'Verification Failed',
@@ -132,17 +136,17 @@ const VerifyEmailScreen: React.FC = () => {
           <View className="px-6 py-8">
             {/* Card */}
             <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
-              
+
               {/* Back Button - Only show if not verified */}
               {!isVerified && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={handleGoBack}
                   className="mb-4"
                 >
                   <Feather name="arrow-left" size={24} color="#4B5563" />
                 </TouchableOpacity>
               )}
-              
+
               {/* Logo */}
               <View className="items-center mb-6">
                 <Logo size="xl" />
@@ -150,23 +154,23 @@ const VerifyEmailScreen: React.FC = () => {
 
               {/* Title */}
               <Text className="text-2xl font-rubik-bold text-gray-900 text-center">
-                {isVerified 
-                  ? 'Email Verified!' 
-                  : error 
-                  ? 'Verification Failed'
-                  : token 
-                  ? 'Verifying Email'
-                  : 'Verify Your Email'
+                {isVerified
+                  ? 'Email Verified!'
+                  : error
+                    ? 'Verification Failed'
+                    : token
+                      ? 'Verifying Email'
+                      : 'Verify Your Email'
                 }
               </Text>
               <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                {isVerified 
+                {isVerified
                   ? 'Your email has been successfully verified'
-                  : error 
-                  ? 'We could not verify your email'
-                  : token 
-                  ? 'Processing your verification'
-                  : 'Please check your email for verification link'
+                  : error
+                    ? 'We could not verify your email'
+                    : token
+                      ? 'Processing your verification'
+                      : 'Please check your email for verification link'
                 }
               </Text>
 

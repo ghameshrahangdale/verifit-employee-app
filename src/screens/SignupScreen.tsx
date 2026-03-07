@@ -226,7 +226,7 @@ const SignupScreen: React.FC = () => {
               {/* Form Fields */}
               <View className="space-y-4">
                 {/* First Name & Last Name Row */}
-                <View className="flex-row gap-3">
+                <View className="flex-col gap-3">
                   <View className="flex-1">
                     <Input
                       label="First Name"

@@ -58,9 +58,11 @@ const OrganizationOnboardingScreen: React.FC = () => {
   const companyTypes = [
     { label: 'Private Limited', value: 'private_limited' },
     { label: 'Public Limited', value: 'public_limited' },
+    { label: 'LLP', value: 'llp' },
     { label: 'Partnership', value: 'partnership' },
     { label: 'Sole Proprietorship', value: 'sole_proprietorship' },
-    { label: 'LLP', value: 'llp' },
+    { label: 'OPC (One Person Company)', value: 'opc' },
+    { label: 'Non-Government Organization', value: 'ngo' },
     { label: 'Other', value: 'other' },
   ];
 
@@ -70,8 +72,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
     { label: '11-50 employees', value: '11-50' },
     { label: '51-200 employees', value: '51-200' },
     { label: '201-500 employees', value: '201-500' },
-    { label: '501-1000 employees', value: '501-1000' },
-    { label: '1000+ employees', value: '1000+' },
+    { label: '500+ employees', value: '500+' },
   ];
 
   // Handle input changes
@@ -203,7 +204,10 @@ const OrganizationOnboardingScreen: React.FC = () => {
         visibilityTime: 5000,
       });
 
-      await refreshUser();
+      const res = await refreshUser();
+      console.log(res);
+      navigation.navigate("Tabs");
+
 
       // Clear form
       setFormData({
@@ -223,7 +227,6 @@ const OrganizationOnboardingScreen: React.FC = () => {
         companySize: '1-10',
       });
 
-      navigation.navigate("Tabs")
 
       
 
@@ -313,6 +316,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
         placeholder="Enter mobile number"
         keyboardType="phone-pad"
         required
+        maxLength={10}
       />
       <Input
         label="PAN Number"
@@ -321,6 +325,8 @@ const OrganizationOnboardingScreen: React.FC = () => {
         placeholder="Enter PAN number"
         autoCapitalize="characters"
         required
+        maxLength={10}
+
       />
       <Select
         label="Company Type"

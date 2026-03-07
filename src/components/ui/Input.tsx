@@ -14,6 +14,7 @@ interface InputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   className?: string;
   required?: boolean;
+  maxLength?: number;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -27,6 +28,7 @@ const Input: React.FC<InputProps> = ({
   autoCapitalize = 'none',
   className = '',
   required = false,
+  maxLength,
 }) => {
   const { colors } = useTheme();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -54,6 +56,7 @@ const Input: React.FC<InputProps> = ({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           style={{ color: colors.text }}
+          maxLength={maxLength}
         />
 
         {secureTextEntry && (

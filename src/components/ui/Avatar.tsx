@@ -89,6 +89,7 @@ const Avatar: React.FC<AvatarProps> = ({
             color: '#fff',
             fontSize: avatarSize / 2.5,
             fontWeight: '700',
+            
           }}
         >
           {initials}

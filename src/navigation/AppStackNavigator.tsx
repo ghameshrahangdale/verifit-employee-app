@@ -36,8 +36,9 @@ const Stack = createStackNavigator<AppStackParamList>();
 
 const AppStackNavigator: React.FC = () => {
   const {  user } = useAuth();
-  const isOnboarding = !user?.organizationId;
-  const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
+  const isOnboarding = !user?.organization && !user?.organizationId;
+
+const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
 
   return (
     <Stack.Navigator 
