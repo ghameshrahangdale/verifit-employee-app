@@ -1,26 +1,26 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
   Modal,
   KeyboardAvoidingView,
   Platform,
-  RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/ui/Header';
-import Input from '../components/ui/Input';
 import Avatar from '../components/ui/Avatar';
 import Button from '../components/ui/Button';
 import Toast from 'react-native-toast-message';
 import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
+import SearchInput from '../components/ui/SearchInput';
+import AddEmployeeForm from '../components/AddEmployeeForm';
 
 interface Employee {
   id: string;
@@ -37,20 +37,6 @@ interface Employee {
   createdAt: string;
   updatedAt: string;
   profileImage?: string;
-}
-
-interface TeamResponse {
-  success: boolean;
-  message: string;
-  data: {
-    members: Employee[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  };
 }
 
 interface AddEmployeeData {
@@ -80,31 +66,21 @@ const EmployeeListScreen: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
 
   // Search state
-  const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
   // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
 
-  // Form state for add employee
-  const [formData, setFormData] = useState<AddEmployeeData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: 'employee',
-  });
-
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof AddEmployeeData, string>>>({});
-
   // Debounce search
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      setDebouncedSearchQuery(search);
+      setDebouncedSearchQuery(searchQuery);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [search]);
+  }, [searchQuery]);
 
   // Fetch employees when search or pagination changes
   useEffect(() => {
@@ -123,7 +99,7 @@ const EmployeeListScreen: React.FC = () => {
         params: {
           page,
           limit: 10,
-          role: 'employee', // Filter by employee role
+          role: 'employee',
           ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
         },
       });
@@ -170,32 +146,15 @@ const EmployeeListScreen: React.FC = () => {
     }
   };
 
-  const validateForm = (): boolean => {
-    const errors: Partial<Record<keyof AddEmployeeData, string>> = {};
-
-    if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
-    }
-
-    if (!formData.lastName.trim()) {
-      errors.lastName = 'Last name is required';
-    }
-
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email is invalid';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
   };
 
-  const handleAddEmployee = async () => {
-    if (!validateForm()) {
-      return;
-    }
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
 
+  const handleAddEmployee = async (formData: AddEmployeeData) => {
     try {
       setIsAddingEmployee(true);
 
@@ -207,11 +166,7 @@ const EmployeeListScreen: React.FC = () => {
         text2: `${formData.firstName} ${formData.lastName} has been added`,
       });
 
-      // Reset form and close modal
-      resetForm();
       setIsModalVisible(false);
-
-      // Refresh the list
       handleRefresh();
 
     } catch (error: any) {
@@ -221,24 +176,10 @@ const EmployeeListScreen: React.FC = () => {
         text1: 'Failed to Add Employee',
         text2: error.response?.data?.message || 'Unable to add employee',
       });
+      throw error;
     } finally {
       setIsAddingEmployee(false);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      role: 'employee',
-    });
-    setFormErrors({});
-  };
-
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-    resetForm();
   };
 
   const formatDate = (dateString: string | null) => {
@@ -250,24 +191,13 @@ const EmployeeListScreen: React.FC = () => {
     });
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-  };
-
-  const filteredEmployees = useMemo(() => {
-    return employees.filter(emp =>
-      `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-      emp.email.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [employees, search]);
-
   const renderEmployeeCard = ({ item }: { item: Employee }) => {
     const fullName = `${item.firstName} ${item.lastName}`.trim();
     const isCurrentUser = item.email === user?.email;
 
     return (
       <View
-        className="bg-white rounded-2xl p-5 mb-4"
+        className="bg-white rounded-2xl p-5 mx-4 mb-3"
         style={{
           shadowColor: '#000',
           shadowOpacity: 0.04,
@@ -277,135 +207,102 @@ const EmployeeListScreen: React.FC = () => {
           borderWidth: 1,
         }}
       >
-        {/* Top Row */}
         <View className="flex-row items-center">
-          <Avatar
-            size="lg"
-            // initials={getInitials(item.firstName, item.lastName)}
-            // imageUrl={item.profileImage}
-          />
+          <Avatar name={fullName} size="lg" />
 
-          <View className="ml-4 flex-1">
-            <View className="flex-row items-center">
-              <Text className="text-base font-rubik-bold text-gray-900">
-                {fullName}
-              </Text>
-              {isCurrentUser && (
-                <View className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full">
-                  <Text className="font-rubik text-xs text-gray-600">You</Text>
-                </View>
-              )}
+          <View className="flex-1 ml-3">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                <Text className="font-rubik-bold text-gray-900 text-base">
+                  {fullName}
+                </Text>
+                {isCurrentUser && (
+                  <View className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full">
+                    <Text className="font-rubik text-xs text-gray-600">You</Text>
+                  </View>
+                )}
+              </View>
+              <View className="px-3 py-1 rounded-full ml-2 bg-green-100">
+                <Text className="font-rubik-medium text-xs text-green-600">
+                  EMPLOYEE
+                </Text>
+              </View>
             </View>
 
-            <Text className="text-sm text-gray-500 mt-1 font-rubik">
+            <Text className="font-rubik text-gray-500 text-sm mt-1">
               {item.email}
             </Text>
-          </View>
-        </View>
 
-        {/* Details */}
-        <View className="mt-4 flex-row justify-between">
-          <View>
-            <Text className="text-xs text-gray-400 font-rubik">Joined</Text>
-            <Text className="text-sm text-gray-600 font-rubik-medium">
-              {formatDate(item.createdAt)}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-xs text-gray-400 font-rubik">Status</Text>
-            <View className="flex-row items-center">
-              <View
-                className={`w-2 h-2 rounded-full ${
-                  item.isActive ? 'bg-green-500' : 'bg-gray-300'
-                } mr-1`}
-              />
-              <Text className="text-sm text-gray-600 font-rubik-medium">
-                {item.isActive ? 'Active' : 'Inactive'}
-              </Text>
+            <View className="flex-row items-center mt-2 justify-between">
+              <View className="flex-row items-center">
+                <View
+                  className={`w-2 h-2 rounded-full ${
+                    item.isActive ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                />
+                <Text className="font-rubik text-gray-400 text-xs ml-1">
+                  {item.isActive ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center">
+                <Text className="font-rubik text-gray-400 text-xs">
+                  Joined {formatDate(item.createdAt)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View className="flex-row justify-end mt-3 gap-2">
+              <TouchableOpacity
+                className="px-3 py-2 rounded-lg flex-row items-center"
+                style={{ backgroundColor: colors.primary + '15' }}
+                activeOpacity={0.7}
+              >
+                <Feather name="eye" size={14} color={colors.primary} />
+                <Text className="ml-1 text-xs font-rubik" style={{ color: colors.primary }}>
+                  View
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="px-3 py-2 rounded-lg flex-row items-center"
+                style={{ backgroundColor: '#D9770620' }}
+                activeOpacity={0.7}
+              >
+                <Feather name="edit-2" size={14} color="#D97706" />
+                <Text className="ml-1 text-xs font-rubik text-amber-600">
+                  Edit
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-          {item.lastLoginAt && (
-            <View>
-              <Text className="text-xs text-gray-400 font-rubik">Last Login</Text>
-              <Text className="text-sm text-gray-600 font-rubik-medium">
-                {formatDate(item.lastLoginAt)}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Action Buttons */}
-        <View className="flex-row justify-end mt-4 gap-3">
-          <TouchableOpacity
-            className="px-4 py-2 rounded-lg flex-row items-center"
-            style={{ backgroundColor: colors.primary + '15' }}
-            activeOpacity={0.7}
-            onPress={() => {
-              Toast.show({
-                type: 'info',
-                text1: fullName,
-                text2: `Employee details`,
-              });
-            }}
-          >
-            <Feather name="eye" size={16} color={colors.primary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="px-4 py-2 rounded-lg flex-row items-center"
-            style={{ backgroundColor: '#D9770620' }}
-            activeOpacity={0.7}
-          >
-            <Feather name="edit-2" size={16} color="#D97706" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="px-4 py-2 rounded-lg flex-row items-center"
-            style={{ backgroundColor: '#DC262620' }}
-            activeOpacity={0.7}
-          >
-            <Feather name="trash-2" size={16} color="#DC2626" />
-          </TouchableOpacity>
         </View>
       </View>
     );
   };
 
   const renderHeader = () => (
-    <View className="px-4 mt-6">
-      <View className="flex-row items-center space-x-3">
-        <View className="flex-1 relative">
-          <Input
-            placeholder="Search employee by name or email..."
-            value={search}
-            onChangeText={setSearch}
-            className="pr-12"
-          />
-          <View className="absolute right-4 top-4">
-            <Feather name="search" size={18} color={colors.primary} />
-          </View>
-        </View>
-        {canAddEmployee && (
-          <TouchableOpacity
-            className="px-4 py-3 rounded-lg flex-row items-center"
-            style={{ backgroundColor: colors.primary }}
-            activeOpacity={0.7}
-            onPress={() => setIsModalVisible(true)}
-          >
-            <Feather name="user-plus" size={18} color="#FFFFFF" />
-            <Text className="ml-2 text-sm font-rubik-medium text-white">Add</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+    <View className="px-4 pt-4 pb-2">
+      <SearchInput
+        value={searchQuery}
+        placeholder="Search employees..."
+        onChangeText={handleSearchChange}
+        onSearch={() => setDebouncedSearchQuery(searchQuery)}
+        onClear={clearSearch}
+      />
 
       {/* Filter, Export & Import Buttons */}
-      <View className="flex-row justify-end mt-3 gap-3">
+      {/* <View className="flex-row justify-end mt-3 gap-2">
         <TouchableOpacity
-          className="px-2 py-2 rounded-lg items-center justify-center"
+          className="px-4 py-2 rounded-lg flex-row items-center"
           style={{ backgroundColor: colors.primary + '15' }}
           activeOpacity={0.7}
         >
           <Feather name="filter" size={16} color={colors.primary} />
+          <Text className="ml-2 text-sm font-rubik" style={{ color: colors.primary }}>
+            Filter
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -429,14 +326,25 @@ const EmployeeListScreen: React.FC = () => {
             Import
           </Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
-      {/* Stats */}
+      {/* Stats and Add Button */}
       {totalItems > 0 && (
-        <View className="flex-row justify-between items-center mt-4">
-          <Text className="font-rubik text-gray-500 text-sm">
+        <View className="flex-row justify-end items-center mt-4">
+          {/* <Text className="font-rubik text-gray-500 text-sm">
             {totalItems} employee{totalItems !== 1 ? 's' : ''}
-          </Text>
+          </Text> */}
+          {canAddEmployee && (
+            <TouchableOpacity
+              onPress={() => setIsModalVisible(true)}
+              className="flex-row items-center bg-primary-50 px-4 py-2 rounded-full"
+            >
+              <Feather name="user-plus" size={20} color={colors.primary} />
+              <Text className="font-rubik-medium text-primary-500 ml-1">
+                Add Employee
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -459,14 +367,14 @@ const EmployeeListScreen: React.FC = () => {
       <View className="flex-1 items-center justify-center py-12 px-4">
         <Feather name="users" size={64} color="#D1D5DB" />
         <Text className="font-rubik-bold text-gray-900 text-lg mt-4">
-          {search ? 'No employees found' : 'No employees yet'}
+          {searchQuery ? 'No employees found' : 'No employees yet'}
         </Text>
         <Text className="font-rubik text-gray-500 text-center mt-2">
-          {search
-            ? `No employees matching "${search}"`
+          {searchQuery
+            ? `No employees matching "${searchQuery}"`
             : 'Add your first employee to get started'}
         </Text>
-        {!search && canAddEmployee && (
+        {!searchQuery && canAddEmployee && (
           <Button
             title="Add Employee"
             className="mt-4"
@@ -491,7 +399,7 @@ const EmployeeListScreen: React.FC = () => {
       <Header title="Employees" />
 
       <FlatList
-        data={filteredEmployees}
+        data={employees}
         renderItem={renderEmployeeCard}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
@@ -520,7 +428,7 @@ const EmployeeListScreen: React.FC = () => {
           visible={isModalVisible}
           animationType="slide"
           transparent={true}
-          onRequestClose={handleCloseModal}
+          onRequestClose={() => setIsModalVisible(false)}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -529,7 +437,7 @@ const EmployeeListScreen: React.FC = () => {
             <TouchableOpacity
               className="flex-1 bg-black/50"
               activeOpacity={1}
-              onPress={handleCloseModal}
+              onPress={() => setIsModalVisible(false)}
             >
               <View className="flex-1 justify-end">
                 <TouchableOpacity
@@ -543,81 +451,20 @@ const EmployeeListScreen: React.FC = () => {
                     shadowOffset: { width: 0, height: -4 },
                   }}
                 >
-                  {/* Modal Header */}
                   <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
                     <Text className="font-rubik-bold text-gray-900 text-xl">
                       Add Employee
                     </Text>
-                    <TouchableOpacity onPress={handleCloseModal}>
+                    <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                       <Feather name="x" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView className="max-h-[70%] p-6">
-                    {/* Form Fields */}
-                    <Input
-                      label="First Name"
-                      value={formData.firstName}
-                      onChangeText={(text) => {
-                        setFormData({ ...formData, firstName: text });
-                        if (formErrors.firstName) {
-                          setFormErrors({ ...formErrors, firstName: undefined });
-                        }
-                      }}
-                      placeholder="Enter first name"
-                      error={formErrors.firstName}
-                      className="mb-4"
-                    />
-
-                    <Input
-                      label="Last Name"
-                      value={formData.lastName}
-                      onChangeText={(text) => {
-                        setFormData({ ...formData, lastName: text });
-                        if (formErrors.lastName) {
-                          setFormErrors({ ...formErrors, lastName: undefined });
-                        }
-                      }}
-                      placeholder="Enter last name"
-                      error={formErrors.lastName}
-                      className="mb-4"
-                    />
-
-                    <Input
-                      label="Email"
-                      value={formData.email}
-                      onChangeText={(text) => {
-                        setFormData({ ...formData, email: text });
-                        if (formErrors.email) {
-                          setFormErrors({ ...formErrors, email: undefined });
-                        }
-                      }}
-                      placeholder="Enter email address"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      error={formErrors.email}
-                      className="mb-4"
-                    />
-
-                    {/* Role is fixed as 'employee' */}
-
-                    {/* Action Buttons */}
-                    <View className="flex-row gap-4 mb-20">
-                      <Button
-                        title="Cancel"
-                        variant="outline"
-                        className="flex-1"
-                        onPress={handleCloseModal}
-                        disabled={isAddingEmployee}
-                      />
-                      <Button
-                        title="Add Employee"
-                        className="flex-1"
-                        loading={isAddingEmployee}
-                        onPress={handleAddEmployee}
-                      />
-                    </View>
-                  </ScrollView>
+                  <AddEmployeeForm
+                    onSubmit={handleAddEmployee}
+                    onCancel={() => setIsModalVisible(false)}
+                    isLoading={isAddingEmployee}
+                  />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>

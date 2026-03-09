@@ -19,12 +19,12 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     subtitle: 'View and edit your team members',
     route: 'teams',
   },
-  {
-    icon: 'user-plus',
-    label: 'Invite Ex-Employee',
-    subtitle: 'Send invitation to former employees',
-    route: 'InviteExEmployee',
-  },
+  // {
+  //   icon: 'user-plus',
+  //   label: 'Invite Ex-Employee',
+  //   subtitle: 'Send invitation to former employees',
+  //   route: 'InviteExEmployee',
+  // },
   // {
   //   icon: 'settings',
   //   label: 'Account Settings',

@@ -23,6 +23,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 import { Switch } from 'react-native';
+import InviteTeamMemberForm from '../components/InviteTeamMemberForm';
+import SearchInput from '../components/ui/SearchInput';
 
 interface TeamMember {
   id: string;
@@ -40,65 +42,36 @@ interface TeamMember {
   updatedAt: string;
 }
 
-interface TeamResponse {
-  success: boolean;
-  message: string;
-  data: {
-    members: TeamMember[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  };
-}
-
 interface AddMemberData {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'hr'; // Fixed to only allow hr role
+  role: 'hr';
 }
 
 const TeamManagementScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
 
-  // Check if current user is HR or Admin (only they can add members)
   const canAddMember = user?.role === 'hr' || user?.role === 'admin';
+  const isHR = user?.role === 'hr';
 
-  // State for team members
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
 
-  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
-  // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
 
-  // Form state for add member - default role is hr
-  const [formData, setFormData] = useState<AddMemberData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: 'hr', // Always hr
-  });
-
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof AddMemberData, string>>>({});
-
-  // Debounce search
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -107,7 +80,6 @@ const TeamManagementScreen: React.FC = () => {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
-  // Fetch team members when search or pagination changes
   useEffect(() => {
     fetchTeamMembers(1, true);
   }, [debouncedSearchQuery]);
@@ -128,10 +100,8 @@ const TeamManagementScreen: React.FC = () => {
         },
       });
 
-
       const members = response?.data?.members || [];
       const pagination = response?.data?.pagination || {};
-
 
       setTeamMembers(prev =>
         reset ? members : [...prev, ...members]
@@ -141,7 +111,6 @@ const TeamManagementScreen: React.FC = () => {
       setTotalPages(pagination?.totalPages || 1);
       setTotalItems(pagination?.total || members.length);
       setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
-
 
     } catch (error: any) {
       console.error('Error fetching team members:', error);
@@ -176,84 +145,37 @@ const TeamManagementScreen: React.FC = () => {
     setSearchQuery('');
   };
 
-  const validateForm = (): boolean => {
-    const errors: Partial<Record<keyof AddMemberData, string>> = {};
-
-    if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
-    }
-
-    if (!formData.lastName.trim()) {
-      errors.lastName = 'Last name is required';
-    }
-
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email is invalid';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleAddMember = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
+  const handleAddMember = async (formData: AddMemberData) => {
     try {
       setIsAddingMember(true);
-
-      // Role is always 'hr' so no need to include it in the request if not required
-      // But if API requires role, it's already set in formData
       const response = await http.post('/api/organization/team', formData);
-
 
       Toast.show({
         type: 'success',
-        text1: 'Member Added',
-        text2: `${formData.firstName} ${formData.lastName} has been added to the team`,
+        text1: 'Invitation Sent',
+        text2: `An invitation has been sent to ${formData.firstName} ${formData.lastName}`,
       });
 
-      // Reset form and close modal
-      resetForm();
       setIsModalVisible(false);
-
       handleRefresh();
 
     } catch (error: any) {
       console.error('Error adding team member:', error);
       Toast.show({
         type: 'error',
-        text1: 'Failed to Add Member',
-        text2: error.response?.data?.message || 'Unable to add team member',
+        text1: 'Failed to Send Invitation',
+        text2: error.response?.data?.message || 'Unable to send invitation',
       });
+      throw error;
     } finally {
       setIsAddingMember(false);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      role: 'hr', // Always hr
-    });
-    setFormErrors({});
-  };
-
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-    resetForm();
   };
 
   const toggleMemberStatus = async (member: TeamMember) => {
     try {
       const newStatus = !member.isActive;
 
-      // Optimistic UI update
       setTeamMembers(prev =>
         prev.map(m =>
           m.id === member.id ? { ...m, isActive: newStatus } : m
@@ -262,18 +184,16 @@ const TeamManagementScreen: React.FC = () => {
 
       const response = await http.patch(`/api/organization/team`, {
         isActive: newStatus,
-        userId:member.id
+        userId: member.id
       });
 
       Toast.show({
         type: 'success',
         text1: response?.message || "Team member status updated",
         text2: `${member.firstName} ${member.lastName}`,
-    });
+      });
 
     } catch (error: any) {
-
-      // revert if API fails
       setTeamMembers(prev =>
         prev.map(m =>
           m.id === member.id ? { ...m, isActive: !member.isActive } : m
@@ -301,47 +221,26 @@ const TeamManagementScreen: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-  };
-
   const renderTeamMember = ({ item }: { item: TeamMember }) => {
     const roleBadge = getRoleBadgeColor(item.role);
     const fullName = `${item.firstName} ${item.lastName}`.trim();
     const isCurrentUser = item.email === user?.email;
 
     return (
-      <TouchableOpacity
-        className="bg-white rounded-2xl p-4 mb-3 mx-4"
+      <View
+        className="bg-white rounded-2xl p-5 mx-4 mb-3"
         style={{
           shadowColor: '#000',
           shadowOpacity: 0.04,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 },
-        }}
-        onPress={() => {
-          // Handle member press (view details, edit, etc.)
-          Toast.show({
-            type: 'info',
-            text1: fullName,
-            text2: `Role: ${item.role}${isCurrentUser ? ' (You)' : ''}`,
-          });
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          borderColor: colors.primary + 30,
+          borderWidth: 1,
         }}
       >
+
         <View className="flex-row items-center">
-          <Avatar
-            size="lg"
-          // initials={getInitials(item.firstName, item.lastName)}
-          />
+          <Avatar name={fullName} size="lg" />
 
           <View className="flex-1 ml-3">
             <View className="flex-row items-center justify-between">
@@ -372,81 +271,60 @@ const TeamManagementScreen: React.FC = () => {
               {item.email}
             </Text>
 
-           <View className="flex-row items-center mt-2 justify-between">
-
-  <View className="flex-row items-center">
-    <View
-      className={`w-2 h-2 rounded-full ${
-        item.isActive ? 'bg-green-500' : 'bg-gray-300'
-      }`}
-    />
-    <Text className="font-rubik text-gray-400 text-xs ml-1">
-      {item.isActive ? 'Active' : 'Inactive'}
-    </Text>
-  </View>
-
-  {(user?.role === 'admin' || user?.role === 'hr') && (
-    <View className="flex-row items-center">
-      
-      <Text className="font-rubik text-xs text-gray-500 mr-2">
-        {item.isActive ? 'Deactivate' : 'Activate'}
-      </Text>
-
-      <Switch
-        value={item.isActive}
-        onValueChange={() => toggleMemberStatus(item)}
-        trackColor={{ false: '#D1D5DB', true: colors.primary }}
-        thumbColor={'#ffffff'}
-      />
-
-    </View>
-  )}
-
-</View>
-            {/* {item.isEmailVerified && (
-              <View className="">
-                <Icon name="check-decagram" size={16} color="#3B82F6" />
+            <View className="flex-row items-center mt-2 justify-between">
+              <View className="flex-row items-center">
+                <View
+                  className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
+                />
+                <Text className="font-rubik text-gray-400 text-xs ml-1">
+                  {item.isActive ? 'Active' : 'Inactive'}
+                </Text>
               </View>
-            )} */}
+
+              {/* {(user?.role === 'admin' || user?.role === 'hr') && (
+                <View className="flex-row items-center">
+                  <Text className="font-rubik text-xs text-gray-500 mr-2">
+                    {item.isActive ? 'Deactivate' : 'Activate'}
+                  </Text>
+                  <Switch
+                    value={item.isActive}
+                    onValueChange={() => toggleMemberStatus(item)}
+                    trackColor={{ false: '#D1D5DB', true: colors.primary }}
+                    thumbColor={'#ffffff'}
+                  />
+                </View>
+              )} */}
+            </View>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   const renderHeader = () => (
     <View className="px-4 pt-4 pb-2">
-      {/* Search Bar */}
-      <View className="flex-row items-center bg-white rounded-xl px-4 py-2 mb-4">
-        <Icon name="magnify" size={20} color="#9CA3AF" />
-        <TextInput
-          className="flex-1 ml-2 font-rubik text-gray-900"
-          placeholder="Search team members..."
-          placeholderTextColor="#9CA3AF"
-          value={searchQuery}
-          onChangeText={handleSearchChange}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={clearSearch}>
-            <Icon name="close" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-        )}
-      </View>
+      <SearchInput
+        value={searchQuery}
+        placeholder="Search team members..."
+        onChangeText={handleSearchChange}
+        onSearch={() => setDebouncedSearchQuery(searchQuery)}
+        onClear={clearSearch}
+      />
 
-      {/* Stats */}
       {totalItems > 0 && (
-        <View className="flex-row justify-between items-center mb-2">
+        <View className="flex-row justify-between items-center mb-2 mt-2">
           <Text className="font-rubik text-gray-500 text-sm">
             {totalItems} team member{totalItems !== 1 ? 's' : ''}
           </Text>
-          {canAddMember && (
+          {canAddMember && !isHR && (
             <TouchableOpacity
               onPress={() => setIsModalVisible(true)}
-              className="flex-row items-center"
+              className="flex-row items-center bg-primary-50 px-4 py-2 rounded-full"
             >
-              <Icon name="account-plus" size={20} color={colors.primary} />
+              <Icon name="email-send-outline" size={20} color={colors.primary} />
               <Text className="font-rubik-medium text-primary-500 ml-1">
-                Add
+                Invite Member
               </Text>
             </TouchableOpacity>
           )}
@@ -477,11 +355,11 @@ const TeamManagementScreen: React.FC = () => {
         <Text className="font-rubik text-gray-500 text-center mt-2">
           {searchQuery
             ? `No members matching "${searchQuery}"`
-            : 'Add your first team member to get started'}
+            : 'Invite your first team member to get started'}
         </Text>
-        {!searchQuery && canAddMember && (
+        {!searchQuery && canAddMember && !isHR && (
           <Button
-            title="Add Member"
+            title="Invite Member"
             className="mt-4"
             onPress={() => setIsModalVisible(true)}
           />
@@ -501,21 +379,7 @@ const TeamManagementScreen: React.FC = () => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <Header
-        title="HR Management"
-      // rightComponent={
-      //   canAddMember ? (
-      //     <TouchableOpacity
-      //       onPress={() => setIsModalVisible(true)}
-      //       className="mr-4"
-      //     >
-      //       <Icon name="account-plus" size={24} color={colors.primary} />
-      //     </TouchableOpacity>
-      //   ) : undefined
-      // }
-      />
-
-
+      <Header title="HR Management" />
 
       <FlatList
         data={teamMembers}
@@ -541,13 +405,12 @@ const TeamManagementScreen: React.FC = () => {
         }}
       />
 
-      {/* Add Member Modal - Only shown if user can add members */}
-      {canAddMember && (
+      {canAddMember && !isHR && (
         <Modal
           visible={isModalVisible}
           animationType="slide"
           transparent={true}
-          onRequestClose={handleCloseModal}
+          onRequestClose={() => setIsModalVisible(false)}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -556,7 +419,7 @@ const TeamManagementScreen: React.FC = () => {
             <TouchableOpacity
               className="flex-1 bg-black/50"
               activeOpacity={1}
-              onPress={handleCloseModal}
+              onPress={() => setIsModalVisible(false)}
             >
               <View className="flex-1 justify-end">
                 <TouchableOpacity
@@ -570,82 +433,20 @@ const TeamManagementScreen: React.FC = () => {
                     shadowOffset: { width: 0, height: -4 },
                   }}
                 >
-                  {/* Modal Header */}
                   <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
                     <Text className="font-rubik-bold text-gray-900 text-xl">
-                      Add Team Member
+                      Invite Team Member
                     </Text>
-                    <TouchableOpacity onPress={handleCloseModal}>
+                    <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                       <Icon name="close" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView className="max-h-[70%] p-6">
-                    {/* Form Fields */}
-                    <Input
-                      label="First Name"
-                      value={formData.firstName}
-                      onChangeText={(text) => {
-                        setFormData({ ...formData, firstName: text });
-                        if (formErrors.firstName) {
-                          setFormErrors({ ...formErrors, firstName: undefined });
-                        }
-                      }}
-                      placeholder="Enter first name"
-                      error={formErrors.firstName}
-                      className="mb-4"
-                    />
-
-                    <Input
-                      label="Last Name"
-                      value={formData.lastName}
-                      onChangeText={(text) => {
-                        setFormData({ ...formData, lastName: text });
-                        if (formErrors.lastName) {
-                          setFormErrors({ ...formErrors, lastName: undefined });
-                        }
-                      }}
-                      placeholder="Enter last name"
-                      error={formErrors.lastName}
-                      className="mb-4"
-                    />
-
-                    <Input
-                      label="Email"
-                      value={formData.email}
-                      onChangeText={(text) => {
-                        setFormData({ ...formData, email: text });
-                        if (formErrors.email) {
-                          setFormErrors({ ...formErrors, email: undefined });
-                        }
-                      }}
-                      placeholder="Enter email address"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      error={formErrors.email}
-                      className="mb-4"
-                    />
-
-                    {/* Hidden role field - always hr */}
-                    {/* Removed role selection UI as per requirement */}
-
-                    {/* Action Buttons */}
-                    <View className="flex-row gap-4 mb-6">
-                      <Button
-                        title="Cancel"
-                        variant="outline"
-                        className="flex-1"
-                        onPress={handleCloseModal}
-                        disabled={isAddingMember}
-                      />
-                      <Button
-                        title="Add Member"
-                        className="flex-1"
-                        loading={isAddingMember}
-                        onPress={handleAddMember}
-                      />
-                    </View>
-                  </ScrollView>
+                  <InviteTeamMemberForm
+                    onSubmit={handleAddMember}
+                    onCancel={() => setIsModalVisible(false)}
+                    isLoading={isAddingMember}
+                  />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>

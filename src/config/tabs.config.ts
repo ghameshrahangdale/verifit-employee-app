@@ -11,12 +11,12 @@ export const TAB_CONFIG = [
     icon: 'users',
     label: 'Employees',
   },
-  {
-    name: 'Verified',
-    component: 'VerifiedEmployeeListScreen',
-    icon: 'check-circle',
-    label: 'Verified',
-  },
+  // {
+  //   name: 'Verified',
+  //   component: 'VerifiedEmployeeListScreen',
+  //   icon: 'check-circle',
+  //   label: 'Verified',
+  // },
   {
     name: 'Profile',
     component: 'MenuScreen',
