@@ -69,8 +69,12 @@ const VerifyEmailScreen: React.FC = () => {
         visibilityTime: 5000,
       });
 
+      const route = response?.data?.hasPassword === false
+        ? "ForgotPassword"
+        : "Login";
+
       setTimeout(() => {
-        navigation.navigate("Login");
+        navigation.navigate(route);
       }, 3000);
 
     } catch (error: any) {

@@ -52,6 +52,7 @@ export interface AuthResponse {
 }
 
 export interface VerifyEmailResponse {
+  data: any;
   message: string;
   verified?: boolean;
 }
@@ -121,55 +122,87 @@ export const AuthService = {
    * Complete organization onboarding
    * @param payload - Organization details for onboarding
    */
-  async organizationOnboard(payload: OrganizationOnboardRequest): Promise<OrganizationOnboardResponse> {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('Authentication token not found. Please login again.');
-      }
+ async organizationOnboard(payload: any): Promise<OrganizationOnboardResponse> {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
 
-      const response = await http.post('api/organization/onboard', payload, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Update stored user data with organization information if returned
-      if (response.data?.organization) {
-        const userData = await AsyncStorage.getItem('userData');
-        if (userData) {
-          const parsedUserData = JSON.parse(userData);
-          const updatedUserData = {
-            ...parsedUserData,
-            organization: response.data.organization,
-          };
-          await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
-        }
-      }
-
-      return response.data as OrganizationOnboardResponse;
-    } catch (error: any) {
-      // Handle different error formats
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.response?.data?.error) {
-        throw new Error(error.response.data.error);
-      } else if (error.response?.data?.errors) {
-        // Handle validation errors
-        const validationErrors = error.response.data.errors;
-        const errorMessages = Object.entries(validationErrors)
-          .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
-          .join('; ');
-        throw new Error(errorMessages);
-      } else if (error.message) {
-        throw error;
-      }
-      throw new Error('Organization onboarding failed. Please try again.');
+    if (!token) {
+      throw new Error("Authentication token not found. Please login again.");
     }
-  },
 
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (key === 'logo' && value instanceof File) {
+        formData.append('logo', value);
+      } else if (value !== undefined && value !== null && key !== 'logo') {
+        formData.append(key, String(value));
+      }
+    });
+
+    console.log("payload", formData);
+
+    const response = await http.post(
+      "api/organization/onboard",
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    console.log(response);
+
+    if (response.data?.organization) {
+      const userData = await AsyncStorage.getItem("userData");
+
+      if (userData) {
+        const parsedUserData = JSON.parse(userData);
+
+        const updatedUserData = {
+          ...parsedUserData,
+          organization: response.data.organization,
+        };
+
+        await AsyncStorage.setItem(
+          "userData",
+          JSON.stringify(updatedUserData)
+        );
+      }
+    }
+
+    return response.data as OrganizationOnboardResponse;
+
+  } catch (error: any) {
+
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+
+    if (error.response?.data?.errors) {
+      const validationErrors = error.response.data.errors;
+
+      const errorMessages = Object.entries(validationErrors)
+        .map(([field, messages]) =>
+          `${field}: ${(messages as string[]).join(", ")}`
+        )
+        .join("; ");
+
+      throw new Error(errorMessages);
+    }
+
+    if (error.message) {
+      throw error;
+    }
+
+    throw new Error("Organization onboarding failed. Please try again.");
+  }
+},
   /**
    * Verify email with token
    * @param token - Email verification token from URL

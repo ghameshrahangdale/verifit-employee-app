@@ -7,7 +7,7 @@ const BASE_URL = "https://verifiit-nextjs.vercel.app/";
 // Axios instance
 const http = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  // timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },

@@ -304,7 +304,7 @@ const handleClearLogo = () => {
   };
 
   // Handle form submission
-  const handleOnboarding = async () => {
+ const handleOnboarding = async () => {
   if (!validateStep(3)) return;
 
   setIsLoading(true);
@@ -312,60 +312,30 @@ const handleClearLogo = () => {
   setSuccessMessage(null);
 
   try {
-    const formPayload = new FormData();
+    const payload = {
+      name: formData.name.trim(),
+      mobileNumber: formData.mobileNumber.trim(),
+      panNumber: formData.panNumber.trim().toUpperCase(),
+      companyType: formData.companyType,
+      address: formData.address.trim(),
+      country: formData.country.trim(),
+      state: formData.state.trim(),
+      city: formData.city.trim(),
+      businessEmail: formData.businessEmail.trim(),
+      companyWebsite: formData.companyWebsite?.trim() || undefined,
+      logoUrl: formData.logoUrl || undefined,
+      udyamNumber: formData.udyamNumber?.trim() || undefined,
+      cinNumber: formData.cinNumber?.trim().toUpperCase() || undefined,
+      companySize: formData.companySize || "",
+      logo: logoFile || null,
+    };
 
-    formPayload.append("name", formData.name.trim());
-    formPayload.append("mobileNumber", formData.mobileNumber.trim());
-    formPayload.append("panNumber", formData.panNumber.trim().toUpperCase());
-    formPayload.append("companyType", formData.companyType);
-    formPayload.append("address", formData.address.trim());
-    formPayload.append("country", formData.country.trim());
-    formPayload.append("state", formData.state.trim());
-    formPayload.append("city", formData.city.trim());
-    formPayload.append(
-      "businessEmail",
-      formData.businessEmail.toLowerCase().trim()
-    );
-
-    if (formData.companyWebsite?.trim()) {
-      formPayload.append("companyWebsite", formData.companyWebsite.trim());
-    }
-
-    if (formData.udyamNumber?.trim()) {
-      formPayload.append("udyamNumber", formData.udyamNumber.trim());
-    }
-
-    if (formData.cinNumber?.trim()) {
-      formPayload.append(
-        "cinNumber",
-        formData.cinNumber.trim().toUpperCase()
-      );
-    }
-
-    formPayload.append("companySize", formData.companySize);
-
-    // attach logo file
-    if (logoFile) {
-      formPayload.append("logo", {
-        uri: logoFile.uri,
-        name: logoFile.name || "logo.jpg",
-        type: logoFile.type || "image/jpeg",
-      } as any);
-    }
-
-    const response = await AuthService.organizationOnboard(formPayload);
-
-    setSuccessMessage(
-      response.message || "Organization onboarding successful!"
-    );
+    const response = await AuthService.organizationOnboard(payload);
 
     Toast.show({
       type: "success",
       text1: "Onboarding Successful",
-      text2:
-        response.message ||
-        "Organization details saved successfully",
-      visibilityTime: 5000,
+      text2: response.message || "Organization registered successfully",
     });
 
     await refreshUser();
@@ -373,8 +343,7 @@ const handleClearLogo = () => {
 
   } catch (err: any) {
     const errorMessage =
-      err.message ||
-      "An unexpected error occurred. Please try again.";
+      err.message || "An unexpected error occurred";
 
     setError(errorMessage);
 
