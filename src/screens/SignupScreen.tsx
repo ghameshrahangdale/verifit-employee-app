@@ -40,72 +40,94 @@ const SignupScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+});
 
   const navigation = useNavigation<SignupScreenNavigationProp>();
 
   // Handle input changes
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+  setFormData(prev => ({
+    ...prev,
+    [field]: value,
+  }));
 
-    // Clear password error when user types in either password field
-    if (field === 'password' || field === 'confirmPassword') {
-      setPasswordError(null);
-    }
-    
-    // Clear general error when user makes changes
-    if (error) setError(null);
-  };
+  // Clear specific field error
+  setFieldErrors(prev => ({
+    ...prev,
+    [field]: '',
+  }));
 
+  if (error) setError(null);
+};
   // Validate form
   const validateForm = (): boolean => {
-    // Reset messages
-    setError(null);
-    setPasswordError(null);
+  let valid = true;
 
-    // Check passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setPasswordError("Passwords do not match");
-      return false;
-    }
-
-    // Check password strength
-    if (formData.password.length < 6) {
-      setPasswordError("Password must be at least 6 characters long");
-      return false;
-    }
-
-    // Check terms acceptance
-    if (!isChecked) {
-      setError("Please accept the Terms and Conditions and Privacy Policy");
-      return false;
-    }
-
-    // Check organization name
-    // if (!formData.organizationName.trim()) {
-    //   setError("Organization name is required");
-    //   return false;
-    // }
-
-    // Basic email validation
-    if (!formData.email.includes('@') || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setError("Please enter a valid email address");
-      return false;
-    }
-
-    // Check required fields
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setError("First name and last name are required");
-      return false;
-    }
-
-    return true;
+  const errors = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   };
+
+  if (!formData.firstName.trim()) {
+    errors.firstName = 'Please enter first name';
+    valid = false;
+  }
+
+  if (!formData.lastName.trim()) {
+    errors.lastName = 'Please enter last name';
+    valid = false;
+  }
+
+  if (!formData.email.trim()) {
+    errors.email = 'Please enter email';
+    valid = false;
+  } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+    errors.email = 'Please enter valid email address';
+    valid = false;
+  }
+
+  const passwordRegex =
+    /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
+
+  if (!formData.password) {
+    errors.password = 'Please enter password';
+    valid = false;
+  } else if (!passwordRegex.test(formData.password)) {
+    errors.password =
+      'Password must be at least 6 characters, including one capital letter, one number and one special character';
+    valid = false;
+  }
+
+  if (!formData.confirmPassword) {
+    errors.confirmPassword = 'Please confirm password';
+    valid = false;
+  } else if (formData.password !== formData.confirmPassword) {
+    errors.confirmPassword = 'Passwords do not match';
+    valid = false;
+  }
+
+  if (!isChecked) {
+    setError('Please accept the Terms and Conditions and Privacy Policy');
+    valid = false;
+  }
+
+  setFieldErrors(errors);
+
+  return valid;
+};
 
   // Handle form submission
   const handleSignup = async () => {
@@ -183,17 +205,17 @@ const SignupScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           <View className="px-6 py-8">
-            <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
+            <View className="">
               
-              <View className="mb-6 items-center">
-                <Logo size="lg" />
+              <View className="mb-6 items-start">
+                <Logo size="md" />
               </View>
 
-              <Text className="text-2xl font-rubik-bold text-center text-gray-900">
-                Organization Registration
+              <Text className="text-2xl font-rubik-bold text-left text-gray-900">
+                Registration
               </Text>
-              <Text className="text-gray-500 text-center font-rubik mt-1 mb-6">
-                Enter your details to create an organization account!
+              <Text className="text-gray-500 text-left font-rubik mt-1 mb-6">
+                Enter your details to create an account!
               </Text>
 
               {/* Error Message Display */}
@@ -234,6 +256,7 @@ const SignupScreen: React.FC = () => {
                       onChangeText={(value) => handleChange('firstName', value)}
                       placeholder="Enter first name"
                       required
+                      error={fieldErrors.firstName}
                     />
                   </View>
                   <View className="flex-1">
@@ -243,6 +266,7 @@ const SignupScreen: React.FC = () => {
                       onChangeText={(value) => handleChange('lastName', value)}
                       placeholder="Enter last name"
                       required
+                       error={fieldErrors.lastName}
                     />
                   </View>
                 </View>
@@ -256,6 +280,7 @@ const SignupScreen: React.FC = () => {
                   keyboardType="email-address"
                   placeholder="Enter your email"
                   required
+                   error={fieldErrors.email}
                 />
 
                 {/* Password */}
@@ -266,7 +291,7 @@ const SignupScreen: React.FC = () => {
                   secureTextEntry={!showPassword}
                   placeholder="Enter your password"
                   required
-                  
+                   error={fieldErrors.password}
                 />
 
                 {/* Confirm Password */}
@@ -277,6 +302,7 @@ const SignupScreen: React.FC = () => {
                   secureTextEntry={!showConfirmPassword}
                   placeholder="Confirm your password"
                   required
+                  error={fieldErrors.confirmPassword}
                   
                 />
 

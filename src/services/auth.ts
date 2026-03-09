@@ -28,11 +28,12 @@ export interface OrganizationOnboardPayload {
   city: string;
   businessEmail: string;
   companyWebsite?: string;
-  logoUrl?: string;
   udyamNumber?: string;
   cinNumber?: string;
   companySize: string;
 }
+
+export type OrganizationOnboardRequest = FormData;
 
 export interface ForgotPasswordPayload {
   email: string;
@@ -120,7 +121,7 @@ export const AuthService = {
    * Complete organization onboarding
    * @param payload - Organization details for onboarding
    */
-  async organizationOnboard(payload: OrganizationOnboardPayload): Promise<OrganizationOnboardResponse> {
+  async organizationOnboard(payload: OrganizationOnboardRequest): Promise<OrganizationOnboardResponse> {
     try {
       const token = await AsyncStorage.getItem('authToken');
       

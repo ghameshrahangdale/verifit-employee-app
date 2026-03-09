@@ -115,7 +115,7 @@ const LoginScreen: React.FC = () => {
                 Sign in to your account
               </Text>
               <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                Welcome back! Please enter your details
+                Enter your email and password to sign in!
               </Text>
 
               {/* Error Display */}
@@ -155,7 +155,9 @@ const LoginScreen: React.FC = () => {
                 className="self-end mb-6"
                 onPress={() => navigation.navigate('ForgotPassword')}
               >
-                <Text className="text-sm text-blue-600 font-rubik">
+                <Text className="text-sm font-rubik"
+                style={{color: colors.primary}}
+                >
                   Forgot password?
                 </Text>
               </TouchableOpacity>
@@ -175,7 +177,9 @@ const LoginScreen: React.FC = () => {
                   Don't have an account?
                 </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                  <Text className="text-blue-600 font-rubik-medium ml-1">
+                  <Text className=" font-rubik ml-1"
+                  style={{color: colors.primary}}
+                  >
                     Sign up
                   </Text>
                 </TouchableOpacity>
