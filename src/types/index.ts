@@ -31,3 +31,40 @@ export interface ProfileData {
   phoneNumber?: string;
   photoURL?: string;
 }
+
+export interface OrganizationData {
+  id: string;
+  name: string;
+  mobileNumber: string;
+  businessEmail: string;
+  companyWebsite: string | null;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  panNumber: string;
+  companyType: string;
+  cinNumber: string | null;
+  udyamNumber: string | null;
+  companySize: string;
+  logoUrl: string | null;
+  isOnboardingComplete: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserData {
+  id: string;
+  organizationId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  isEmailVerified: boolean;
+  isActive: boolean;
+  lastLoginAt: string;
+  createdAt: string;
+  updatedAt: string;
+  profileImage?: string;
+  organization?: OrganizationData;
+}

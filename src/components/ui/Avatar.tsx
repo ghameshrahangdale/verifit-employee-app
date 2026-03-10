@@ -48,6 +48,8 @@ const Avatar: React.FC<AvatarProps> = ({
   const userEmail = email || user?.email || '';
   const profileImage = imageUrl || user?.profileImage;
 
+  console.log(user);
+
   // Generate initials
   let initials = 'U';
 
@@ -65,13 +67,11 @@ const Avatar: React.FC<AvatarProps> = ({
           width: avatarSize,
           height: avatarSize,
           borderRadius: avatarSize / 2,
-          backgroundColor: colors.foreground+70,
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
+          
         },
         style,
       ]}
+      className="items-center justify-center overflow-hidden bg-gray-200"
     >
       {profileImage ? (
         <Image
@@ -86,11 +86,9 @@ const Avatar: React.FC<AvatarProps> = ({
       ) : (
         <Text
           style={{
-            color: '#fff',
             fontSize: avatarSize / 2.5,
-            fontWeight: '700',
-            
           }}
+          className="font-rubik-medium text-gray-600"
         >
           {initials}
         </Text>

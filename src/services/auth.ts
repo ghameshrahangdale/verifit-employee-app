@@ -132,13 +132,20 @@ export const AuthService = {
 
     const formData = new FormData();
 
-    Object.entries(payload).forEach(([key, value]) => {
-      if (key === 'logo' && value instanceof File) {
-        formData.append('logo', value);
-      } else if (value !== undefined && value !== null && key !== 'logo') {
+     Object.entries(payload).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+
+      if (key === "logo" && typeof value === "object" && "uri" in value) {
+        formData.append("logo", {
+          uri: (value as any).uri,
+          name: (value as any).name || "logo.jpg",
+          type: (value as any).type || "image/jpeg",
+        } as any);
+      } else {
         formData.append(key, String(value));
       }
     });
+
 
     console.log("payload", formData);
 

@@ -3,6 +3,8 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { AuthService } from '../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import http from '../services/http.api';
+import { UserData } from '../types';
 
 // Define types
 interface User {
@@ -22,15 +24,25 @@ interface AuthContextData {
   isAuthenticated: boolean;
   token: string | null;
   isOnboarding: boolean;
+
   login: (email: string, password: string) => Promise<any>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
+
   updateUser: (userData: Partial<User>) => void;
+
+  refreshUser: () => Promise<void>;
+
+  getProfile: () => Promise<UserData | null>;       // ✅ add
+  updateProfile: (data: {
+    firstName: string;
+    lastName: string;
+    avatarFile?: any;
+  }) => Promise<UserData | null>;                   // ✅ add
+
   clearError: () => void;
   error: string | null;
-  refreshUser: () => Promise<void>; // Add this line
 }
-
 // Create context
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
@@ -67,23 +79,103 @@ const loadStoredAuth = async () => {
     setIsLoading(true);
     setError(null);
 
-    const [storedToken, storedUser] = await Promise.all([
-      AsyncStorage.getItem('authToken'),
-      AsyncStorage.getItem('userData'),
-    ]);
+    const storedToken = await AsyncStorage.getItem('authToken');
 
-    if (storedToken && storedUser) {
-      const parsedUser = JSON.parse(storedUser);
+    if (storedToken) {
       setToken(storedToken);
-      setUser(parsedUser);
-      
-      // Log for debugging
-      console.log('Loaded user from storage:', parsedUser);
-      console.log('Organization ID:', parsedUser.organizationId);
+
+      // fetch latest profile from API
+      const profile = await getProfile();
+
+      if (!profile) {
+        await logout();
+      }
     }
+
   } catch (error) {
     console.error('Error loading stored auth:', error);
     setError('Failed to load authentication data');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const getProfile = async () => {
+  try {
+
+    const response = await http.get('/api/user/profile');
+
+    if (response.data?.user) {
+      const userData = response.data.user;
+
+      setUser(userData);
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+
+      return userData;
+    }
+
+    return null;
+
+  } catch (error: any) {
+    console.error('Profile fetch error:', error);
+    setError(error.message || 'Failed to fetch profile');
+    return null;
+
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const updateProfile = async ({
+  firstName,
+  lastName,
+  avatarFile,
+}: {
+  firstName: string;
+  lastName: string;
+  avatarFile?: any;
+}) => {
+  try {
+
+    const formData = new FormData();
+
+    formData.append('firstName', firstName);
+    formData.append('lastName', lastName);
+
+    if (avatarFile) {
+      formData.append('profileImage', {
+        uri: avatarFile.uri,
+        name: avatarFile.name,
+        type: avatarFile.type,
+      } as any);
+    }
+
+    const response = await http.put(
+      '/api/user/profile',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    if (response.data?.user) {
+      const updatedUser = response.data.user;
+
+      setUser(updatedUser);
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+
+      return updatedUser;
+    }
+
+    return null;
+
+  } catch (error: any) {
+    console.error('Profile update error:', error);
+    setError(error.message || 'Failed to update profile');
+    throw error;
+
   } finally {
     setIsLoading(false);
   }
@@ -227,6 +319,8 @@ const refreshUser = async () => {
         register,
         logout,
         updateUser,
+         getProfile,        // ✅
+    updateProfile,  
         clearError,
         error,
         refreshUser,
