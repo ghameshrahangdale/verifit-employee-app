@@ -40,6 +40,7 @@ interface TeamMember {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  profileImage?:string;
 }
 
 interface AddMemberData {
@@ -172,41 +173,41 @@ const TeamManagementScreen: React.FC = () => {
     }
   };
 
-  const toggleMemberStatus = async (member: TeamMember) => {
-    try {
-      const newStatus = !member.isActive;
+  // const toggleMemberStatus = async (member: TeamMember) => {
+  //   try {
+  //     const newStatus = !member.isActive;
 
-      setTeamMembers(prev =>
-        prev.map(m =>
-          m.id === member.id ? { ...m, isActive: newStatus } : m
-        )
-      );
+  //     setTeamMembers(prev =>
+  //       prev.map(m =>
+  //         m.id === member.id ? { ...m, isActive: newStatus } : m
+  //       )
+  //     );
 
-      const response = await http.patch(`/api/organization/team`, {
-        isActive: newStatus,
-        userId: member.id
-      });
+  //     const response = await http.patch(`/api/organization/team`, {
+  //       isActive: newStatus,
+  //       userId: member.id
+  //     });
 
-      Toast.show({
-        type: 'success',
-        text1: response?.message || "Team member status updated",
-        text2: `${member.firstName} ${member.lastName}`,
-      });
+  //     Toast.show({
+  //       type: 'success',
+  //       text1: response?.message || "Team member status updated",
+  //       text2: `${member.firstName} ${member.lastName}`,
+  //     });
 
-    } catch (error: any) {
-      setTeamMembers(prev =>
-        prev.map(m =>
-          m.id === member.id ? { ...m, isActive: !member.isActive } : m
-        )
-      );
+  //   } catch (error: any) {
+  //     setTeamMembers(prev =>
+  //       prev.map(m =>
+  //         m.id === member.id ? { ...m, isActive: !member.isActive } : m
+  //       )
+  //     );
 
-      Toast.show({
-        type: 'error',
-        text1: 'Status Update Failed',
-        text2: error.response?.data?.message || 'Unable to update status',
-      });
-    }
-  };
+  //     Toast.show({
+  //       type: 'error',
+  //       text1: 'Status Update Failed',
+  //       text2: error.response?.data?.message || 'Unable to update status',
+  //     });
+  //   }
+  // };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -225,6 +226,7 @@ const TeamManagementScreen: React.FC = () => {
     const roleBadge = getRoleBadgeColor(item.role);
     const fullName = `${item.firstName} ${item.lastName}`.trim();
     const isCurrentUser = item.email === user?.email;
+    const imageUrl = item.profileImage;
 
     return (
       <View
@@ -240,7 +242,7 @@ const TeamManagementScreen: React.FC = () => {
       >
 
         <View className="flex-row items-center">
-          <Avatar name={fullName} size="lg" />
+          <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
 
           <View className="flex-1 ml-3">
             <View className="flex-row items-center justify-between">
@@ -313,18 +315,21 @@ const TeamManagementScreen: React.FC = () => {
       />
 
       {totalItems > 0 && (
-        <View className="flex-row justify-between items-center mb-2 mt-2">
+        <View className="flex-row justify-between items-center mb-2 mt-4">
           <Text className="font-rubik text-gray-500 text-sm">
             {totalItems} team member{totalItems !== 1 ? 's' : ''}
           </Text>
           {canAddMember && !isHR && (
             <TouchableOpacity
               onPress={() => setIsModalVisible(true)}
-              className="flex-row items-center bg-primary-50 px-4 py-2 rounded-full"
+              className="flex-row items-center px-2 py-1 rounded-lg"
+              style={{backgroundColor:colors.primary+15, borderWidth:0.5, borderColor:colors.primary}}
             >
-              <Icon name="email-send-outline" size={20} color={colors.primary} />
-              <Text className="font-rubik-medium text-primary-500 ml-1">
-                Invite Member
+              <Icon name="email-send-outline" size={16} color={colors.primary} />
+              <Text className="font-rubik text-sm ml-1"
+              style={{color:colors.primary}}
+              >
+                Invite HR
               </Text>
             </TouchableOpacity>
           )}
@@ -359,7 +364,7 @@ const TeamManagementScreen: React.FC = () => {
         </Text>
         {!searchQuery && canAddMember && !isHR && (
           <Button
-            title="Invite Member"
+            title="Invite HR"
             className="mt-4"
             onPress={() => setIsModalVisible(true)}
           />
@@ -435,7 +440,7 @@ const TeamManagementScreen: React.FC = () => {
                 >
                   <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
                     <Text className="font-rubik-bold text-gray-900 text-xl">
-                      Invite Team Member
+                      Invite HR
                     </Text>
                     <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                       <Icon name="close" size={24} color="#9CA3AF" />

@@ -30,8 +30,6 @@ interface Employee {
   email: string;
   role: string;
   isEmailVerified: boolean;
-  emailVerifyTokenExpiry: string | null;
-  passwordResetTokenExpiry: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -50,39 +48,28 @@ const EmployeeListScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
 
-  // Check if current user can add employees (HR or Admin)
   const canAddEmployee = user?.role === 'hr' || user?.role === 'admin';
 
-  // State for employees
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
-
-  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
-  // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
 
-  // Debounce search
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 500);
-
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
-  // Fetch employees when search or pagination changes
   useEffect(() => {
     fetchEmployees(1, true);
   }, [debouncedSearchQuery]);
@@ -95,20 +82,19 @@ const EmployeeListScreen: React.FC = () => {
         setIsLoadingMore(true);
       }
 
-      const response = await http.get('/api/organization/team', {
+      const response = await http.get('/api/employees', {
         params: {
           page,
-          limit: 10,
-          role: 'employee',
+          limit: 20,
           ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
         },
       });
 
-      const members = response?.data?.members || [];
+
+      const fetchedEmployees = response?.data?.employees || [];
       const pagination = response?.data?.pagination || {};
 
-      // Filter only employees (though API should already filter)
-      const employeeMembers = members.filter((member: Employee) => 
+      const employeeMembers = fetchedEmployees.filter((member: Employee) =>
         member.role.toLowerCase() === 'employee'
       );
 
@@ -122,7 +108,6 @@ const EmployeeListScreen: React.FC = () => {
       setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
 
     } catch (error: any) {
-      console.error('Error fetching employees:', error);
       Toast.show({
         type: 'error',
         text1: 'Failed to Load Employees',
@@ -157,20 +142,15 @@ const EmployeeListScreen: React.FC = () => {
   const handleAddEmployee = async (formData: AddEmployeeData) => {
     try {
       setIsAddingEmployee(true);
-
-      const response = await http.post('/api/organization/team', formData);
-
+      await http.post('/api/organization/team', formData);
       Toast.show({
         type: 'success',
         text1: 'Employee Added',
         text2: `${formData.firstName} ${formData.lastName} has been added`,
       });
-
       setIsModalVisible(false);
       handleRefresh();
-
     } catch (error: any) {
-      console.error('Error adding employee:', error);
       Toast.show({
         type: 'error',
         text1: 'Failed to Add Employee',
@@ -193,6 +173,7 @@ const EmployeeListScreen: React.FC = () => {
 
   const renderEmployeeCard = ({ item }: { item: Employee }) => {
     const fullName = `${item.firstName} ${item.lastName}`.trim();
+    const imageUrl = item.profileImage;
     const isCurrentUser = item.email === user?.email;
 
     return (
@@ -208,8 +189,7 @@ const EmployeeListScreen: React.FC = () => {
         }}
       >
         <View className="flex-row items-center">
-          <Avatar name={fullName} size="lg" />
-
+          <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
           <View className="flex-1 ml-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
@@ -228,53 +208,24 @@ const EmployeeListScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-
             <Text className="font-rubik text-gray-500 text-sm mt-1">
               {item.email}
             </Text>
-
             <View className="flex-row items-center mt-2 justify-between">
               <View className="flex-row items-center">
                 <View
-                  className={`w-2 h-2 rounded-full ${
-                    item.isActive ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
+                  className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
                 />
                 <Text className="font-rubik text-gray-400 text-xs ml-1">
                   {item.isActive ? 'Active' : 'Inactive'}
                 </Text>
               </View>
-
               <View className="flex-row items-center">
                 <Text className="font-rubik text-gray-400 text-xs">
                   Joined {formatDate(item.createdAt)}
                 </Text>
               </View>
-            </View>
-
-            {/* Action Buttons */}
-            <View className="flex-row justify-end mt-3 gap-2">
-              <TouchableOpacity
-                className="px-3 py-2 rounded-lg flex-row items-center"
-                style={{ backgroundColor: colors.primary + '15' }}
-                activeOpacity={0.7}
-              >
-                <Feather name="eye" size={14} color={colors.primary} />
-                <Text className="ml-1 text-xs font-rubik" style={{ color: colors.primary }}>
-                  View
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="px-3 py-2 rounded-lg flex-row items-center"
-                style={{ backgroundColor: '#D9770620' }}
-                activeOpacity={0.7}
-              >
-                <Feather name="edit-2" size={14} color="#D97706" />
-                <Text className="ml-1 text-xs font-rubik text-amber-600">
-                  Edit
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -291,56 +242,22 @@ const EmployeeListScreen: React.FC = () => {
         onSearch={() => setDebouncedSearchQuery(searchQuery)}
         onClear={clearSearch}
       />
-
-      {/* Filter, Export & Import Buttons */}
-      {/* <View className="flex-row justify-end mt-3 gap-2">
-        <TouchableOpacity
-          className="px-4 py-2 rounded-lg flex-row items-center"
-          style={{ backgroundColor: colors.primary + '15' }}
-          activeOpacity={0.7}
-        >
-          <Feather name="filter" size={16} color={colors.primary} />
-          <Text className="ml-2 text-sm font-rubik" style={{ color: colors.primary }}>
-            Filter
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="px-4 py-2 rounded-lg flex-row items-center"
-          style={{ backgroundColor: colors.primary + '15' }}
-          activeOpacity={0.7}
-        >
-          <Feather name="download" size={16} color={colors.primary} />
-          <Text className="ml-2 text-sm font-rubik" style={{ color: colors.primary }}>
-            Export
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="px-4 py-2 rounded-lg flex-row items-center"
-          style={{ backgroundColor: colors.primary + '15' }}
-          activeOpacity={0.7}
-        >
-          <Feather name="upload" size={16} color={colors.primary} />
-          <Text className="ml-2 text-sm font-rubik" style={{ color: colors.primary }}>
-            Import
-          </Text>
-        </TouchableOpacity>
-      </View> */}
-
-      {/* Stats and Add Button */}
       {totalItems > 0 && (
-        <View className="flex-row justify-end items-center mt-4">
-          {/* <Text className="font-rubik text-gray-500 text-sm">
+        <View className="flex-row justify-between items-center mt-4 mb-2">
+          <Text className="font-rubik text-gray-500 text-sm">
             {totalItems} employee{totalItems !== 1 ? 's' : ''}
-          </Text> */}
+          </Text>
           {canAddEmployee && (
             <TouchableOpacity
               onPress={() => setIsModalVisible(true)}
-              className="flex-row items-center bg-primary-50 px-4 py-2 rounded-full"
+              className="flex-row items-center px-2 py-1 rounded-lg"
+              style={{ backgroundColor: colors.primary + 15, borderWidth: 0.5, borderColor: colors.primary }}
+
             >
-              <Feather name="user-plus" size={20} color={colors.primary} />
-              <Text className="font-rubik-medium text-primary-500 ml-1">
+              <Feather name="user-plus" size={16} color={colors.primary} />
+               <Text className="font-rubik text-sm ml-1"
+                style={{ color: colors.primary }}
+              >
                 Add Employee
               </Text>
             </TouchableOpacity>
@@ -352,7 +269,6 @@ const EmployeeListScreen: React.FC = () => {
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-
     return (
       <View className="py-4">
         <ActivityIndicator size="small" color={colors.primary} />
@@ -362,7 +278,6 @@ const EmployeeListScreen: React.FC = () => {
 
   const renderEmpty = () => {
     if (isLoading) return null;
-
     return (
       <View className="flex-1 items-center justify-center py-12 px-4">
         <Feather name="users" size={64} color="#D1D5DB" />
@@ -397,7 +312,6 @@ const EmployeeListScreen: React.FC = () => {
   return (
     <View className="flex-1 bg-gray-50">
       <Header title="Employees" />
-
       <FlatList
         data={employees}
         renderItem={renderEmployeeCard}
@@ -421,8 +335,6 @@ const EmployeeListScreen: React.FC = () => {
           paddingBottom: 20,
         }}
       />
-
-      {/* Add Employee Modal */}
       {canAddEmployee && (
         <Modal
           visible={isModalVisible}
@@ -459,7 +371,6 @@ const EmployeeListScreen: React.FC = () => {
                       <Feather name="x" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
                   </View>
-
                   <AddEmployeeForm
                     onSubmit={handleAddEmployee}
                     onCancel={() => setIsModalVisible(false)}

@@ -1,9 +1,12 @@
+import { ROLES, UserRole } from "../constants/roles";
+
 export interface MenuItemConfig {
   icon: string;
   label: string;
   subtitle?: string;
   route?: string;
   action?: 'share';
+  roles?: UserRole[];
 }
 
 export const MENU_ITEMS: MenuItemConfig[] = [
@@ -16,8 +19,9 @@ export const MENU_ITEMS: MenuItemConfig[] = [
   {
     icon: 'user',
     label: 'HR Management',
-    subtitle: 'View and edit your team members',
+    subtitle: 'Invite and Manage your HR (Hiring Managers)',
     route: 'teams',
+    roles: [ROLES.ADMIN],
   },
   // {
   //   icon: 'user-plus',

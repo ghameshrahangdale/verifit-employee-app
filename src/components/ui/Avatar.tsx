@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, Image, StyleProp, ViewStyle } from 'react-native';
-import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
@@ -31,33 +30,32 @@ const Avatar: React.FC<AvatarProps> = ({
   customSize,
   style,
 }) => {
-  const { colors } = useTheme();
   const { user } = useAuth();
 
   const avatarSize = customSize || SIZE_MAP[size];
 
-  // Priority: props > auth user
-  const firstName = name
-    ? name.split(' ')[0]
-    : user?.firstName || '';
+  // Determine if avatar is used for logged-in user
+  const isUsingAuthUser = !name && !email && !imageUrl;
 
-  const lastName = name
-    ? name.split(' ')[1] || ''
-    : user?.lastName || '';
+  const finalName = isUsingAuthUser
+    ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+    : name || '';
 
-  const userEmail = email || user?.email || '';
-  const profileImage = imageUrl || user?.profileImage;
+  const finalEmail = isUsingAuthUser ? user?.email || '' : email || '';
 
-  console.log(user);
+  const finalImage = isUsingAuthUser
+    ? user?.profileImage
+    : imageUrl;
 
-  // Generate initials
+  const firstName = finalName.split(' ')[0] || '';
+  const lastName = finalName.split(' ')[1] || '';
+
   let initials = 'U';
 
   if (firstName || lastName) {
-    initials =
-      (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-  } else if (userEmail) {
-    initials = userEmail.charAt(0).toUpperCase();
+    initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  } else if (finalEmail) {
+    initials = finalEmail.charAt(0).toUpperCase();
   }
 
   return (
@@ -67,15 +65,14 @@ const Avatar: React.FC<AvatarProps> = ({
           width: avatarSize,
           height: avatarSize,
           borderRadius: avatarSize / 2,
-          
         },
         style,
       ]}
       className="items-center justify-center overflow-hidden bg-gray-200"
     >
-      {profileImage ? (
+      {finalImage ? (
         <Image
-          source={{ uri: profileImage }}
+          source={{ uri: finalImage }}
           style={{
             width: avatarSize,
             height: avatarSize,
@@ -85,9 +82,7 @@ const Avatar: React.FC<AvatarProps> = ({
         />
       ) : (
         <Text
-          style={{
-            fontSize: avatarSize / 2.5,
-          }}
+          style={{ fontSize: avatarSize / 2.5 }}
           className="font-rubik-medium text-gray-600"
         >
           {initials}

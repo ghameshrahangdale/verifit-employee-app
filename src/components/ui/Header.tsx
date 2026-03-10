@@ -68,15 +68,15 @@ const Header: React.FC<HeaderProps> = ({
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {showBack && (
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={22} color={colors.text} />
+            <Feather name="arrow-left" size={20} color={colors.primary} />
           </TouchableOpacity>
         )}
 
         <Text
           style={{
             marginLeft: showBack ? 12 : 0,
-            fontSize: 18,
-            fontFamily: 'Rubik-Medium',
+            fontSize: 14,
+            fontFamily: 'Rubik-Regular',
             color: colors.text,
           }}
         >

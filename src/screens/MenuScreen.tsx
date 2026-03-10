@@ -21,6 +21,7 @@ import { getApplicationName } from 'react-native-device-info';
 import { MENU_ITEMS } from '../config/menu.config';
 
 
+
 const MenuScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
@@ -29,14 +30,22 @@ const MenuScreen: React.FC = () => {
   const [showLogout, setShowLogout] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  const visibleMenuItems = MENU_ITEMS.filter(item => {
+  if (!item.roles) return true;
+  return user?.role && item.roles.includes(user.role as any);
+});
+
   // Use actual user data from auth context if available, otherwise fallback to static data
   const displayUser = {
-    displayName: user 
+    displayName: user
       ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split('@')[0] || 'User'
       : "user",
-    email: user?.email ,
+    email: user?.email,
     photoURL: user?.photoURL,
   };
+
+  const roleLabel =
+    user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
 
   const handleShareApp = async () => {
     try {
@@ -66,10 +75,10 @@ const MenuScreen: React.FC = () => {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      
+
       // Call logout from auth context
       await logout();
-      
+
       // Show success toast
       Toast.show({
         type: 'success',
@@ -86,10 +95,10 @@ const MenuScreen: React.FC = () => {
           routes: [{ name: 'Auth' }], // Make sure this matches your auth navigator name
         })
       );
-      
+
     } catch (error: any) {
       console.error('Logout error:', error);
-      
+
       Toast.show({
         type: 'error',
         text1: 'Logout failed',
@@ -108,30 +117,49 @@ const MenuScreen: React.FC = () => {
       {/* Header */}
       <Header
         title="Account & Menu"
-        // avatarImageUrl={displayUser.photoURL}
+      // avatarImageUrl={displayUser.photoURL}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
         <View
-          className="bg-white mx-4 mt-6 p-5 rounded-2xl flex-row items-center"
-          style={{
-            shadowColor: '#000',
-            shadowOpacity: 0.04,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
-          }}
+          className="bg-white shadow-sm rounded-3xl mx-4 mt-6 p-5 flex-row items-center"
+          
+
         >
-          <Avatar imageUrl={displayUser.photoURL} size="xl" />
+          {/* Avatar with ring */}
+          <View
+            style={{ borderColor: colors.primary, borderWidth: 2.5 }}
+            className="rounded-full p-0.5"
+          >
+            <View className="rounded-full overflow-hidden bg-gray-100">
+              <Avatar size="xl" />
+            </View>
+          </View>
 
           <View className="ml-4 flex-1">
-            <Text className="text-xl font-rubik-bold text-gray-900">
+            <Text className="text-lg font-rubik-bold text-gray-900">
               {displayUser.displayName}
             </Text>
-            <Text className="text-sm font-rubik text-gray-500 mt-1">
+            <Text className="text-sm font-rubik text-gray-500 ">
               {displayUser.email}
             </Text>
+            <View className="flex-row items-center justify-between">
+              {user?.role && (
+                <View className="flex-row items-center gap-1.5 px-2 py-1 rounded-full bg-indigo-50 border border-indigo-100 mt-2">
+                  {/* Colored dot */}
+                  <View className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <Text className="text-indigo-600 text-[10px] font-rubik-medium tracking-wide uppercase">
+                    {roleLabel}
+                  </Text>
+                </View>
+              )}
+
+            </View>
+
+
           </View>
+
         </View>
 
         {/* Menu Items */}
@@ -144,7 +172,7 @@ const MenuScreen: React.FC = () => {
             shadowOffset: { width: 0, height: 4 },
           }}
         >
-          {MENU_ITEMS.map((item, index) => (
+          {visibleMenuItems.map((item, index) => (
             <MenuItem
               key={index}
               icon={item.icon}
@@ -171,10 +199,10 @@ const MenuScreen: React.FC = () => {
             className="flex-row items-center px-5 py-4"
             disabled={isLoggingOut}
           >
-            <Feather 
-              name={isLoggingOut ? "loader" : "log-out"} 
-              size={20} 
-              color={colors.error} 
+            <Feather
+              name={isLoggingOut ? "loader" : "log-out"}
+              size={20}
+              color={colors.error}
             />
             <Text className="ml-4 text-red-500 font-rubik-medium">
               {isLoggingOut ? "Signing out..." : "Sign out"}
@@ -192,7 +220,7 @@ const MenuScreen: React.FC = () => {
         confirmText="Logout"
         onCancel={() => setShowLogout(false)}
         onConfirm={handleLogout}
-        // isLoading={isLoggingOut} // If your ConfirmationPopup supports loading state
+      // isLoading={isLoggingOut} // If your ConfirmationPopup supports loading state
       />
     </View>
   );

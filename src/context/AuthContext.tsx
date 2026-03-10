@@ -319,7 +319,7 @@ const refreshUser = async () => {
         register,
         logout,
         updateUser,
-         getProfile,        // ✅
+        getProfile,        // ✅
     updateProfile,  
         clearError,
         error,

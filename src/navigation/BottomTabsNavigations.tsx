@@ -4,6 +4,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { TAB_CONFIG } from '../config/tabs.config';
 import { SCREEN_MAP } from '../config/screenMap';
+import { useAuth } from '../context/AuthContext';
 
 export type AppTabParamList = {
   Home: undefined;
@@ -17,19 +18,25 @@ const Tab = createBottomTabNavigator<AppTabParamList>();
 
 const AppNavigator: React.FC = () => {
   const { colors } = useTheme();
+  const { user } = useAuth();
+
+  const visibleTabs = TAB_CONFIG.filter(tab => {
+    if (!user?.role) return false;
+    return tab.roles.includes(user.role as any);
+  });
 
   const getScreenComponent = (componentName: keyof typeof SCREEN_MAP) => {
-  const Screen = SCREEN_MAP[componentName];
+    const Screen = SCREEN_MAP[componentName];
 
-  if (!Screen) {
-    console.warn(
-      `⚠️ Screen "${componentName}" is not registered in SCREEN_MAP`
-    );
-    return SCREEN_MAP.FallbackScreen;
-  }
+    if (!Screen) {
+      console.warn(
+        `⚠️ Screen "${componentName}" is not registered in SCREEN_MAP`
+      );
+      return SCREEN_MAP.FallbackScreen;
+    }
 
-  return Screen;
-};
+    return Screen;
+  };
 
 
   return (
@@ -62,7 +69,7 @@ const AppNavigator: React.FC = () => {
         };
       }}
     >
-      {TAB_CONFIG.map(tab => (
+      {visibleTabs.map(tab => (
         <Tab.Screen
           key={tab.name}
           name={tab.name as keyof AppTabParamList}
