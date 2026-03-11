@@ -37,7 +37,12 @@ interface AuthContextData {
   updateProfile: (data: {
     firstName: string;
     lastName: string;
+    phone?: string;
+    dob?: string;
+    gender?: any;
+    address?: any;
     avatarFile?: any;
+
   }) => Promise<UserData | null>;                   // ✅ add
 
   clearError: () => void;
@@ -129,10 +134,18 @@ const getProfile = async () => {
 const updateProfile = async ({
   firstName,
   lastName,
+  dob,
+  phone,
+  gender,
+  address,
   avatarFile,
 }: {
   firstName: string;
   lastName: string;
+  dob?: string;
+  phone?: string;
+  gender?: any;
+  address?: any;
   avatarFile?: any;
 }) => {
   try {
@@ -141,6 +154,10 @@ const updateProfile = async ({
 
     formData.append('firstName', firstName);
     formData.append('lastName', lastName);
+    formData.append('dob', dob || '');
+    formData.append('phone', phone || '');
+    formData.append('gender', gender || '');
+    formData.append('address', address || '');
 
     if (avatarFile) {
       formData.append('profileImage', {

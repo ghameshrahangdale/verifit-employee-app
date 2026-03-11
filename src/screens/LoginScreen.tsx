@@ -28,7 +28,7 @@ const LoginScreen: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
 
   const { colors } = useTheme();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, getProfile } = useAuth();
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
    useEffect(() => {
@@ -69,6 +69,8 @@ const LoginScreen: React.FC = () => {
   try {
     const response = await login(email, password);
     console.log('Login response:', response); // Debug log
+
+    await getProfile();
 
     Toast.show({
       type: 'success',

@@ -66,5 +66,6 @@ export interface UserData {
   createdAt: string;
   updatedAt: string;
   profileImage?: string;
+  phone?: string;
   organization?: OrganizationData;
 }

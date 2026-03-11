@@ -56,7 +56,7 @@ export const MENU_ITEMS: MenuItemConfig[] = [
   {
     icon: 'book-open',
     label: 'About Us',
-    subtitle: 'Learn more about RNIgnite',
+    subtitle: 'Learn more about Verifiit',
     route: 'AboutUs',
   },
   {

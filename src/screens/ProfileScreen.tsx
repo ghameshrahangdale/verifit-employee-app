@@ -16,6 +16,8 @@ import Header from '../components/ui/Header';
 import Toast from 'react-native-toast-message';
 import http from '../services/http.api';
 import { pick } from '@react-native-documents/picker';
+import EmployeeProfessionalDetails from '../components/employee/EmployeeProfessionalDetails';
+import Icon from 'react-native-vector-icons/Feather';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +56,11 @@ interface UserData {
   updatedAt: string;
   profileImage?: string;
   organization?: OrganizationData;
+  // Personal fields
+  phone?: string;
+  dob?: string;
+  gender?: string;
+  address?: string;
 }
 
 interface ProfileResponse {
@@ -76,7 +83,7 @@ const InfoRow = ({
   capitalize?: boolean;
   isLast?: boolean;
 }) => (
-  <View className={`py-3`}>
+  <View className={`py-3 ${!isLast ? 'border-b border-gray-100' : ''}`}>
     <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-0.5">
       {label}
     </Text>
@@ -107,14 +114,35 @@ const Badge = ({
   </View>
 );
 
-/** Labelled section divider */
-const SectionDivider = ({ label }: { label: string }) => (
-  <View className="flex-row items-center px-5 mt-6 mb-3 gap-2.5">
-    <View className="flex-1 h-px bg-gray-200" />
-    <Text className="font-rubik-medium text-xs text-gray-400 uppercase tracking-widest">
-      {label}
-    </Text>
-    <View className="flex-1 h-px bg-gray-200" />
+/** Labelled section divider with pencil icon */
+const SectionHeader = ({ 
+  title, 
+  onEdit, 
+  isEditing,
+  showEdit = true 
+}: { 
+  title: string; 
+  onEdit?: () => void;
+  isEditing?: boolean;
+  showEdit?: boolean;
+}) => (
+  <View className="flex-row items-center justify-between px-5 mt-6 mb-3">
+    <View className="flex-row items-center gap-2.5 flex-1">
+      <View className="flex-1 h-px bg-gray-200" />
+      <Text className="font-rubik-medium text-xs text-gray-400 uppercase tracking-widest">
+        {title}
+      </Text>
+      <View className="flex-1 h-px bg-gray-200" />
+    </View>
+    {showEdit && !isEditing && onEdit && (
+      <TouchableOpacity 
+        onPress={onEdit}
+        className="ml-2 p-2 bg-gray-100 rounded-full"
+        activeOpacity={0.7}
+      >
+        <Icon name="edit-2" size={16} color="#6B7280" />
+      </TouchableOpacity>
+    )}
   </View>
 );
 
@@ -129,75 +157,97 @@ const ProfileScreen: React.FC = () => {
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  
+  // Track which section is being edited
+  const [editingSection, setEditingSection] = useState<string | null>(null);
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Form state for personal information
+  const [personalForm, setPersonalForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    phone: '',
+    dob: '',
+    gender: '',
+    address: '',
+  });
+  
   const [avatarFile, setAvatarFile] = useState<any>(null);
 
   useEffect(() => { fetchUserProfile(); }, []);
 
   useEffect(() => {
     if (profile?.user) {
-      setFirstName(profile.user.firstName || '');
-      setLastName(profile.user.lastName || '');
+      setPersonalForm({
+        firstName: profile.user.firstName || '',
+        lastName: profile.user.lastName || '',
+        email: profile.user.email || '',
+        role: profile.user.role || '',
+        phone: profile.user.phone || '',
+        dob: profile.user.dob || '',
+        gender: profile.user.gender || '',
+        address: profile.user.address || '',
+      });
     }
   }, [profile]);
 
   const fetchUserProfile = async () => {
-  try {
-    setIsFetching(true);
-
-    const data = await getProfile();
-
-    if (data) {
-      setProfile({ user: data });
+    try {
+      setIsFetching(true);
+      const data = await getProfile();
+      if (data) {
+        setProfile({ user: data });
+      }
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Load Profile',
+        text2: 'Unable to fetch profile',
+      });
+    } finally {
+      setIsFetching(false);
     }
+  };
 
-  } catch (error: any) {
-    Toast.show({
-      type: 'error',
-      text1: 'Failed to Load Profile',
-      text2: 'Unable to fetch profile',
-    });
-  } finally {
-    setIsFetching(false);
-  }
-};
+  const handleSavePersonalInfo = async () => {
+    try {
+      setIsLoading(true);
+      console.log(personalForm)
 
-  const handleSaveProfile = async () => {
-  try {
-    setIsLoading(true);
+      const updatedUser = await updateProfile({
+        firstName: personalForm.firstName,
+        lastName: personalForm.lastName,
+        phone: personalForm.phone,
+        dob: personalForm.dob,
+        gender: personalForm.gender,
+        address: personalForm.address,
+        avatarFile,
+      });
 
-    const updatedUser = await updateProfile({
-      firstName,
-      lastName,
-      avatarFile,
-    });
+      if (updatedUser) {
+        setProfile({ user: updatedUser });
+      }
 
-    if (updatedUser) {
-      setProfile({ user: updatedUser });
+      Toast.show({
+        type: 'success',
+        text1: 'Personal Information Updated',
+        text2: 'Your changes were saved.',
+      });
+
+      setEditingSection(null);
+
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Update Failed',
+        text2: 'Failed to update profile',
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    Toast.show({
-      type: 'success',
-      text1: 'Profile Updated',
-      text2: 'Your changes were saved.',
-    });
-
-    setIsEditing(false);
-
-  } catch (error: any) {
-    Toast.show({
-      type: 'error',
-      text1: 'Update Failed',
-      text2: 'Failed to update profile',
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handlePickAvatar = async () => {
     try {
@@ -225,18 +275,43 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
+  const handleCancelPersonalEdit = () => {
+    setEditingSection(null);
     if (profile?.user) {
-      setFirstName(profile.user.firstName || '');
-      setLastName(profile.user.lastName || '');
+      setPersonalForm({
+        firstName: profile.user.firstName || '',
+        lastName: profile.user.lastName || '',
+        email: profile.user.email || '',
+        role: profile.user.role || '',
+        phone: profile.user.phone || '',
+        dob: profile.user.dob || '',
+        gender: profile.user.gender || '',
+        address: profile.user.address || '',
+      });
     }
+    setAvatarFile(null);
   };
 
   const getFullName = () => {
-    const name = `${profile?.user?.firstName || ''} ${profile?.user?.lastName || ''}`.trim();
+    const name = `${personalForm.firstName} ${personalForm.lastName}`.trim();
     return name || authUser?.email || 'User';
   };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const isEmployee = profile?.user?.role?.toLowerCase() === 'employee';
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (isFetching) {
@@ -254,7 +329,6 @@ const ProfileScreen: React.FC = () => {
   }
 
   const org = profile?.user?.organization;
-  
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -268,16 +342,13 @@ const ProfileScreen: React.FC = () => {
 
         {/* ── Hero Banner ──────────────────────────────────────────────────── */}
         <View className="bg-purple-100 items-center pt-9 pb-7 px-6 mb-2 shadow-sm rounded-b-3xl">
-          {/* Soft tinted strip sitting behind the avatar */}
-          {/* <View className="absolute top-0 left-0 right-0 h-24  rounded-b-3xl" /> */}
-
-          {/* Avatar enclosed in a colored ring with glow */}
+          
+          {/* Avatar */}
           <TouchableOpacity
-            disabled={!isEditing}
+            disabled={editingSection !== 'personal'}
             onPress={handlePickAvatar}
             className="mb-4"
           >
-
             <View
               className="p-0.5 rounded-full bg-white border-2 border-indigo-500"
               style={{
@@ -306,13 +377,14 @@ const ProfileScreen: React.FC = () => {
               )}
             </View>
 
-            {isEditing && (
+            {editingSection === 'personal' && (
               <Text className="text-xs text-indigo-500 mt-2 text-center font-rubik">
                 Tap to change photo
               </Text>
             )}
 
           </TouchableOpacity>
+          
           {/* Full name */}
           <Text className="font-rubik-bold text-xl text-gray-900 tracking-tight mb-2.5">
             {getFullName()}
@@ -331,40 +403,112 @@ const ProfileScreen: React.FC = () => {
               <Badge label="✓ Verified" color="#059669" bg="#ECFDF5" />
             )}
           </View>
-
-          {/* Edit profile pill button */}
-          {!isEditing && (
-            <TouchableOpacity
-              className="px-5 py-2 rounded-full border"
-              style={{ borderColor: colors.primary }}
-              activeOpacity={0.7}
-              onPress={() => setIsEditing(true)}
-            >
-              <Text className="font-rubik-medium text-sm" style={{ color: colors.primary }}>
-                Edit Profile
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* ── Personal Information ─────────────────────────────────────────── */}
-        <SectionDivider label="Personal Information" />
+        <SectionHeader 
+          title="Personal Information" 
+          onEdit={() => setEditingSection('personal')}
+          isEditing={editingSection === 'personal'}
+        />
 
         <View className="bg-white mx-4 rounded-2xl px-5 py-1 shadow-sm">
-          {isEditing ? (
-            <View className="py-4 gap-4">
-              <Input
-                label="First Name"
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="Enter your first name"
-              />
-              <Input
-                label="Last Name"
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Enter your last name"
-              />
+          {editingSection === 'personal' ? (
+            <View className="py-4">
+              <View className="mb-4">
+                <Input
+                  label="First Name"
+                  value={personalForm.firstName}
+                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, firstName: text }))}
+                  placeholder="Enter your first name"
+                />
+              </View>
+              
+              <View className="mb-4">
+                <Input
+                  label="Last Name"
+                  value={personalForm.lastName}
+                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, lastName: text }))}
+                  placeholder="Enter your last name"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Input
+                  label="Email Address"
+                  value={personalForm.email}
+                  disabled
+                  placeholder="Email address"
+                  onChangeText={()=>""}
+                />
+              </View>
+
+              <View className="mb-4">
+                <Input
+                  label="Role"
+                  value={personalForm.role}
+                  disabled
+                  onChangeText={()=>""}
+
+                  
+                />
+              </View>
+
+              <View className="mb-4">
+                <Input
+                  label="Phone Number"
+                  value={personalForm.phone}
+                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, phone: text }))}
+                  placeholder="+91 98765 43210"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Input
+                  label="Date of Birth"
+                  value={personalForm.dob}
+                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, dob: text }))}
+                  placeholder="YYYY-MM-DD"
+                  type='date'
+                />
+              </View>
+
+              <View className="mb-4">
+                <Input
+                  label="Gender"
+                  value={personalForm.gender}
+                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, gender: text }))}
+                  placeholder="Male / Female / Other"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Input
+                  label="Address"
+                  value={personalForm.address}
+                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, address: text }))}
+                  placeholder="Enter your full address"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+              
+              <View className="flex-row gap-3 mt-4">
+                <Button
+                  title="Cancel"
+                  variant="outline"
+                  className="flex-1"
+                  onPress={handleCancelPersonalEdit}
+                  disabled={isLoading}
+                />
+                <Button
+                  title="Save Changes"
+                  className="flex-1"
+                  loading={isLoading}
+                  onPress={handleSavePersonalInfo}
+                />
+              </View>
             </View>
           ) : (
             <>
@@ -374,16 +518,28 @@ const ProfileScreen: React.FC = () => {
                 label="Account Role"
                 value={profile?.user?.role || ''}
                 capitalize
-                isLast
               />
+              <InfoRow label="Phone Number" value={profile?.user?.phone || ''} />
+              <InfoRow label="Date of Birth" value={formatDate(profile?.user?.dob || '')} />
+              <InfoRow label="Gender" value={profile?.user?.gender || ''} capitalize />
+              <InfoRow label="Address" value={profile?.user?.address || ''} isLast />
             </>
           )}
         </View>
 
+        {/* ── Employee Professional Details ─────────────────────────────────── */}
+        {isEmployee && (
+          <EmployeeProfessionalDetails
+            onSaveComplete={() => {
+        
+            }}
+          />
+        )}
+
         {/* ── Account Status Cards ─────────────────────────────────────────── */}
-        {!isEditing && (
+        {editingSection !== 'personal' && (
           <>
-            <SectionDivider label="Account Status" />
+            <SectionHeader title="Account Status" showEdit={false} />
 
             <View className="flex-row px-4 gap-3">
               {/* Email verification */}
@@ -441,9 +597,9 @@ const ProfileScreen: React.FC = () => {
         )}
 
         {/* ── Organization Details ─────────────────────────────────────────── */}
-        {org && !isEditing && (
+        {org && editingSection !== 'personal' && (
           <>
-            <SectionDivider label="Organization Details" />
+            <SectionHeader title="Organization Details" showEdit={false} />
 
             <View className="bg-white mx-4 rounded-2xl px-5 py-1 shadow-sm">
               {/* Org header row */}
@@ -451,7 +607,6 @@ const ProfileScreen: React.FC = () => {
                 {org.logoUrl ? (
                   <View
                     className="w-14 h-14 rounded-md border border-gray-200 bg-white overflow-hidden"
-
                   >
                     <Image
                       source={{ uri: org.logoUrl }}
@@ -488,7 +643,7 @@ const ProfileScreen: React.FC = () => {
             </View>
 
             {/* ── Location & Registration ──────────────────────────────────── */}
-            <SectionDivider label="Location & Registration" />
+            <SectionHeader title="Location & Registration" showEdit={false} />
 
             <View className="bg-white mx-4 rounded-2xl px-5 py-1 shadow-sm">
               <InfoRow
@@ -504,34 +659,6 @@ const ProfileScreen: React.FC = () => {
             </View>
           </>
         )}
-
-        {/* ── Action Buttons ───────────────────────────────────────────────── */}
-        <View className="px-4 mt-7">
-          {isEditing ? (
-            <View className="flex-row gap-3">
-              <Button
-                title="Cancel"
-                variant="outline"
-                className="flex-1"
-                onPress={handleCancelEdit}
-                disabled={isLoading}
-              />
-              <Button
-                title="Save Changes"
-                className="flex-1"
-                loading={isLoading}
-                onPress={handleSaveProfile}
-              />
-            </View>
-          ) : (
-            <Button
-              title="Edit Profile"
-              variant="outline"
-              onPress={() => setIsEditing(true)}
-            />
-          )}
-        </View>
-
       </ScrollView>
     </View>
   );
