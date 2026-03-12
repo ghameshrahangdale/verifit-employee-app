@@ -18,6 +18,7 @@ import http from '../services/http.api';
 import { pick } from '@react-native-documents/picker';
 import EmployeeProfessionalDetails from '../components/employee/EmployeeProfessionalDetails';
 import Icon from 'react-native-vector-icons/Feather';
+import EmployeeDocumentUpload from '../components/employee/EmployeeDocumentUpload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,13 +116,13 @@ const Badge = ({
 );
 
 /** Labelled section divider with pencil icon */
-const SectionHeader = ({ 
-  title, 
-  onEdit, 
+const SectionHeader = ({
+  title,
+  onEdit,
   isEditing,
-  showEdit = true 
-}: { 
-  title: string; 
+  showEdit = true
+}: {
+  title: string;
   onEdit?: () => void;
   isEditing?: boolean;
   showEdit?: boolean;
@@ -135,7 +136,7 @@ const SectionHeader = ({
       <View className="flex-1 h-px bg-gray-200" />
     </View>
     {showEdit && !isEditing && onEdit && (
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={onEdit}
         className="ml-2 p-2 bg-gray-100 rounded-full"
         activeOpacity={0.7}
@@ -158,7 +159,7 @@ const ProfileScreen: React.FC = () => {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  
+
   // Track which section is being edited
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
@@ -173,7 +174,7 @@ const ProfileScreen: React.FC = () => {
     gender: '',
     address: '',
   });
-  
+
   const [avatarFile, setAvatarFile] = useState<any>(null);
 
   useEffect(() => { fetchUserProfile(); }, []);
@@ -342,7 +343,7 @@ const ProfileScreen: React.FC = () => {
 
         {/* ── Hero Banner ──────────────────────────────────────────────────── */}
         <View className="bg-purple-100 items-center pt-9 pb-7 px-6 mb-2 shadow-sm rounded-b-3xl">
-          
+
           {/* Avatar */}
           <TouchableOpacity
             disabled={editingSection !== 'personal'}
@@ -384,7 +385,7 @@ const ProfileScreen: React.FC = () => {
             )}
 
           </TouchableOpacity>
-          
+
           {/* Full name */}
           <Text className="font-rubik-bold text-xl text-gray-900 tracking-tight mb-2.5">
             {getFullName()}
@@ -406,8 +407,8 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* ── Personal Information ─────────────────────────────────────────── */}
-        <SectionHeader 
-          title="Personal Information" 
+        <SectionHeader
+          title="Personal Information"
           onEdit={() => setEditingSection('personal')}
           isEditing={editingSection === 'personal'}
         />
@@ -423,7 +424,7 @@ const ProfileScreen: React.FC = () => {
                   placeholder="Enter your first name"
                 />
               </View>
-              
+
               <View className="mb-4">
                 <Input
                   label="Last Name"
@@ -439,7 +440,7 @@ const ProfileScreen: React.FC = () => {
                   value={personalForm.email}
                   disabled
                   placeholder="Email address"
-                  onChangeText={()=>""}
+                  onChangeText={() => ""}
                 />
               </View>
 
@@ -448,9 +449,9 @@ const ProfileScreen: React.FC = () => {
                   label="Role"
                   value={personalForm.role}
                   disabled
-                  onChangeText={()=>""}
+                  onChangeText={() => ""}
 
-                  
+
                 />
               </View>
 
@@ -493,7 +494,7 @@ const ProfileScreen: React.FC = () => {
                   numberOfLines={3}
                 />
               </View>
-              
+
               <View className="flex-row gap-3 mt-4">
                 <Button
                   title="Cancel"
@@ -527,14 +528,7 @@ const ProfileScreen: React.FC = () => {
           )}
         </View>
 
-        {/* ── Employee Professional Details ─────────────────────────────────── */}
-        {isEmployee && (
-          <EmployeeProfessionalDetails
-            onSaveComplete={() => {
-        
-            }}
-          />
-        )}
+
 
         {/* ── Account Status Cards ─────────────────────────────────────────── */}
         {editingSection !== 'personal' && (
@@ -657,6 +651,14 @@ const ProfileScreen: React.FC = () => {
                 <InfoRow label="Udyam Number" value={org.udyamNumber} isLast />
               ) : null}
             </View>
+
+            {/* ── Employee Professional Details ─────────────────────────────────── */}
+            {isEmployee && (
+              <>
+                <EmployeeProfessionalDetails />
+                <EmployeeDocumentUpload />
+              </>
+            )}
           </>
         )}
       </ScrollView>

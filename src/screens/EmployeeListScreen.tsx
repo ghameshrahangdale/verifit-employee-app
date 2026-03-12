@@ -21,6 +21,11 @@ import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 import SearchInput from '../components/ui/SearchInput';
 import AddEmployeeForm from '../components/AddEmployeeForm';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { AppStackParamList } from '../navigation/AppStackNavigator';
+
+
+
 
 interface Employee {
   id: string;
@@ -47,6 +52,7 @@ interface AddEmployeeData {
 const EmployeeListScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
+  const navigation = useNavigation<NavigationProp<AppStackParamList>>()
 
   const canAddEmployee = user?.role === 'hr' || user?.role === 'admin';
 
@@ -89,7 +95,6 @@ const EmployeeListScreen: React.FC = () => {
           ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
         },
       });
-
 
       const fetchedEmployees = response?.data?.employees || [];
       const pagination = response?.data?.pagination || {};
@@ -171,6 +176,11 @@ const EmployeeListScreen: React.FC = () => {
     });
   };
 
+  const handleViewEmployee = (id: string) => {
+  navigation.navigate('EmployeeDetails' , { employeeId: id });
+};
+
+  // ─── REDESIGNED EMPLOYEE CARD ─────────────────────────────────────────────
   const renderEmployeeCard = ({ item }: { item: Employee }) => {
     const fullName = `${item.firstName} ${item.lastName}`.trim();
     const imageUrl = item.profileImage;
@@ -178,63 +188,232 @@ const EmployeeListScreen: React.FC = () => {
 
     return (
       <View
-        className="bg-white rounded-2xl p-5 mx-4 mb-3"
         style={{
-          shadowColor: '#000',
-          shadowOpacity: 0.04,
-          shadowRadius: 8,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 20,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 16,
+          shadowColor: '#64748B',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
           shadowOffset: { width: 0, height: 4 },
-          borderColor: colors.primary + '30',
+          elevation: 3,
           borderWidth: 1,
+          borderColor: '#F1F5F9',
         }}
       >
-        <View className="flex-row items-center">
-          <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
-          <View className="flex-1 ml-3">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <Text className="font-rubik-bold text-gray-900 text-base">
-                  {fullName}
-                </Text>
-                {isCurrentUser && (
-                  <View className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full">
-                    <Text className="font-rubik text-xs text-gray-600">You</Text>
-                  </View>
-                )}
-              </View>
-              <View className="px-3 py-1 rounded-full ml-2 bg-green-100">
-                <Text className="font-rubik-medium text-xs text-green-600">
-                  EMPLOYEE
-                </Text>
-              </View>
+        {/* Top Row: Avatar + Info + Status Badge */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          {/* Avatar with active ring */}
+          <View style={{ position: 'relative' }}>
+            <View
+              style={{
+               
+                borderRadius: 50,
+                overflow: 'hidden',
+                backgroundColor: colors.primary + '15',
+                borderWidth: item.isActive ? 2 : 0,
+                borderColor: item.isActive ? '#22C55E' : 'transparent',
+              }}
+            >
+              <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
             </View>
-            <Text className="font-rubik text-gray-500 text-sm mt-1">
+            {/* Tiny online dot */}
+            {item.isActive && (
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  right: 0,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: '#22C55E',
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                }}
+              />
+            )}
+          </View>
+
+          {/* Name, Email */}
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Bold',
+                  fontSize: 15,
+                  color: '#0F172A',
+                  letterSpacing: -0.2,
+                }}
+              >
+                {fullName}
+              </Text>
+              {isCurrentUser && (
+                <View
+                  style={{
+                    marginLeft: 6,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2,
+                    backgroundColor: colors.primary + '18',
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'Rubik-Medium',
+                      fontSize: 10,
+                      color: colors.primary,
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    YOU
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={{
+                fontFamily: 'Rubik-Regular',
+                fontSize: 12.5,
+                color: '#64748B',
+                marginTop: 2,
+              }}
+              numberOfLines={1}
+            >
               {item.email}
             </Text>
-            <View className="flex-row items-center mt-2 justify-between">
-              <View className="flex-row items-center">
-                <View
-                  className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                />
-                <Text className="font-rubik text-gray-400 text-xs ml-1">
-                  {item.isActive ? 'Active' : 'Inactive'}
-                </Text>
-              </View>
-              <View className="flex-row items-center">
-                <Text className="font-rubik text-gray-400 text-xs">
-                  Joined {formatDate(item.createdAt)}
-                </Text>
-              </View>
+          </View>
+
+          {/* Status Badge (top-right) */}
+          <View
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 20,
+              backgroundColor: item.isEmailVerified ? '#DCFCE7' : '#FEF3C7',
+              borderWidth: 1,
+              borderColor: item.isEmailVerified ? '#86EFAC' : '#FCD34D',
+              alignSelf: 'flex-start',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Rubik-Medium',
+                fontSize: 10,
+                color: item.isEmailVerified ? '#15803D' : '#92400E',
+                letterSpacing: 0.4,
+              }}
+            >
+              {item.isEmailVerified ? '✓ VERIFIED' : '⏳ PENDING'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Divider */}
+        <View
+          style={{
+            height: 1,
+            backgroundColor: '#F1F5F9',
+            marginVertical: 12,
+          }}
+        />
+
+        {/* Bottom Row: Meta info + View button (verified only) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Left meta: Active status + Joined date */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {/* Active pill */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: item.isActive ? '#F0FDF4' : '#F8FAFC',
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: item.isActive ? '#BBF7D0' : '#E2E8F0',
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: item.isActive ? '#22C55E' : '#CBD5E1',
+                  marginRight: 5,
+                }}
+              />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Medium',
+                  fontSize: 11,
+                  color: item.isActive ? '#15803D' : '#94A3B8',
+                }}
+              >
+                {item.isActive ? 'Active' : 'Inactive'}
+              </Text>
+            </View>
+
+            {/* Joined date */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Feather name="calendar" size={11} color="#94A3B8" />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Regular',
+                  fontSize: 11,
+                  color: '#94A3B8',
+                  marginLeft: 4,
+                }}
+              >
+                {formatDate(item.createdAt)}
+              </Text>
             </View>
           </View>
+
+          {/* View button — only for verified employees */}
+          {item.isEmailVerified && (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.primary,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 12,
+                shadowColor: colors.primary,
+                shadowOpacity: 0.3,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 3,
+              }}
+              onPress={() => handleViewEmployee(item.id)}
+              
+            >
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Medium',
+                  fontSize: 12,
+                  color: '#FFFFFF',
+                  marginRight: 4,
+                  letterSpacing: 0.2,
+                }}
+              >
+                View
+              </Text>
+              <Feather name="arrow-right" size={12} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
   };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const renderHeader = () => (
-    <View className="px-4 pt-4 pb-2">
+    <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
       <SearchInput
         value={searchQuery}
         placeholder="Search employees..."
@@ -243,20 +422,47 @@ const EmployeeListScreen: React.FC = () => {
         onClear={clearSearch}
       />
       {totalItems > 0 && (
-        <View className="flex-row justify-between items-center mt-4 mb-2">
-          <Text className="font-rubik text-gray-500 text-sm">
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 16,
+            marginBottom: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: 'Rubik-Regular',
+              fontSize: 13,
+              color: '#94A3B8',
+              letterSpacing: 0.2,
+            }}
+          >
             {totalItems} employee{totalItems !== 1 ? 's' : ''}
           </Text>
           {canAddEmployee && (
             <TouchableOpacity
               onPress={() => setIsModalVisible(true)}
-              className="flex-row items-center px-2 py-1 rounded-lg"
-              style={{ backgroundColor: colors.primary + 15, borderWidth: 0.5, borderColor: colors.primary }}
-
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.primary + '12',
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary + '40',
+              }}
             >
-              <Feather name="user-plus" size={16} color={colors.primary} />
-               <Text className="font-rubik text-sm ml-1"
-                style={{ color: colors.primary }}
+              <Feather name="user-plus" size={14} color={colors.primary} />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Medium',
+                  fontSize: 13,
+                  color: colors.primary,
+                  marginLeft: 6,
+                }}
               >
                 Add Employee
               </Text>
@@ -270,7 +476,7 @@ const EmployeeListScreen: React.FC = () => {
   const renderFooter = () => {
     if (!isLoadingMore) return null;
     return (
-      <View className="py-4">
+      <View style={{ paddingVertical: 16, alignItems: 'center' }}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
@@ -279,12 +485,48 @@ const EmployeeListScreen: React.FC = () => {
   const renderEmpty = () => {
     if (isLoading) return null;
     return (
-      <View className="flex-1 items-center justify-center py-12 px-4">
-        <Feather name="users" size={64} color="#D1D5DB" />
-        <Text className="font-rubik-bold text-gray-900 text-lg mt-4">
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: 64,
+          paddingHorizontal: 32,
+        }}
+      >
+        <View
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 24,
+            backgroundColor: '#F1F5F9',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <Feather name="users" size={36} color="#CBD5E1" />
+        </View>
+        <Text
+          style={{
+            fontFamily: 'Rubik-Bold',
+            fontSize: 18,
+            color: '#0F172A',
+            textAlign: 'center',
+          }}
+        >
           {searchQuery ? 'No employees found' : 'No employees yet'}
         </Text>
-        <Text className="font-rubik text-gray-500 text-center mt-2">
+        <Text
+          style={{
+            fontFamily: 'Rubik-Regular',
+            fontSize: 14,
+            color: '#94A3B8',
+            textAlign: 'center',
+            marginTop: 8,
+            lineHeight: 20,
+          }}
+        >
           {searchQuery
             ? `No employees matching "${searchQuery}"`
             : 'Add your first employee to get started'}
@@ -292,7 +534,7 @@ const EmployeeListScreen: React.FC = () => {
         {!searchQuery && canAddEmployee && (
           <Button
             title="Add Employee"
-            className="mt-4"
+            
             onPress={() => setIsModalVisible(true)}
           />
         )}
@@ -302,7 +544,7 @@ const EmployeeListScreen: React.FC = () => {
 
   if (isLoading && employees.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
         <Header title="Employees" />
         <Loader fullScreen />
       </View>
@@ -310,8 +552,9 @@ const EmployeeListScreen: React.FC = () => {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <Header title="Employees" />
+
       <FlatList
         data={employees}
         renderItem={renderEmployeeCard}
@@ -332,9 +575,36 @@ const EmployeeListScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: 20,
+          paddingBottom: 100, // extra space so FAB doesn't overlap last card
         }}
       />
+
+      {/* ── Floating Action Button (static, bottom-right) ───────────────────── */}
+      {canAddEmployee && (
+        <TouchableOpacity
+          onPress={() => setIsModalVisible(true)}
+          style={{
+            position: 'absolute',
+            bottom: 28,
+            right: 20,
+            width: 56,
+            height: 56,
+            borderRadius: 18,
+            backgroundColor: colors.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: colors.primary,
+            shadowOpacity: 0.45,
+            shadowRadius: 14,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 8,
+          }}
+        >
+          <Feather name="user-plus" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+      {/* ────────────────────────────────────────────────────────────────────── */}
+
       {canAddEmployee && (
         <Modal
           visible={isModalVisible}
@@ -344,33 +614,90 @@ const EmployeeListScreen: React.FC = () => {
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1"
+            style={{ flex: 1 }}
           >
             <TouchableOpacity
-              className="flex-1 bg-black/50"
+              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
               activeOpacity={1}
               onPress={() => setIsModalVisible(false)}
             >
-              <View className="flex-1 justify-end">
+              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                 <TouchableOpacity
                   activeOpacity={1}
                   onPress={(e) => e.stopPropagation()}
-                  className="bg-white rounded-t-3xl"
                   style={{
+                    backgroundColor: '#FFFFFF',
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
                     shadowColor: '#000',
-                    shadowOpacity: 0.1,
-                    shadowRadius: 20,
-                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 24,
+                    shadowOffset: { width: 0, height: -6 },
+                    elevation: 12,
                   }}
                 >
-                  <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
-                    <Text className="font-rubik-bold text-gray-900 text-xl">
-                      Add Employee
-                    </Text>
-                    <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                      <Feather name="x" size={24} color="#9CA3AF" />
+                  {/* Modal handle bar */}
+                  <View style={{ alignItems: 'center', paddingTop: 12 }}>
+                    <View
+                      style={{
+                        width: 36,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: '#E2E8F0',
+                      }}
+                    />
+                  </View>
+
+                  {/* Modal header */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingHorizontal: 24,
+                      paddingTop: 16,
+                      paddingBottom: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F1F5F9',
+                    }}
+                  >
+                    <View>
+                      <Text
+                        style={{
+                          fontFamily: 'Rubik-Bold',
+                          fontSize: 20,
+                          color: '#0F172A',
+                          letterSpacing: -0.3,
+                        }}
+                      >
+                        Add Employee
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: 'Rubik-Regular',
+                          fontSize: 12,
+                          color: '#94A3B8',
+                          marginTop: 2,
+                        }}
+                      >
+                        Invite a new team member
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setIsModalVisible(false)}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 12,
+                        backgroundColor: '#F1F5F9',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Feather name="x" size={18} color="#64748B" />
                     </TouchableOpacity>
                   </View>
+
                   <AddEmployeeForm
                     onSubmit={handleAddEmployee}
                     onCancel={() => setIsModalVisible(false)}

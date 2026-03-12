@@ -15,6 +15,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import OrganizationOnboardingScreen from '../screens/OrganizationOnboardingScreen';
 import { useAuth } from '../context/AuthContext';
 import TeamManagementScreen from '../screens/TeamManagementScreen';
+import EmployeeDetailsScreen from '../components/employee/EmployeeDetailsScreen';
 
 export type AppStackParamList = {
   Tabs: undefined;
@@ -30,6 +31,9 @@ export type AppStackParamList = {
   Settings: undefined;
   Onboarding: undefined;
   teams: undefined;
+    EmployeeDetails: {
+    employeeId: string;
+  };
 };
 
 const Stack = createStackNavigator<AppStackParamList>();
@@ -59,6 +63,7 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="InviteExEmployee" component={InviteExEmployeeScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="teams" component={TeamManagementScreen} />
+      <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />
     </Stack.Navigator>
   );
 };
