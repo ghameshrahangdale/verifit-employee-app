@@ -69,6 +69,8 @@ const EmployeeListScreen: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
 
+  console.log(employees);
+
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -81,49 +83,45 @@ const EmployeeListScreen: React.FC = () => {
   }, [debouncedSearchQuery]);
 
   const fetchEmployees = async (page: number = 1, reset: boolean = false) => {
-    try {
-      if (reset) {
-        setIsLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      const response = await http.get('/api/employees', {
-        params: {
-          page,
-          limit: 20,
-          ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
-        },
-      });
-
-      const fetchedEmployees = response?.data?.employees || [];
-      const pagination = response?.data?.pagination || {};
-
-      const employeeMembers = fetchedEmployees.filter((member: Employee) =>
-        member.role.toLowerCase() === 'employee'
-      );
-
-      setEmployees(prev =>
-        reset ? employeeMembers : [...prev, ...employeeMembers]
-      );
-
-      setCurrentPage(pagination?.page || 1);
-      setTotalPages(pagination?.totalPages || 1);
-      setTotalItems(pagination?.total || employeeMembers.length);
-      setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
-
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to Load Employees',
-        text2: error.response?.data?.message || 'Unable to fetch employees',
-      });
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-      setIsRefreshing(false);
+  try {
+    if (reset) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
     }
-  };
+
+    const response = await http.get('/api/employees', {
+      params: {
+        page,
+        limit: 20,
+        ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
+      },
+    });
+
+    const fetchedEmployees = response?.data?.employees || [];
+    const pagination = response?.data?.pagination || {};
+
+    setEmployees(prev =>
+      reset ? fetchedEmployees : [...prev, ...fetchedEmployees]
+    );
+
+    setCurrentPage(pagination?.page || 1);
+    setTotalPages(pagination?.totalPages || 1);
+    setTotalItems(pagination?.total || fetchedEmployees.length);
+    setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
+
+  } catch (error: any) {
+    Toast.show({
+      type: 'error',
+      text1: 'Failed to Load Employees',
+      text2: error.response?.data?.message || 'Unable to fetch employees',
+    });
+  } finally {
+    setIsLoading(false);
+    setIsLoadingMore(false);
+    setIsRefreshing(false);
+  }
+};
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);

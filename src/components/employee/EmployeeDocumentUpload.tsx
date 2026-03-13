@@ -41,7 +41,7 @@ interface EmployeeDocument {
 }
 
 interface EmployeeProfileResponse {
-  employeeDocuments?: EmployeeDocument[];
+  documents?: EmployeeDocument[];
 }
 
 interface UploadResponse {
@@ -265,8 +265,8 @@ const EmployeeDocumentUpload: React.FC<EmployeeDocumentUploadProps> = ({
       setIsFetching(true);
       const response = await http.get<EmployeeProfileResponse>('api/employees/profile');
 
-      if (response.data?.employeeDocuments) {
-        setDocuments(response.data.employeeDocuments);
+      if (response.data?.documents) {
+        setDocuments(response.data?.documents);
       }
     } catch (error: any) {
       Toast.show({

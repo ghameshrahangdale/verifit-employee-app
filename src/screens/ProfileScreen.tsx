@@ -154,7 +154,7 @@ const CardDivider = () => <View className="h-px bg-gray-100 my-1" />;
 
 const ProfileScreen: React.FC = () => {
   const { colors } = useTheme();
-  const { user: authUser, getProfile, updateProfile } = useAuth();
+  const { user, getProfile, updateProfile } = useAuth();
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -295,7 +295,7 @@ const ProfileScreen: React.FC = () => {
 
   const getFullName = () => {
     const name = `${personalForm.firstName} ${personalForm.lastName}`.trim();
-    return name || authUser?.email || 'User';
+    return name || user?.email || 'User';
   };
 
   const formatDate = (dateString: string) => {
@@ -312,7 +312,7 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  const isEmployee = profile?.user?.role?.toLowerCase() === 'employee';
+  const isEmployee = user?.role?.toLowerCase() === 'employee';
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (isFetching) {
@@ -652,15 +652,16 @@ const ProfileScreen: React.FC = () => {
               ) : null}
             </View>
 
-            {/* ── Employee Professional Details ─────────────────────────────────── */}
+            
+          </>
+        )}
+        {/* ── Employee Professional Details ─────────────────────────────────── */}
             {isEmployee && (
               <>
                 <EmployeeProfessionalDetails />
                 <EmployeeDocumentUpload />
               </>
             )}
-          </>
-        )}
       </ScrollView>
     </View>
   );

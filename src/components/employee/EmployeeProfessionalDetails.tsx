@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import Button from '../ui/Button';
@@ -13,6 +14,7 @@ import Input from '../ui/Input';
 import Toast from 'react-native-toast-message';
 import http from '../../services/http.api';
 import Icon from 'react-native-vector-icons/Feather';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +110,33 @@ const SectionSeparator = ({ title }: { title: string }) => (
   </View>
 );
 
+/** Reusable badge component with theme colors */
+const Badge = ({ label, onRemove }: { label: string; onRemove?: () => void }) => {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border"
+      style={{
+        backgroundColor: `${colors.primary}0D`,
+        borderColor: `${colors.primary}25`,
+      }}
+    >
+      <Text
+        className="font-rubik-medium text-sm"
+        style={{ color: colors.primary }}
+      >
+        {label}
+      </Text>
+      {onRemove && (
+        <TouchableOpacity onPress={onRemove}>
+          <Icon name="x" size={12} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
 /** Employment type selector pill */
 const EmploymentTypePill = ({
   type,
@@ -118,6 +147,8 @@ const EmploymentTypePill = ({
   selected: boolean;
   onSelect: () => void;
 }) => {
+  const { colors } = useTheme();
+  
   const getLabel = (type: EmploymentType) => {
     switch (type) {
       case EmploymentType.FULL_TIME:
@@ -136,12 +167,15 @@ const EmploymentTypePill = ({
   return (
     <TouchableOpacity
       onPress={onSelect}
-      className={`px-4 py-2 rounded-full border ${selected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white'
-        }`}
+      className={`px-4 py-2 rounded-full border`}
+      style={{
+        borderColor: selected ? colors.primary : '#E5E7EB',
+        backgroundColor: selected ? `${colors.primary}0D` : '#FFFFFF',
+      }}
     >
       <Text
-        className={`font-rubik-medium text-sm ${selected ? 'text-indigo-600' : 'text-gray-600'
-          }`}
+        className="font-rubik-medium text-sm"
+        style={{ color: selected ? colors.primary : '#4B5563' }}
       >
         {getLabel(type)}
       </Text>
@@ -149,22 +183,141 @@ const EmploymentTypePill = ({
   );
 };
 
+/** Primary action button */
+const PrimaryButton = ({
+  title,
+  onPress,
+  icon,
+  loading = false,
+  disabled = false,
+}: {
+  title: string;
+  onPress: () => void;
+  icon?: string;
+  loading?: boolean;
+  disabled?: boolean;
+}) => {
+  const { colors } = useTheme();
+  
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled || loading}
+      className="flex-row items-center justify-center gap-2 px-4 py-2 rounded-xl"
+      style={{ backgroundColor: colors.primary }}
+      activeOpacity={0.7}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : (
+        <>
+          {icon && <Icon name={icon} size={16} color="#FFFFFF" />}
+          <Text className="font-rubik-medium text-sm text-white">{title}</Text>
+        </>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+/** Secondary action button */
+const SecondaryButton = ({
+  title,
+  onPress,
+  icon,
+  disabled = false,
+}: {
+  title: string;
+  onPress: () => void;
+  icon?: string;
+  disabled?: boolean;
+}) => {
+  const { colors } = useTheme();
+  
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      className="flex-row items-center justify-center gap-2 px-4 py-2 rounded-xl border"
+      style={{
+        borderColor: colors.primary,
+        backgroundColor: `${colors.primary}0D`,
+      }}
+      activeOpacity={0.7}
+    >
+      {icon && <Icon name={icon} size={16} color={colors.primary} />}
+      <Text className="font-rubik-medium text-sm" style={{ color: colors.primary }}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+/** Icon button with primary color */
+const IconButton = ({
+  icon,
+  onPress,
+  size = 18,
+  disabled = false,
+}: {
+  icon: string;
+  onPress: () => void;
+  size?: number;
+  disabled?: boolean;
+}) => {
+  const { colors } = useTheme();
+  
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      className="p-2 rounded-full"
+      style={{ backgroundColor: `${colors.primary}0D` }}
+      activeOpacity={0.7}
+    >
+      <Icon name={icon} size={size} color={colors.primary} />
+    </TouchableOpacity>
+  );
+};
+
+/** Add button for sections */
+const AddButton = ({ onPress, title }: { onPress: () => void; title: string }) => {
+  const { colors } = useTheme();
+  
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-row items-center justify-center gap-2 py-3 border border-dashed rounded-xl mb-4"
+      style={{
+        borderColor: `${colors.primary}25`,
+        backgroundColor: `${colors.primary}0D`,
+      }}
+      activeOpacity={0.7}
+    >
+      <Icon name="plus" size={16} color={colors.primary} />
+      <Text className="font-rubik-medium text-sm" style={{ color: colors.primary }}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 /** Empty state component */
-const EmptyState = ({ onAddPress }: { onAddPress: () => void }) => (
-  <View className="bg-white mx-4 rounded-2xl p-8 items-center justify-center shadow-sm">
-    <Icon name="user" size={48} color="#9CA3AF" />
-    <Text className="font-rubik-medium text-base text-gray-700 mt-4 text-center">
-      No Professional Details Added
-    </Text>
-    <Text className="font-rubik text-sm text-gray-400 mt-1 text-center mb-6">
-      Add your professional information to complete your profile
-    </Text>
-    <Button
-      title="Add Professional Details"
-      onPress={onAddPress}
-    />
-  </View>
-);
+const EmptyState = ({ onAddPress }: { onAddPress: () => void }) => {
+  const { colors } = useTheme();
+  
+  return (
+    <View className="bg-white mx-4 rounded-2xl p-8 items-center justify-center shadow-sm">
+      <Icon name="user" size={48} color="#9CA3AF" />
+      <Text className="font-rubik-medium text-base text-gray-700 mt-4 text-center">
+        No Professional Details Added
+      </Text>
+      <Text className="font-rubik text-sm text-gray-400 mt-1 text-center mb-6">
+        Add your professional information to complete your profile
+      </Text>
+      <PrimaryButton title="Add Professional Details" onPress={onAddPress} />
+    </View>
+  );
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -518,33 +671,19 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
             Professional Details
           </Text>
           {!isEditing ? (
-            <TouchableOpacity
-              onPress={() => setIsEditing(true)}
-              className="p-2 bg-gray-100 rounded-full"
-              activeOpacity={0.7}
-            >
-              <Icon name="edit-2" size={18} color="#6B7280" />
-            </TouchableOpacity>
+            <IconButton icon="edit-2" onPress={() => setIsEditing(true)} />
           ) : (
             <View className="flex-row gap-2">
-              <TouchableOpacity
+              <SecondaryButton
+                title="Cancel"
                 onPress={handleCancelEdit}
-                className="px-3 py-1.5 rounded-full border border-gray-200"
                 disabled={isLoading}
-              >
-                <Text className="font-rubik-medium text-sm text-gray-600">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              />
+              <PrimaryButton
+                title="Save"
                 onPress={handleSave}
-                className="px-3 py-1.5 rounded-full bg-indigo-500"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text className="font-rubik-medium text-sm text-white">Save</Text>
-                )}
-              </TouchableOpacity>
+                loading={isLoading}
+              />
             </View>
           )}
         </View>
@@ -643,43 +782,36 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
               <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-2">
                 Skills
               </Text>
-              <View className="flex-row gap-2 mb-2">
-                <View className="flex-1">
-                  <Input
-                    label=""
-                    value={skillInput}
-                    onChangeText={setSkillInput}
-                    placeholder="e.g., React Native"
-                    // onSubmitEditing={handleAddSkill}
-                    // returnKeyType="done"
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={handleAddSkill}
-                  className="px-4 py-2 bg-indigo-500 rounded-xl self-center"
-                >
-                  <Text className="font-rubik-medium text-sm text-white">Add</Text>
-                </TouchableOpacity>
-              </View>
+              <View className="flex-row items-end gap-2">
+  <View className="flex-1">
+    <Input
+      label=""
+      value={skillInput}
+      onChangeText={setSkillInput}
+      placeholder="e.g., React Native"
+      rightButtonIcon="plus"
+      onRightButtonPress={handleAddSkill}
+    />
+  </View>
+</View>
               {formData.skills.length > 0 && (
                 <View className="flex-row flex-wrap gap-2 mt-1">
                   {formData.skills.map((skill, index) => (
-                    <View
+                    <Badge
                       key={index}
-                      className="flex-row items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full"
-                    >
-                      <Text className="font-rubik-medium text-sm text-indigo-600">{skill}</Text>
-                      <TouchableOpacity onPress={() => handleRemoveSkill(index)}>
-                        <Icon name="x" size={12} color="#6366F1" />
-                      </TouchableOpacity>
-                    </View>
+                      label={skill}
+                      onRemove={() => handleRemoveSkill(index)}
+                    />
                   ))}
                 </View>
               )}
             </View>
 
             {/* ── Qualifications ───────────────────────────────────────────── */}
+
             <SectionSeparator title="Qualifications" />
+
+            <View className='mb-4' />
 
             {formData.qualifications.map((qual, index) => (
               <View
@@ -691,9 +823,11 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                     Qualification {index + 1}
                   </Text>
                   {formData.qualifications.length > 1 && (
-                    <TouchableOpacity onPress={() => handleRemoveQualification(index)}>
-                      <Icon name="trash-2" size={16} color="#EF4444" />
-                    </TouchableOpacity>
+                    <IconButton
+                      icon="trash-2"
+                      onPress={() => handleRemoveQualification(index)}
+                      size={16}
+                    />
                   )}
                 </View>
                 <Input
@@ -713,7 +847,6 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                   value={String(qual.percentage)}
                   onChangeText={(text) => handleQualificationChange(index, 'percentage', text)}
                   placeholder="e.g., 74.5"
-                  // keyboardType="decimal-pad"
                 />
                 <Input
                   label="Year of Passing"
@@ -725,15 +858,13 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
               </View>
             ))}
 
-            <TouchableOpacity
+            <AddButton
+              title="Add Qualification"
               onPress={handleAddQualification}
-              className="flex-row items-center justify-center gap-2 py-3 border border-dashed border-indigo-300 rounded-xl mb-4"
-            >
-              <Icon name="plus" size={16} color="#6366F1" />
-              <Text className="font-rubik-medium text-sm text-indigo-600">Add Qualification</Text>
-            </TouchableOpacity>
+            />
 
             {/* ── Work History ─────────────────────────────────────────────── */}
+
             <SectionSeparator title="Work History" />
 
             {formData.workHistory.map((work, index) => (
@@ -746,9 +877,11 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                     Work Experience {index + 1}
                   </Text>
                   {formData.workHistory.length > 1 && (
-                    <TouchableOpacity onPress={() => handleRemoveWorkHistory(index)}>
-                      <Icon name="trash-2" size={16} color="#EF4444" />
-                    </TouchableOpacity>
+                    <IconButton
+                      icon="trash-2"
+                      onPress={() => handleRemoveWorkHistory(index)}
+                      size={16}
+                    />
                   )}
                 </View>
                 <Input
@@ -775,7 +908,11 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                   className="flex-row items-center gap-2 mb-3"
                 >
                   <View
-                    className={`w-5 h-5 rounded border items-center justify-center ${work.isCurrent ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300 bg-white'}`}
+                    className={`w-5 h-5 rounded border items-center justify-center`}
+                    style={{
+                      backgroundColor: work.isCurrent ? colors.primary : '#FFFFFF',
+                      borderColor: work.isCurrent ? colors.primary : '#D1D5DB',
+                    }}
                   >
                     {work.isCurrent && <Icon name="check" size={12} color="white" />}
                   </View>
@@ -800,13 +937,10 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
               </View>
             ))}
 
-            <TouchableOpacity
+            <AddButton
+              title="Add Work Experience"
               onPress={handleAddWorkHistory}
-              className="flex-row items-center justify-center gap-2 py-3 border border-dashed border-indigo-300 rounded-xl mb-4"
-            >
-              <Icon name="plus" size={16} color="#6366F1" />
-              <Text className="font-rubik-medium text-sm text-indigo-600">Add Work Experience</Text>
-            </TouchableOpacity>
+            />
 
             {/* ── Social Profiles ──────────────────────────────────────────── */}
             <SectionSeparator title="Social Profiles" />
@@ -821,9 +955,11 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                     Profile {index + 1}
                   </Text>
                   {formData.socialProfiles.length > 1 && (
-                    <TouchableOpacity onPress={() => handleRemoveSocialProfile(index)}>
-                      <Icon name="trash-2" size={16} color="#EF4444" />
-                    </TouchableOpacity>
+                    <IconButton
+                      icon="trash-2"
+                      onPress={() => handleRemoveSocialProfile(index)}
+                      size={16}
+                    />
                   )}
                 </View>
                 {/* Platform selector */}
@@ -836,16 +972,17 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                       <TouchableOpacity
                         key={platform}
                         onPress={() => handleSocialProfileChange(index, 'platform', platform)}
-                        className={`px-3 py-1.5 rounded-full border ${social.platform === platform
-                          ? 'border-indigo-500 bg-indigo-50'
-                          : 'border-gray-200 bg-white'
-                          }`}
+                        className="px-3 py-1.5 rounded-full border"
+                        style={{
+                          borderColor: social.platform === platform ? colors.primary : '#E5E7EB',
+                          backgroundColor: social.platform === platform ? `${colors.primary}0D` : '#FFFFFF',
+                        }}
                       >
                         <Text
-                          className={`font-rubik-medium text-sm ${social.platform === platform
-                            ? 'text-indigo-600'
-                            : 'text-gray-600'
-                            }`}
+                          className="font-rubik-medium text-sm"
+                          style={{
+                            color: social.platform === platform ? colors.primary : '#4B5563',
+                          }}
                         >
                           {platform}
                         </Text>
@@ -858,19 +995,15 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                   value={social.url}
                   onChangeText={(text) => handleSocialProfileChange(index, 'url', text)}
                   placeholder="https://"
-                  // keyboardType="url"
                   autoCapitalize="none"
                 />
               </View>
             ))}
 
-            <TouchableOpacity
+            <AddButton
+              title="Add Social Profile"
               onPress={handleAddSocialProfile}
-              className="flex-row items-center justify-center gap-2 py-3 border border-dashed border-indigo-300 rounded-xl mb-4"
-            >
-              <Icon name="plus" size={16} color="#6366F1" />
-              <Text className="font-rubik-medium text-sm text-indigo-600">Add Social Profile</Text>
-            </TouchableOpacity>
+            />
 
           </ScrollView>
         ) : (
@@ -905,15 +1038,12 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
             {/* Skills */}
             {profile?.skills && profile.skills.length > 0 && (
               <>
-                <SectionSeparator title="Skills" />
-                <View className="flex-row flex-wrap gap-2 py-2 mb-2">
+                <View className='mt-3 mb-2'>
+                  <SectionSeparator title="Skills" />
+                </View>
+                <View className="flex-row flex-wrap gap-2 py-2 mb-2 mt-2">
                   {profile.skills.map((skill, index) => (
-                    <View
-                      key={index}
-                      className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full"
-                    >
-                      <Text className="font-rubik-medium text-sm text-indigo-600">{skill}</Text>
-                    </View>
+                    <Badge key={index} label={skill} />
                   ))}
                 </View>
               </>
@@ -922,9 +1052,11 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
             {/* Qualifications */}
             {profile?.qualifications && profile.qualifications.length > 0 && (
               <>
-                <SectionSeparator title="Qualifications" />
+                <View className='mt-3 mb-2'>
+                  <SectionSeparator title="Qualifications" />
+                </View>
                 {profile.qualifications.map((qual, index) => (
-                  <View key={index} className="mb-3 p-3 bg-gray-50 rounded-xl">
+                  <View key={index} className="mb-3 p-3 bg-gray-50 rounded-xl mt-2">
                     <Text className="font-rubik-medium text-sm text-gray-800 mb-1">
                       {qual.degree || 'Degree not provided'}
                     </Text>
@@ -945,7 +1077,9 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
             {/* Work History */}
             {profile?.workHistory && profile.workHistory.length > 0 && (
               <>
-                <SectionSeparator title="Work History" />
+                <View className='mt-3 mb-2'>
+                  <SectionSeparator title="Work History" />
+                </View>
                 {profile.workHistory.map((work, index) => (
                   <View key={index} className="mb-3 p-3 bg-gray-50 rounded-xl">
                     <View className="flex-row items-center justify-between mb-0.5">
@@ -953,9 +1087,7 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                         {work.designation || 'Designation not provided'}
                       </Text>
                       {work.isCurrent && (
-                        <View className="px-2 py-0.5 bg-green-50 border border-green-200 rounded-full">
-                          <Text className="font-rubik text-xs text-green-600">Current</Text>
-                        </View>
+                        <Badge label="Current" />
                       )}
                     </View>
                     <Text className="font-rubik text-sm text-gray-500">{work.companyName}</Text>
@@ -976,20 +1108,24 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
             {/* Social Profiles */}
             {profile?.socialProfiles && profile.socialProfiles.length > 0 && (
               <>
-                <SectionSeparator title="Social Profiles" />
+                <View className="mt-3 mb-2">
+                  <SectionSeparator title="Social Profiles" />
+                </View>
+
                 {profile.socialProfiles.map((social, index) => (
-                  <View key={index} className="py-2 flex-row items-center gap-3">
-                    <View className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full">
-                      <Text className="font-rubik-medium text-xs text-indigo-600">
-                        {social.platform}
-                      </Text>
-                    </View>
-                    <Text
-                      className="font-rubik text-sm text-indigo-500 flex-1"
-                      numberOfLines={1}
-                    >
-                      {social.url || 'URL not provided'}
-                    </Text>
+                  <View
+                    key={index}
+                    className="py-2 flex-row justify-between items-center gap-3"
+                  >
+                    <Badge label={social.platform} />
+
+                    {social.url && (
+                      <IconButton
+                        icon="link"
+                        onPress={() => Linking.openURL(social.url)}
+                        size={16}
+                      />
+                    )}
                   </View>
                 ))}
               </>
