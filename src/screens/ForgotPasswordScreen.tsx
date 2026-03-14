@@ -251,7 +251,9 @@ const ForgotPasswordScreen: React.FC = () => {
                   onPress={() => navigation.navigate('Login')}
                   className="mt-6 self-center"
                 >
-                  <Text className="text-blue-600 font-rubik-medium">
+                  <Text className="font-rubik-medium"
+                  style={{color: colors.primary}}
+                  >
                     Back to Sign In
                   </Text>
                 </TouchableOpacity>

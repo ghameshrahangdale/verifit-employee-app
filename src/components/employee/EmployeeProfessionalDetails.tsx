@@ -184,7 +184,7 @@ const EmploymentTypePill = ({
 };
 
 /** Primary action button */
-const PrimaryButton = ({
+export const PrimaryButton = ({
   title,
   onPress,
   icon,
@@ -220,7 +220,7 @@ const PrimaryButton = ({
 };
 
 /** Secondary action button */
-const SecondaryButton = ({
+export const SecondaryButton = ({
   title,
   onPress,
   icon,
@@ -732,6 +732,7 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
               value={formData.joiningDate}
               onChangeText={(text) => setFormData(prev => ({ ...prev, joiningDate: text }))}
               placeholder="YYYY-MM-DD"
+              type='date'
             />
 
             {formData.employmentType !== EmploymentType.FULL_TIME && (
@@ -740,6 +741,7 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                 value={formData.relievingDate}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, relievingDate: text }))}
                 placeholder="YYYY-MM-DD"
+                type='date'
               />
             )}
 

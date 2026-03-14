@@ -89,7 +89,7 @@ const Input: React.FC<InputProps> = ({
               <TextInput
                 className={`border rounded-lg px-4 pr-12 text-base font-rubik ${
                   error ? 'border-red-500' : 'border-gray-300'
-                } focus:border-blue-500 ${
+                } ${
                   disabled ? 'bg-gray-100 text-gray-500' : ''
                 }`}
                 value={value}

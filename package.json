@@ -9,7 +9,7 @@
     "start": "react-native start",
     "test": "jest",
     "setup": "node setup.js",
-    "android-wireless": "adb connect 192.168.1.2 && npm run android"
+    "native": "adb tcpip 5555 && adb connect 192.168.1.2 && npm run android"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -30,7 +30,6 @@
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.2.0",
     "react-native": "0.83.1",
-    "react-native-date-picker": "^5.0.13",
     "react-native-device-info": "^15.0.1",
     "react-native-gesture-handler": "^2.30.0",
     "react-native-linear-gradient": "^2.8.3",

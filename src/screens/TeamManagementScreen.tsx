@@ -6,25 +6,21 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  TextInput,
   Modal,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
+import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Avatar from '../components/ui/Avatar';
 import Header from '../components/ui/Header';
+import Avatar from '../components/ui/Avatar';
+import Button from '../components/ui/Button';
 import Toast from 'react-native-toast-message';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
-import { Switch } from 'react-native';
-import InviteTeamMemberForm from '../components/InviteTeamMemberForm';
 import SearchInput from '../components/ui/SearchInput';
+import InviteTeamMemberForm from '../components/InviteTeamMemberForm';
 
 interface TeamMember {
   id: string;
@@ -34,13 +30,11 @@ interface TeamMember {
   email: string;
   role: string;
   isEmailVerified: boolean;
-  emailVerifyTokenExpiry: string | null;
-  passwordResetTokenExpiry: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
-  profileImage?:string;
+  profileImage?: string;
 }
 
 interface AddMemberData {
@@ -61,15 +55,12 @@ const TeamManagementScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
 
@@ -77,7 +68,6 @@ const TeamManagementScreen: React.FC = () => {
     const debounceTimer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 500);
-
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
@@ -96,7 +86,7 @@ const TeamManagementScreen: React.FC = () => {
       const response = await http.get('/api/organization/team', {
         params: {
           page,
-          limit: 10,
+          limit: 20,
           ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
         },
       });
@@ -114,7 +104,6 @@ const TeamManagementScreen: React.FC = () => {
       setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
 
     } catch (error: any) {
-      console.error('Error fetching team members:', error);
       Toast.show({
         type: 'error',
         text1: 'Failed to Load Team',
@@ -149,19 +138,15 @@ const TeamManagementScreen: React.FC = () => {
   const handleAddMember = async (formData: AddMemberData) => {
     try {
       setIsAddingMember(true);
-      const response = await http.post('/api/organization/team', formData);
-
+      await http.post('/api/organization/team', formData);
       Toast.show({
         type: 'success',
         text1: 'Invitation Sent',
         text2: `An invitation has been sent to ${formData.firstName} ${formData.lastName}`,
       });
-
       setIsModalVisible(false);
       handleRefresh();
-
     } catch (error: any) {
-      console.error('Error adding team member:', error);
       Toast.show({
         type: 'error',
         text1: 'Failed to Send Invitation',
@@ -173,139 +158,239 @@ const TeamManagementScreen: React.FC = () => {
     }
   };
 
-  // const toggleMemberStatus = async (member: TeamMember) => {
-  //   try {
-  //     const newStatus = !member.isActive;
-
-  //     setTeamMembers(prev =>
-  //       prev.map(m =>
-  //         m.id === member.id ? { ...m, isActive: newStatus } : m
-  //       )
-  //     );
-
-  //     const response = await http.patch(`/api/organization/team`, {
-  //       isActive: newStatus,
-  //       userId: member.id
-  //     });
-
-  //     Toast.show({
-  //       type: 'success',
-  //       text1: response?.message || "Team member status updated",
-  //       text2: `${member.firstName} ${member.lastName}`,
-  //     });
-
-  //   } catch (error: any) {
-  //     setTeamMembers(prev =>
-  //       prev.map(m =>
-  //         m.id === member.id ? { ...m, isActive: !member.isActive } : m
-  //       )
-  //     );
-
-  //     Toast.show({
-  //       type: 'error',
-  //       text1: 'Status Update Failed',
-  //       text2: error.response?.data?.message || 'Unable to update status',
-  //     });
-  //   }
-  // };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role.toLowerCase()) {
-      case 'admin':
-        return { bg: '#FEF3C7', text: '#92400E' };
-      case 'hr':
-        return { bg: '#DBEAFE', text: '#1E40AF' };
-      case 'accounts':
-        return { bg: '#D1FAE5', text: '#065F46' };
-      default:
-        return { bg: '#F3F4F6', text: '#374151' };
-    }
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
-  const renderTeamMember = ({ item }: { item: TeamMember }) => {
-    const roleBadge = getRoleBadgeColor(item.role);
+  // ─── REDESIGNED TEAM MEMBER CARD (Same as EmployeeListScreen) ─────────────────
+  const renderTeamMemberCard = ({ item }: { item: TeamMember }) => {
     const fullName = `${item.firstName} ${item.lastName}`.trim();
-    const isCurrentUser = item.email === user?.email;
     const imageUrl = item.profileImage;
+    const isCurrentUser = item.email === user?.email;
 
     return (
       <View
-        className="bg-white rounded-2xl p-5 mx-4 mb-3"
         style={{
-          shadowColor: '#000',
-          shadowOpacity: 0.04,
-          shadowRadius: 8,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 20,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 16,
+          shadowColor: '#64748B',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
           shadowOffset: { width: 0, height: 4 },
-          borderColor: colors.primary + 30,
+          elevation: 3,
           borderWidth: 1,
+          borderColor: '#F1F5F9',
         }}
       >
-
-        <View className="flex-row items-center">
-          <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
-
-          <View className="flex-1 ml-3">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <Text className="font-rubik-bold text-gray-900 text-base">
-                  {fullName}
-                </Text>
-                {isCurrentUser && (
-                  <View className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full">
-                    <Text className="font-rubik text-xs text-gray-600">You</Text>
-                  </View>
-                )}
-              </View>
+        {/* Top Row: Avatar + Info + Status Badge */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          {/* Avatar with active ring */}
+          <View style={{ position: 'relative' }}>
+            <View
+              style={{
+                borderRadius: 50,
+                overflow: 'hidden',
+                backgroundColor: colors.primary + '15',
+                borderWidth: item.isActive ? 2 : 0,
+                borderColor: item.isActive ? '#22C55E' : 'transparent',
+              }}
+            >
+              <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
+            </View>
+            {/* Tiny online dot */}
+            {item.isActive && (
               <View
-                className="px-3 py-1 rounded-full ml-2"
-                style={{ backgroundColor: roleBadge.bg }}
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  right: 0,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: '#22C55E',
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                }}
+              />
+            )}
+          </View>
+
+          {/* Name, Email and Role */}
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Bold',
+                  fontSize: 15,
+                  color: '#0F172A',
+                  letterSpacing: -0.2,
+                }}
+              >
+                {fullName}
+              </Text>
+              {isCurrentUser && (
+                <View
+                  style={{
+                    marginLeft: 6,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2,
+                    backgroundColor: colors.primary + '18',
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'Rubik-Medium',
+                      fontSize: 10,
+                      color: colors.primary,
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    YOU
+                  </Text>
+                </View>
+              )}
+              {/* Role Badge */}
+              <View
+                style={{
+                  marginLeft: 6,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  backgroundColor: 
+                    item.role === 'admin' ? '#FEF3C7' :
+                    item.role === 'hr' ? '#DBEAFE' : '#F3F4F6',
+                  borderRadius: 20,
+                }}
               >
                 <Text
-                  className="font-rubik-medium text-xs"
-                  style={{ color: roleBadge.text }}
+                  style={{
+                    fontFamily: 'Rubik-Medium',
+                    fontSize: 10,
+                    color: 
+                      item.role === 'admin' ? '#92400E' :
+                      item.role === 'hr' ? '#1E40AF' : '#374151',
+                    letterSpacing: 0.3,
+                  }}
                 >
                   {item.role.toUpperCase()}
                 </Text>
               </View>
             </View>
-
-            <Text className="font-rubik text-gray-500 text-sm mt-1">
+            <Text
+              style={{
+                fontFamily: 'Rubik-Regular',
+                fontSize: 12.5,
+                color: '#64748B',
+                marginTop: 2,
+              }}
+              numberOfLines={1}
+            >
               {item.email}
             </Text>
+          </View>
 
-            <View className="flex-row items-center mt-2 justify-between">
-              <View className="flex-row items-center">
-                <View
-                  className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                />
-                <Text className="font-rubik text-gray-400 text-xs ml-1">
-                  {item.isActive ? 'Active' : 'Inactive'}
-                </Text>
-              </View>
+          {/* Status Badge (top-right) */}
+          <View
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 20,
+              backgroundColor: item.isEmailVerified ? '#DCFCE7' : '#FEF3C7',
+              borderWidth: 1,
+              borderColor: item.isEmailVerified ? '#86EFAC' : '#FCD34D',
+              alignSelf: 'flex-start',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Rubik-Medium',
+                fontSize: 10,
+                color: item.isEmailVerified ? '#15803D' : '#92400E',
+                letterSpacing: 0.4,
+              }}
+            >
+              {item.isEmailVerified ? '✓ VERIFIED' : '⏳ PENDING'}
+            </Text>
+          </View>
+        </View>
 
-              {/* {(user?.role === 'admin' || user?.role === 'hr') && (
-                <View className="flex-row items-center">
-                  <Text className="font-rubik text-xs text-gray-500 mr-2">
-                    {item.isActive ? 'Deactivate' : 'Activate'}
-                  </Text>
-                  <Switch
-                    value={item.isActive}
-                    onValueChange={() => toggleMemberStatus(item)}
-                    trackColor={{ false: '#D1D5DB', true: colors.primary }}
-                    thumbColor={'#ffffff'}
-                  />
-                </View>
-              )} */}
+        {/* Divider */}
+        <View
+          style={{
+            height: 1,
+            backgroundColor: '#F1F5F9',
+            marginVertical: 12,
+          }}
+        />
+
+        {/* Bottom Row: Meta info only (no view button) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* Left meta: Active status + Joined date */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {/* Active pill */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: item.isActive ? '#F0FDF4' : '#F8FAFC',
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: item.isActive ? '#BBF7D0' : '#E2E8F0',
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: item.isActive ? '#22C55E' : '#CBD5E1',
+                  marginRight: 5,
+                }}
+              />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Medium',
+                  fontSize: 11,
+                  color: item.isActive ? '#15803D' : '#94A3B8',
+                }}
+              >
+                {item.isActive ? 'Active' : 'Inactive'}
+              </Text>
+            </View>
+
+            {/* Joined date */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Feather name="calendar" size={11} color="#94A3B8" />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Regular',
+                  fontSize: 11,
+                  color: '#94A3B8',
+                  marginLeft: 4,
+                }}
+              >
+                {formatDate(item.createdAt)}
+              </Text>
             </View>
           </View>
         </View>
       </View>
     );
   };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const renderHeader = () => (
-    <View className="px-4 pt-4 pb-2">
+    <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
       <SearchInput
         value={searchQuery}
         placeholder="Search team members..."
@@ -313,21 +398,48 @@ const TeamManagementScreen: React.FC = () => {
         onSearch={() => setDebouncedSearchQuery(searchQuery)}
         onClear={clearSearch}
       />
-
       {totalItems > 0 && (
-        <View className="flex-row justify-between items-center mb-2 mt-4">
-          <Text className="font-rubik text-gray-500 text-sm">
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 16,
+            marginBottom: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: 'Rubik-Regular',
+              fontSize: 13,
+              color: '#94A3B8',
+              letterSpacing: 0.2,
+            }}
+          >
             {totalItems} team member{totalItems !== 1 ? 's' : ''}
           </Text>
           {canAddMember && !isHR && (
             <TouchableOpacity
               onPress={() => setIsModalVisible(true)}
-              className="flex-row items-center px-2 py-1 rounded-lg"
-              style={{backgroundColor:colors.primary+15, borderWidth:0.5, borderColor:colors.primary}}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.primary + '12',
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary + '40',
+              }}
             >
-              <Icon name="email-send-outline" size={16} color={colors.primary} />
-              <Text className="font-rubik text-sm ml-1"
-              style={{color:colors.primary}}
+              <Feather name="mail" size={14} color={colors.primary} />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Medium',
+                  fontSize: 13,
+                  color: colors.primary,
+                  marginLeft: 6,
+                }}
               >
                 Invite HR
               </Text>
@@ -340,9 +452,8 @@ const TeamManagementScreen: React.FC = () => {
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
-
     return (
-      <View className="py-4">
+      <View style={{ paddingVertical: 16, alignItems: 'center' }}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
@@ -350,23 +461,58 @@ const TeamManagementScreen: React.FC = () => {
 
   const renderEmpty = () => {
     if (isLoading) return null;
-
     return (
-      <View className="flex-1 items-center justify-center py-12 px-4">
-        <Icon name="account-group-outline" size={64} color="#D1D5DB" />
-        <Text className="font-rubik-bold text-gray-900 text-lg mt-4">
-          {searchQuery ? 'No members found' : 'No team members yet'}
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: 64,
+          paddingHorizontal: 32,
+        }}
+      >
+        <View
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 24,
+            backgroundColor: '#F1F5F9',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <Feather name="users" size={36} color="#CBD5E1" />
+        </View>
+        <Text
+          style={{
+            fontFamily: 'Rubik-Bold',
+            fontSize: 18,
+            color: '#0F172A',
+            textAlign: 'center',
+          }}
+        >
+          {searchQuery ? 'No team members found' : 'No team members yet'}
         </Text>
-        <Text className="font-rubik text-gray-500 text-center mt-2">
+        <Text
+          style={{
+            fontFamily: 'Rubik-Regular',
+            fontSize: 14,
+            color: '#94A3B8',
+            textAlign: 'center',
+            marginTop: 8,
+            lineHeight: 20,
+          }}
+        >
           {searchQuery
             ? `No members matching "${searchQuery}"`
-            : 'Invite your first team member to get started'}
+            : 'Invite your first HR member to get started'}
         </Text>
         {!searchQuery && canAddMember && !isHR && (
           <Button
             title="Invite HR"
-            className="mt-4"
             onPress={() => setIsModalVisible(true)}
+            // style={{ marginTop: 16 }}
           />
         )}
       </View>
@@ -375,7 +521,7 @@ const TeamManagementScreen: React.FC = () => {
 
   if (isLoading && teamMembers.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
         <Header title="HR Management" />
         <Loader fullScreen />
       </View>
@@ -383,12 +529,12 @@ const TeamManagementScreen: React.FC = () => {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <Header title="HR Management" />
 
       <FlatList
         data={teamMembers}
-        renderItem={renderTeamMember}
+        renderItem={renderTeamMemberCard}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
@@ -406,10 +552,36 @@ const TeamManagementScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: 20,
+          paddingBottom: 100,
         }}
       />
 
+      {/* Floating Action Button */}
+      {canAddMember && !isHR && (
+        <TouchableOpacity
+          onPress={() => setIsModalVisible(true)}
+          style={{
+            position: 'absolute',
+            bottom: 28,
+            right: 20,
+            width: 56,
+            height: 56,
+            borderRadius: 18,
+            backgroundColor: colors.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: colors.primary,
+            shadowOpacity: 0.45,
+            shadowRadius: 14,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 8,
+          }}
+        >
+          <Feather name="mail" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+
+      {/* Invite HR Modal */}
       {canAddMember && !isHR && (
         <Modal
           visible={isModalVisible}
@@ -419,31 +591,87 @@ const TeamManagementScreen: React.FC = () => {
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1"
+            style={{ flex: 1 }}
           >
             <TouchableOpacity
-              className="flex-1 bg-black/50"
+              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
               activeOpacity={1}
               onPress={() => setIsModalVisible(false)}
             >
-              <View className="flex-1 justify-end">
+              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                 <TouchableOpacity
                   activeOpacity={1}
                   onPress={(e) => e.stopPropagation()}
-                  className="bg-white rounded-t-3xl"
                   style={{
+                    backgroundColor: '#FFFFFF',
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
                     shadowColor: '#000',
-                    shadowOpacity: 0.1,
-                    shadowRadius: 20,
-                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 24,
+                    shadowOffset: { width: 0, height: -6 },
+                    elevation: 12,
                   }}
                 >
-                  <View className="flex-row justify-between items-center p-6 border-b border-gray-100">
-                    <Text className="font-rubik-bold text-gray-900 text-xl">
-                      Invite HR
-                    </Text>
-                    <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                      <Icon name="close" size={24} color="#9CA3AF" />
+                  {/* Modal handle bar */}
+                  <View style={{ alignItems: 'center', paddingTop: 12 }}>
+                    <View
+                      style={{
+                        width: 36,
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: '#E2E8F0',
+                      }}
+                    />
+                  </View>
+
+                  {/* Modal header */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingHorizontal: 24,
+                      paddingTop: 16,
+                      paddingBottom: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F1F5F9',
+                    }}
+                  >
+                    <View>
+                      <Text
+                        style={{
+                          fontFamily: 'Rubik-Bold',
+                          fontSize: 20,
+                          color: '#0F172A',
+                          letterSpacing: -0.3,
+                        }}
+                      >
+                        Invite HR Member
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: 'Rubik-Regular',
+                          fontSize: 12,
+                          color: '#94A3B8',
+                          marginTop: 2,
+                        }}
+                      >
+                        Add a new HR team member
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setIsModalVisible(false)}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 12,
+                        backgroundColor: '#F1F5F9',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Feather name="x" size={18} color="#64748B" />
                     </TouchableOpacity>
                   </View>
 

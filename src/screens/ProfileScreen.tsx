@@ -16,7 +16,7 @@ import Header from '../components/ui/Header';
 import Toast from 'react-native-toast-message';
 import http from '../services/http.api';
 import { pick } from '@react-native-documents/picker';
-import EmployeeProfessionalDetails from '../components/employee/EmployeeProfessionalDetails';
+import EmployeeProfessionalDetails, { PrimaryButton, SecondaryButton } from '../components/employee/EmployeeProfessionalDetails';
 import Icon from 'react-native-vector-icons/Feather';
 import EmployeeDocumentUpload from '../components/employee/EmployeeDocumentUpload';
 
@@ -351,9 +351,10 @@ const ProfileScreen: React.FC = () => {
             className="mb-4"
           >
             <View
-              className="p-0.5 rounded-full bg-white border-2 border-indigo-500"
+              className="p-0.5 rounded-full bg-white border-2"
               style={{
                 shadowColor: colors.primary,
+                borderColor: colors.primary,
                 shadowOpacity: 0.28,
                 shadowRadius: 14,
                 shadowOffset: { width: 0, height: 6 },
@@ -406,14 +407,39 @@ const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* ── Personal Information ─────────────────────────────────────────── */}
-        <SectionHeader
-          title="Personal Information"
-          onEdit={() => setEditingSection('personal')}
-          isEditing={editingSection === 'personal'}
-        />
 
-        <View className="bg-white mx-4 rounded-2xl px-5 py-1 shadow-sm">
+
+        <View className="bg-white mt-3 mx-4 rounded-2xl px-5 py-1 shadow-sm">
+          {/* Header with Edit/Save buttons - matching the professional details style */}
+          <View className="flex-row items-center justify-between py-4 border-b border-gray-100">
+            <Text className="font-rubik-medium text-base text-gray-800">
+              Personal Details
+            </Text>
+            {editingSection !== 'personal' ? (
+              <TouchableOpacity
+                onPress={() => setEditingSection('personal')}
+                className="p-2 rounded-full"
+                style={{ backgroundColor: `${colors.primary}0D` }}
+                activeOpacity={0.7}
+              >
+                <Icon name="edit-2" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            ) : (
+              <View className="flex-row gap-2">
+                <SecondaryButton
+                  title="Cancel"
+                  onPress={handleCancelPersonalEdit}
+                  disabled={isLoading}
+                />
+                <PrimaryButton
+                  title="Save"
+                  onPress={handleSavePersonalInfo}
+                  loading={isLoading}
+                />
+              </View>
+            )}
+          </View>
+
           {editingSection === 'personal' ? (
             <View className="py-4">
               <View className="mb-4">
@@ -450,8 +476,6 @@ const ProfileScreen: React.FC = () => {
                   value={personalForm.role}
                   disabled
                   onChangeText={() => ""}
-
-
                 />
               </View>
 
@@ -536,7 +560,7 @@ const ProfileScreen: React.FC = () => {
             <SectionHeader title="Account Status" showEdit={false} />
 
             <View className="flex-row px-4 gap-3">
-              {/* Email verification */}
+              {/* Email verification - visible to all users */}
               <View className="flex-1 bg-white rounded-2xl p-3.5 items-center shadow-sm">
                 <View
                   className="w-2 h-2 rounded-full mb-1.5"
@@ -553,7 +577,7 @@ const ProfileScreen: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Account active/inactive */}
+              {/* Account active/inactive - visible to all users */}
               <View className="flex-1 bg-white rounded-2xl p-3.5 items-center shadow-sm">
                 <View
                   className="w-2 h-2 rounded-full mb-1.5"
@@ -570,28 +594,30 @@ const ProfileScreen: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Onboarding */}
-              <View className="flex-1 bg-white rounded-2xl p-3.5 items-center shadow-sm">
-                <View
-                  className="w-2 h-2 rounded-full mb-1.5"
-                  style={{ backgroundColor: org?.isOnboardingComplete ? '#10B981' : '#F59E0B' }}
-                />
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-0.5">
-                  Onboarding
-                </Text>
-                <Text
-                  className="font-rubik-medium text-xs"
-                  style={{ color: org?.isOnboardingComplete ? '#10B981' : '#F59E0B' }}
-                >
-                  {org?.isOnboardingComplete ? 'Complete' : 'Pending'}
-                </Text>
-              </View>
+              {/* Onboarding - only visible to admin users */}
+              {profile?.user?.role === 'admin' && (
+                <View className="flex-1 bg-white rounded-2xl p-3.5 items-center shadow-sm">
+                  <View
+                    className="w-2 h-2 rounded-full mb-1.5"
+                    style={{ backgroundColor: org?.isOnboardingComplete ? '#10B981' : '#F59E0B' }}
+                  />
+                  <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                    Onboarding
+                  </Text>
+                  <Text
+                    className="font-rubik-medium text-xs"
+                    style={{ color: org?.isOnboardingComplete ? '#10B981' : '#F59E0B' }}
+                  >
+                    {org?.isOnboardingComplete ? 'Complete' : 'Pending'}
+                  </Text>
+                </View>
+              )}
             </View>
           </>
         )}
 
         {/* ── Organization Details ─────────────────────────────────────────── */}
-        {org && editingSection !== 'personal' && (
+        {user?.role == "admin" && org && editingSection !== 'personal' && (
           <>
             <SectionHeader title="Organization Details" showEdit={false} />
 
@@ -652,16 +678,16 @@ const ProfileScreen: React.FC = () => {
               ) : null}
             </View>
 
-            
+
           </>
         )}
         {/* ── Employee Professional Details ─────────────────────────────────── */}
-            {isEmployee && (
-              <>
-                <EmployeeProfessionalDetails />
-                <EmployeeDocumentUpload />
-              </>
-            )}
+        {isEmployee && (
+          <>
+            <EmployeeProfessionalDetails />
+            <EmployeeDocumentUpload />
+          </>
+        )}
       </ScrollView>
     </View>
   );
