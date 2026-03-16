@@ -4,6 +4,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useTheme } from '../../context/ThemeContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+
 interface InputProps {
   label?: string;
   value: string;
@@ -13,6 +14,9 @@ interface InputProps {
   error?: string;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCorrect?: boolean;
+  hint?: string;
+
   className?: string;
   required?: boolean;
   maxLength?: number;
@@ -43,6 +47,8 @@ const Input: React.FC<InputProps> = ({
   type = 'text',
   rightButtonIcon,
   onRightButtonPress,
+  autoCorrect = false,
+  hint,
 }) => {
   const { colors } = useTheme();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -87,11 +93,8 @@ const Input: React.FC<InputProps> = ({
           >
             <View pointerEvents={type === 'date' && !disabled ? 'none' : 'auto'}>
               <TextInput
-                className={`border rounded-lg px-4 pr-12 text-base font-rubik ${
-                  error ? 'border-red-500' : 'border-gray-300'
-                } ${
-                  disabled ? 'bg-gray-100 text-gray-500' : ''
-                }`}
+                className={`border rounded-lg px-4 pr-12 text-base font-rubik ${error ? 'border-red-500' : 'border-gray-300'
+                  } ${disabled ? 'bg-gray-100 text-gray-500' : ''}`}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
@@ -99,6 +102,7 @@ const Input: React.FC<InputProps> = ({
                 secureTextEntry={showPassword}
                 keyboardType={keyboardType}
                 autoCapitalize={autoCapitalize}
+                autoCorrect={autoCorrect}
                 style={{
                   color: disabled ? '#9CA3AF' : colors.text,
                   height: inputHeight ? inputHeight : undefined,
@@ -156,6 +160,12 @@ const Input: React.FC<InputProps> = ({
 
       {error && (
         <Text className="mt-1 text-red-500 text-sm font-rubik">{error}</Text>
+      )}
+
+      {!error && hint && (
+        <Text className="mt-1 text-gray-400 text-sm font-rubik">
+          {hint}
+        </Text>
       )}
 
       {showDatePicker && (

@@ -69,39 +69,39 @@ const OrganizationOnboardingScreen: React.FC = () => {
   });
 
   const handlePickLogo = async () => {
-  try {
-    const result = await pick({
-      type: ['image/jpeg', 'image/png', 'image/jpg'],
-      allowMultiSelection: false,
-    });
-
-    if (result && result.length > 0) {
-      setLogoFile(result[0]);
-
-      setFormData(prev => ({
-        ...prev,
-        logoUrl: result[0].uri, // store uri temporarily
-      }));
-    }
-  } catch (err: any) {
-    if (err?.code !== 'DOCUMENT_PICKER_CANCELED') {
-      Toast.show({
-        type: 'error',
-        text1: 'File Selection Failed',
-        text2: 'Unable to pick file',
+    try {
+      const result = await pick({
+        type: ['image/jpeg', 'image/png', 'image/jpg'],
+        allowMultiSelection: false,
       });
+
+      if (result && result.length > 0) {
+        setLogoFile(result[0]);
+
+        setFormData(prev => ({
+          ...prev,
+          logoUrl: result[0].uri, // store uri temporarily
+        }));
+      }
+    } catch (err: any) {
+      if (err?.code !== 'DOCUMENT_PICKER_CANCELED') {
+        Toast.show({
+          type: 'error',
+          text1: 'File Selection Failed',
+          text2: 'Unable to pick file',
+        });
+      }
     }
-  }
-};
+  };
 
-const handleClearLogo = () => {
-  setLogoFile(null);
+  const handleClearLogo = () => {
+    setLogoFile(null);
 
-  setFormData(prev => ({
-    ...prev,
-    logoUrl: '',
-  }));
-};
+    setFormData(prev => ({
+      ...prev,
+      logoUrl: '',
+    }));
+  };
 
   const navigation = useNavigation<OrganizationOnboardingScreenNavigationProp>();
   const { refreshUser } = useAuth();
@@ -137,93 +137,96 @@ const handleClearLogo = () => {
 
   const emailRegex = /^\S+@\S+\.\S+$/;
 
+  const urlRegex =
+    /^(https?:\/\/)?([\w\d-]+\.)+[\w-]{2,}(\/.*)?$/i;
+
   // Handle input changes
   const handleChange = (field: string, value: string) => {
-  setFormData(prev => ({
-    ...prev,
-    [field]: value,
-  }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
 
-  let error = '';
+    let error = '';
 
-  switch (field) {
-    case 'name':
-      if (!value.trim()) {
-        error = 'Company name is required';
-      }
-      break;
+    switch (field) {
+      case 'name':
+        if (!value.trim()) {
+          error = 'Company name is required';
+        }
+        break;
 
-    case 'mobileNumber':
-      if (!value.trim()) {
-        error = 'Mobile number is required';
-      } else if (value.length < 10) {
-        error = 'Mobile number must be 10 digits';
-      }
-      break;
+      case 'mobileNumber':
+        if (!value.trim()) {
+          error = 'Mobile number is required';
+        } else if (value.length < 10) {
+          error = 'Mobile number must be 10 digits';
+        }
+        break;
 
-    case 'panNumber':
-      if (!value.trim()) {
-        error = 'PAN number is required';
-      } else if (!panRegex.test(value.toUpperCase())) {
-        error =
-          'Invalid PAN number format. Please enter valid PAN number ex. ABCDE1234F';
-      }
-      break;
+      case 'panNumber':
+        if (!value.trim()) {
+          error = 'PAN number is required';
+        } else if (!panRegex.test(value.toUpperCase())) {
+          error =
+            'Invalid PAN number format. Please enter valid PAN number ex. ABCDE1234F';
+        }
+        break;
 
-    case 'address':
-      if (!value.trim()) {
-        error = 'Address is required';
-      }
-      break;
+      case 'address':
+        if (!value.trim()) {
+          error = 'Address is required';
+        }
+        break;
 
-    case 'country':
-      if (!value.trim()) {
-        error = 'Country is required';
-      }
-      break;
+      case 'country':
+        if (!value.trim()) {
+          error = 'Country is required';
+        }
+        break;
 
-    case 'state':
-      if (!value.trim()) {
-        error = 'State is required';
-      }
-      break;
+      case 'state':
+        if (!value.trim()) {
+          error = 'State is required';
+        }
+        break;
 
-    case 'city':
-      if (!value.trim()) {
-        error = 'City is required';
-      }
-      break;
+      case 'city':
+        if (!value.trim()) {
+          error = 'City is required';
+        }
+        break;
 
-    case 'businessEmail':
-      if (!value.trim()) {
-        error = 'Business email is required';
-      } else if (!emailRegex.test(value)) {
-        error = 'Please enter valid business email';
-      }
-      break;
+      case 'businessEmail':
+        if (!value.trim()) {
+          error = 'Business email is required';
+        } else if (!emailRegex.test(value)) {
+          error = 'Please enter valid business email';
+        }
+        break;
 
-    case 'udyamNumber':
-      if (value && !udyamRegex.test(value.toUpperCase())) {
-        error =
-          'Invalid Udyam format. Example: UDYAM-MH-12-1234567';
-      }
-      break;
+      case 'udyamNumber':
+        if (value && !udyamRegex.test(value.toUpperCase())) {
+          error =
+            'Invalid Udyam format. Example: UDYAM-MH-12-1234567';
+        }
+        break;
 
-    case 'cinNumber':
-      if (value && !cinRegex.test(value.toUpperCase())) {
-        error =
-          'Invalid CIN format. Example: L12345MH2020PLC123456';
-      }
-      break;
-  }
+      case 'cinNumber':
+        if (value && !cinRegex.test(value.toUpperCase())) {
+          error =
+            'Invalid CIN format. Example: L12345MH2020PLC123456';
+        }
+        break;
+    }
 
-  setFieldErrors(prev => ({
-    ...prev,
-    [field]: error,
-  }));
+    setFieldErrors(prev => ({
+      ...prev,
+      [field]: error,
+    }));
 
-  if (error) setError(null);
-};
+    if (error) setError(null);
+  };
   // Validate current step
   const validateStep = (step: number): boolean => {
     setError(null);
@@ -283,6 +286,11 @@ const handleClearLogo = () => {
           setError("Please enter a valid business email address");
           return false;
         }
+
+        if (formData.companyWebsite && !urlRegex.test(formData.companyWebsite.trim())) {
+          setError("Please enter a valid website URL");
+          return false;
+        }
         break;
     }
 
@@ -304,58 +312,58 @@ const handleClearLogo = () => {
   };
 
   // Handle form submission
- const handleOnboarding = async () => {
-  if (!validateStep(3)) return;
+  const handleOnboarding = async () => {
+    if (!validateStep(3)) return;
 
-  setIsLoading(true);
-  setError(null);
-  setSuccessMessage(null);
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
 
-  try {
-    const payload = {
-      name: formData.name.trim(),
-      mobileNumber: formData.mobileNumber.trim(),
-      panNumber: formData.panNumber.trim().toUpperCase(),
-      companyType: formData.companyType,
-      address: formData.address.trim(),
-      country: formData.country.trim(),
-      state: formData.state.trim(),
-      city: formData.city.trim(),
-      businessEmail: formData.businessEmail.trim(),
-      companyWebsite: formData.companyWebsite?.trim() || undefined,
-      logoUrl: formData.logoUrl || undefined,
-      udyamNumber: formData.udyamNumber?.trim() || undefined,
-      cinNumber: formData.cinNumber?.trim().toUpperCase() || undefined,
-      companySize: formData.companySize || "",
-      logo: logoFile || null,
-    };
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        mobileNumber: formData.mobileNumber.trim(),
+        panNumber: formData.panNumber.trim().toUpperCase(),
+        companyType: formData.companyType,
+        address: formData.address.trim(),
+        country: formData.country.trim(),
+        state: formData.state.trim(),
+        city: formData.city.trim(),
+        businessEmail: formData.businessEmail.trim(),
+        companyWebsite: formData.companyWebsite?.trim() || undefined,
+        logoUrl: formData.logoUrl || undefined,
+        udyamNumber: formData.udyamNumber?.trim() || undefined,
+        cinNumber: formData.cinNumber?.trim().toUpperCase() || undefined,
+        companySize: formData.companySize || "",
+        logo: logoFile || null,
+      };
 
-    const response = await AuthService.organizationOnboard(payload);
+      const response = await AuthService.organizationOnboard(payload);
 
-    Toast.show({
-      type: "success",
-      text1: "Onboarding Successful",
-      text2: response.message || "Organization registered successfully",
-    });
+      Toast.show({
+        type: "success",
+        text1: "Onboarding Successful",
+        text2: response.message || "Organization registered successfully",
+      });
 
-    await refreshUser();
-    navigation.navigate("Tabs");
+      await refreshUser();
+      navigation.navigate("Tabs");
 
-  } catch (err: any) {
-    const errorMessage =
-      err.message || "An unexpected error occurred";
+    } catch (err: any) {
+      const errorMessage =
+        err.message || "An unexpected error occurred";
 
-    setError(errorMessage);
+      setError(errorMessage);
 
-    Toast.show({
-      type: "error",
-      text1: "Onboarding Failed",
-      text2: errorMessage,
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+      Toast.show({
+        type: "error",
+        text1: "Onboarding Failed",
+        text2: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   // Render step indicator
   const renderStepIndicator = () => {
     return (
@@ -475,7 +483,7 @@ const handleClearLogo = () => {
         options={companyTypes}
         placeholder="Select company type"
         required
-         error={fieldErrors.businessEmail}
+        error={fieldErrors.businessEmail}
       />
 
       <Select
@@ -508,7 +516,7 @@ const handleClearLogo = () => {
         onChangeText={(value) => handleChange('country', value)}
         placeholder="Enter country"
         required
-         error={fieldErrors.country}
+        error={fieldErrors.country}
 
       />
       <Input
@@ -517,9 +525,9 @@ const handleClearLogo = () => {
         onChangeText={(value) => handleChange('state', value)}
         placeholder="Enter state"
         required
-         error={fieldErrors.state}
+        error={fieldErrors.state}
 
-        
+
       />
       <Input
         label="City"
@@ -527,7 +535,7 @@ const handleClearLogo = () => {
         onChangeText={(value) => handleChange('city', value)}
         placeholder="Enter city"
         required
-         error={fieldErrors.city}
+        error={fieldErrors.city}
 
       />
     </View>
@@ -558,8 +566,9 @@ const handleClearLogo = () => {
         placeholder="Enter company website"
         autoCapitalize="none"
         error={fieldErrors.companyWebsite}
+        hint="Add URL here (e.g. https://example.com)"
 
-        
+
       />
     </View>
   );
@@ -571,66 +580,66 @@ const handleClearLogo = () => {
       </Text>
 
       <View className="space-y-2">
-  <Text className="mb-2 font-rubik-medium text-gray-700">
-    Company Logo (Optional)
-  </Text>
+        <Text className="mb-2 font-rubik-medium text-gray-700">
+          Company Logo (Optional)
+        </Text>
 
-  {!logoFile ? (
-    <TouchableOpacity
-      onPress={handlePickLogo}
-      className="mb-4 border border-gray-300 rounded-lg p-4 flex-row items-center justify-between"
-    >
-      <Text className="text-gray-600 font-rubik">
-        Select Logo (JPG, PNG)
-      </Text>
+        {!logoFile ? (
+          <TouchableOpacity
+            onPress={handlePickLogo}
+            className="mb-4 border border-gray-300 rounded-lg p-4 flex-row items-center justify-between"
+          >
+            <Text className="text-gray-600 font-rubik">
+              Select Logo (JPG, PNG)
+            </Text>
 
-      <Icon name="upload-file" size={22} color="#6B7280" />
-    </TouchableOpacity>
-  ) : (
-    <View className="border border-gray-300 rounded-lg p-4 mb-4">
+            <Icon name="upload-file" size={22} color="#6B7280" />
+          </TouchableOpacity>
+        ) : (
+          <View className="border border-gray-300 rounded-lg p-4 mb-4">
 
-      {/* Logo Preview */}
-      <Image
-        source={{ uri: logoFile.uri }}
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 10,
-          marginBottom: 10,
-        }}
-      />
+            {/* Logo Preview */}
+            <Image
+              source={{ uri: logoFile.uri }}
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 10,
+                marginBottom: 10,
+              }}
+            />
 
-      {/* File Name */}
-      <Text className="text-gray-700 font-rubik text-sm mb-3">
-        {logoFile.name}
-      </Text>
+            {/* File Name */}
+            <Text className="text-gray-700 font-rubik text-sm mb-3">
+              {logoFile.name}
+            </Text>
 
-      {/* Actions */}
-      <View className="flex-row gap-4">
+            {/* Actions */}
+            <View className="flex-row gap-4">
 
-        <TouchableOpacity
-          onPress={handlePickLogo}
-          className="bg-gray-100 px-4 py-2 rounded-lg"
-        >
-          <Text className="font-rubik text-gray-700">
-            Change
-          </Text>
-        </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handlePickLogo}
+                className="bg-gray-100 px-4 py-2 rounded-lg"
+              >
+                <Text className="font-rubik text-gray-700">
+                  Change
+                </Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleClearLogo}
-          className="bg-red-50 px-4 py-2 rounded-lg"
-        >
-          <Text className="font-rubik text-red-600">
-            Remove
-          </Text>
-        </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleClearLogo}
+                className="bg-red-50 px-4 py-2 rounded-lg"
+              >
+                <Text className="font-rubik text-red-600">
+                  Remove
+                </Text>
+              </TouchableOpacity>
 
+            </View>
+
+          </View>
+        )}
       </View>
-
-    </View>
-  )}
-</View>
 
       <Input
         label="Udyam Number (Optional)"
@@ -638,6 +647,7 @@ const handleClearLogo = () => {
         onChangeText={(value) => handleChange('udyamNumber', value)}
         placeholder="Enter Udyam number"
         error={fieldErrors.udyamNumber}
+        autoCapitalize="characters"
 
       />
 

@@ -512,7 +512,7 @@ const TeamManagementScreen: React.FC = () => {
           <Button
             title="Invite HR"
             onPress={() => setIsModalVisible(true)}
-            // style={{ marginTop: 16 }}
+            className='mt-4'
           />
         )}
       </View>

@@ -9,7 +9,8 @@
     "start": "react-native start",
     "test": "jest",
     "setup": "node setup.js",
-    "native": "adb tcpip 5555 && adb connect 192.168.1.2 && npm run android"
+    "native": "adb tcpip 5555 && adb connect 192.168.1.2 && npm run android",
+    "release": "cd android && gradlew assembleRelease"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

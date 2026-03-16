@@ -486,6 +486,7 @@ const ProfileScreen: React.FC = () => {
                   onChangeText={(text) => setPersonalForm(prev => ({ ...prev, phone: text }))}
                   placeholder="+91 98765 43210"
                   keyboardType="phone-pad"
+                  maxLength={10}
                 />
               </View>
 

@@ -83,45 +83,45 @@ const EmployeeListScreen: React.FC = () => {
   }, [debouncedSearchQuery]);
 
   const fetchEmployees = async (page: number = 1, reset: boolean = false) => {
-  try {
-    if (reset) {
-      setIsLoading(true);
-    } else {
-      setIsLoadingMore(true);
+    try {
+      if (reset) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const response = await http.get('/api/employees', {
+        params: {
+          page,
+          limit: 20,
+          ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
+        },
+      });
+
+      const fetchedEmployees = response?.data?.employees || [];
+      const pagination = response?.data?.pagination || {};
+
+      setEmployees(prev =>
+        reset ? fetchedEmployees : [...prev, ...fetchedEmployees]
+      );
+
+      setCurrentPage(pagination?.page || 1);
+      setTotalPages(pagination?.totalPages || 1);
+      setTotalItems(pagination?.total || fetchedEmployees.length);
+      setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
+
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Load Employees',
+        text2: error.response?.data?.message || 'Unable to fetch employees',
+      });
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+      setIsRefreshing(false);
     }
-
-    const response = await http.get('/api/employees', {
-      params: {
-        page,
-        limit: 20,
-        ...(debouncedSearchQuery ? { search: debouncedSearchQuery } : {}),
-      },
-    });
-
-    const fetchedEmployees = response?.data?.employees || [];
-    const pagination = response?.data?.pagination || {};
-
-    setEmployees(prev =>
-      reset ? fetchedEmployees : [...prev, ...fetchedEmployees]
-    );
-
-    setCurrentPage(pagination?.page || 1);
-    setTotalPages(pagination?.totalPages || 1);
-    setTotalItems(pagination?.total || fetchedEmployees.length);
-    setHasNextPage((pagination?.page || 1) < (pagination?.totalPages || 1));
-
-  } catch (error: any) {
-    Toast.show({
-      type: 'error',
-      text1: 'Failed to Load Employees',
-      text2: error.response?.data?.message || 'Unable to fetch employees',
-    });
-  } finally {
-    setIsLoading(false);
-    setIsLoadingMore(false);
-    setIsRefreshing(false);
-  }
-};
+  };
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -175,8 +175,8 @@ const EmployeeListScreen: React.FC = () => {
   };
 
   const handleViewEmployee = (id: string) => {
-  navigation.navigate('EmployeeDetails' , { employeeId: id });
-};
+    navigation.navigate('EmployeeDetails', { employeeId: id });
+  };
 
   // ─── REDESIGNED EMPLOYEE CARD ─────────────────────────────────────────────
   const renderEmployeeCard = ({ item }: { item: Employee }) => {
@@ -207,7 +207,7 @@ const EmployeeListScreen: React.FC = () => {
           <View style={{ position: 'relative' }}>
             <View
               style={{
-               
+
                 borderRadius: 50,
                 overflow: 'hidden',
                 backgroundColor: colors.primary + '15',
@@ -388,7 +388,7 @@ const EmployeeListScreen: React.FC = () => {
                 elevation: 3,
               }}
               onPress={() => handleViewEmployee(item.id)}
-              
+
             >
               <Text
                 style={{
@@ -523,6 +523,7 @@ const EmployeeListScreen: React.FC = () => {
             textAlign: 'center',
             marginTop: 8,
             lineHeight: 20,
+
           }}
         >
           {searchQuery
@@ -532,7 +533,7 @@ const EmployeeListScreen: React.FC = () => {
         {!searchQuery && canAddEmployee && (
           <Button
             title="Add Employee"
-            
+            className='mt-4'
             onPress={() => setIsModalVisible(true)}
           />
         )}

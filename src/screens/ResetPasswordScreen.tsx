@@ -197,6 +197,7 @@ const ResetPasswordScreen: React.FC = () => {
                     secureTextEntry={!showPassword}
                     error={passwordError}
                     required
+                    hint='Password must be at least 6 characters long'
                     
                   />
 
@@ -212,13 +213,7 @@ const ResetPasswordScreen: React.FC = () => {
                     
                   />
 
-                  {/* Password Requirements */}
-                  <View className="mt-2 mb-4">
-                    <Text className="text-xs text-gray-500 font-rubik">
-                      Password must be at least 6 characters long
-                    </Text>
-                  </View>
-
+               
                   {/* Reset Button */}
                   <Button
                     title={isLoading ? "Resetting..." : "Reset Password"}
