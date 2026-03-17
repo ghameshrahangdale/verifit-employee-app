@@ -3,7 +3,7 @@ import { TextInput, View, Text, TouchableOpacity, Platform } from 'react-native'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
+import { Picker } from '@react-native-picker/picker';
 
 interface InputProps {
   label?: string;
@@ -23,7 +23,9 @@ interface InputProps {
   multiline?: boolean;
   numberOfLines?: number;
   disabled?: boolean;
-  type?: 'text' | 'date';
+
+  type?: 'text' | 'date' | 'select';
+  options?: { label: string; value: string }[];
 
   rightButtonIcon?: string;
   onRightButtonPress?: () => void;
@@ -45,6 +47,7 @@ const Input: React.FC<InputProps> = ({
   numberOfLines = 3,
   disabled = false,
   type = 'text',
+  options = [],
   rightButtonIcon,
   onRightButtonPress,
   autoCorrect = false,
@@ -84,7 +87,6 @@ const Input: React.FC<InputProps> = ({
       )}
 
       <View className="flex-row items-center">
-        {/* Input */}
         <View className="flex-1 relative">
           <TouchableOpacity
             activeOpacity={type === 'date' && !disabled ? 0.7 : 1}
@@ -92,32 +94,79 @@ const Input: React.FC<InputProps> = ({
             disabled={disabled || type !== 'date'}
           >
             <View pointerEvents={type === 'date' && !disabled ? 'none' : 'auto'}>
-              <TextInput
-                className={`border rounded-lg px-4 pr-12 text-base font-rubik ${error ? 'border-red-500' : 'border-gray-300'
-                  } ${disabled ? 'bg-gray-100 text-gray-500' : ''}`}
-                value={value}
-                onChangeText={onChangeText}
-                placeholder={placeholder}
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry={showPassword}
-                keyboardType={keyboardType}
-                autoCapitalize={autoCapitalize}
-                autoCorrect={autoCorrect}
-                style={{
-                  color: disabled ? '#9CA3AF' : colors.text,
-                  height: inputHeight ? inputHeight : undefined,
-                  textAlignVertical: multiline ? 'top' : 'center',
-                }}
-                maxLength={maxLength}
-                multiline={multiline}
-                numberOfLines={multiline ? numberOfLines : undefined}
-                editable={!disabled && type !== 'date'}
-              />
+
+              {/* SELECT INPUT */}
+              {type === 'select' ? (
+                <View
+                  className={`border font-rubik rounded-lg px-2 ${error ? 'border-red-500' : 'border-gray-300'
+                    } ${disabled ? 'bg-gray-100' : ''}`}
+                  style={{
+                    height: 48,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Picker
+                    selectedValue={value}
+                    enabled={!disabled}
+                    onValueChange={(itemValue: any) => onChangeText(itemValue)}
+                    style={{
+                      color: disabled
+                        ? '#9CA3AF'
+                        : value
+                          ? colors.text   // ✅ selected value color
+                          : '#9CA3AF',       // placeholder color
+                      fontFamily: 'Rubik-Regular'
+                    }}
+                  >
+                    <Picker.Item
+                      label={placeholder || 'Select option'}
+                      value=""
+                      style={{ fontSize: 14, fontFamily: 'Rubik-Regular', }}
+                    />
+                    {options.map((opt) => (
+                      <Picker.Item
+                        key={opt.value}
+                        label={opt.label}
+                        value={opt.value}
+                        style={{
+                          color: value === opt.value ? colors.primary : '#000',
+                          fontSize: 14,
+                          fontFamily: 'Rubik-Regular'
+                        }}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              ) : (
+                /* TEXT / DATE INPUT */
+                <TextInput
+                  className={`border rounded-lg px-4 pr-12 text-base font-rubik ${error ? 'border-red-500' : 'border-gray-300'
+                    } ${disabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                  value={value}
+                  onChangeText={onChangeText}
+                  placeholder={placeholder}
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={showPassword}
+                  keyboardType={keyboardType}
+                  autoCapitalize={autoCapitalize}
+                  autoCorrect={autoCorrect}
+                  style={{
+                    color: disabled ? '#9CA3AF' : colors.text,
+                    height: inputHeight ? inputHeight : undefined,
+                    textAlignVertical: multiline ? 'top' : 'center',
+                  }}
+                  maxLength={maxLength}
+                  multiline={multiline}
+                  numberOfLines={multiline ? numberOfLines : undefined}
+                  editable={!disabled && type !== 'date'}
+                />
+              )}
+
             </View>
           </TouchableOpacity>
 
           {/* Password toggle */}
-          {secureTextEntry && (
+          {secureTextEntry && type !== 'select' && (
             <TouchableOpacity
               onPress={() => setIsPasswordVisible(prev => !prev)}
               className="absolute right-4 top-1/2 -translate-y-1/2"

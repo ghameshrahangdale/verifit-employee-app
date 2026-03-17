@@ -686,7 +686,7 @@ const ProfileScreen: React.FC = () => {
         {isEmployee && (
           <>
             <EmployeeProfessionalDetails />
-            <EmployeeDocumentUpload />
+            {/* <EmployeeDocumentUpload /> */}
           </>
         )}
       </ScrollView>

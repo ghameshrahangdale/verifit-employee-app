@@ -1,28 +1,31 @@
 const aboutConfig = {
-  brandName: 'RNIgnite',
+  brandName: 'Verifiit',
 
-  description: `RNIgnite is a complete React Native boilerplate designed to help you ship
-production-ready apps faster. It comes preconfigured with Firebase Authentication,
-modular architecture, theme support, configurable navigation, and fully customizable
-branding.
+  description: `Verifiit is a comprehensive employee management and verification app designed to eliminate repetitive background verification processes. Our platform streamlines the entire employee verification workflow, making it faster, more accurate, and completely digital.
 
-This documentation provides a step-by-step guide to set up, configure, and customize
-the RNIgnite application.`,
+From initial candidate screening to final employment verification, Verifiit provides a centralized solution that saves time, reduces manual effort, and ensures compliance with verification standards.`,
 
   features: [
-    'Firebase Authentication (Email & Password)',
+    'Employee Background Verification',
+    'Automated Verification Workflows',
+    'Document Management & Storage',
+    'Candidate Screening Portal',
+    'Employment History Verification',
+    'Education Credential Checks',
+    'Reference Check Automation',
+    'Real-time Verification Status Tracking',
+    'Digital Report Generation',
+    'Compliance Management',
+    'Secure Data Encryption',
+    'Role-based Access Control',
+    'Audit Trail & Logs',
+    'Mobile-first Interface',
+    'Cloud-based Storage',
+    'Instant Notifications & Alerts',
+    'Multi-level Approval Workflows',
+    'Integration Ready Architecture',
+    'Firebase Authentication',
     'Google Sign-In',
-    'Authentication persistence',
-    'Profile & Update Profile screens',
-    'Home screen with Quick Actions & Features',
-    'Account & Menu screen',
-    'App Share functionality',
-    'App Info screen',
-    'Bottom Tab Navigation',
-    'Theme configuration',
-    'Logo configuration',
-    'Tailwind CSS (NativeWind) for styling',
-    'Config-driven App Name & Package Name',
   ],
 };
 

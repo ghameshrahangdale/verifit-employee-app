@@ -24,6 +24,20 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     roles: [ROLES.ADMIN],
   },
   // {
+  //   icon: 'check-square',
+  //   label: 'Verification Requests',
+  //   subtitle: 'Manage employee verification requests and review status',
+  //   route: 'verificationRequests',
+  //   roles: [ROLES.ADMIN, ROLES.HR,],
+  // },
+  {
+    icon: 'file-text',
+    label: 'Verification Requests',
+    subtitle: 'Create and monitor your verification requests',
+    route: 'employeeVerificationRequests',
+    roles: [ROLES.EMPLOYEE, ROLES.HR],
+  },
+  // {
   //   icon: 'user-plus',
   //   label: 'Invite Ex-Employee',
   //   subtitle: 'Send invitation to former employees',

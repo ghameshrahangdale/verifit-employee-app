@@ -16,6 +16,8 @@ import OrganizationOnboardingScreen from '../screens/OrganizationOnboardingScree
 import { useAuth } from '../context/AuthContext';
 import TeamManagementScreen from '../screens/TeamManagementScreen';
 import EmployeeDetailsScreen from '../components/employee/EmployeeDetailsScreen';
+import EmployeeVerifications from '../components/employee/EmployeeVerifications';
+import ViewEmployeeVerificationRequest from '../components/employee/ViewEmployeeVerificationRequest';
 
 export type AppStackParamList = {
   Tabs: undefined;
@@ -30,11 +32,16 @@ export type AppStackParamList = {
   InviteExEmployee: undefined;
   Settings: undefined;
   Onboarding: undefined;
+  employeeVerificationRequests: undefined;
   teams: undefined;
     EmployeeDetails: {
     employeeId: string;
   };
+  ViewVerification:{
+    verificationId:string;
+  }
 };
+
 
 const Stack = createStackNavigator<AppStackParamList>();
 
@@ -67,6 +74,8 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="teams" component={TeamManagementScreen} />
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />
+      <Stack.Screen name="employeeVerificationRequests" component={EmployeeVerifications} />
+      <Stack.Screen name="ViewVerification" component={ViewEmployeeVerificationRequest} />
     </Stack.Navigator>
   );
 };
