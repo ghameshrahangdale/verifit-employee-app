@@ -18,6 +18,7 @@ import TeamManagementScreen from '../screens/TeamManagementScreen';
 import EmployeeDetailsScreen from '../components/employee/EmployeeDetailsScreen';
 import EmployeeVerifications from '../components/employee/EmployeeVerifications';
 import ViewEmployeeVerificationRequest from '../components/employee/ViewEmployeeVerificationRequest';
+import HrReviewVerification from '../components/employee/HrReviewVerification';
 
 export type AppStackParamList = {
   Tabs: undefined;
@@ -38,6 +39,9 @@ export type AppStackParamList = {
     employeeId: string;
   };
   ViewVerification:{
+    verificationId:string;
+  }
+  HrReviewVerification:{
     verificationId:string;
   }
 };
@@ -76,6 +80,7 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />
       <Stack.Screen name="employeeVerificationRequests" component={EmployeeVerifications} />
       <Stack.Screen name="ViewVerification" component={ViewEmployeeVerificationRequest} />
+      <Stack.Screen name="HrReviewVerification" component={HrReviewVerification} />
     </Stack.Navigator>
   );
 };

@@ -29,7 +29,7 @@ import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
 interface VerificationRequest {
   candidate: any;
   verificationRequestId: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'IN_REVIEW';
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'IN_REVIEW';
   requestedAt: string;
   employmentRecordId: string;
   companyName: string;
@@ -263,6 +263,10 @@ const EmployeeVerification: React.FC = () => {
     // Navigate to verification details
     navigation.navigate('ViewVerification', { verificationId: verification.verificationRequestId });
   };
+  const handleReview = (verification: VerificationRequest) => {
+    // Navigate to verification details
+    navigation.navigate('HrReviewVerification', { verificationId: verification.verificationRequestId });
+  };
 
   const handleEdit = (verification: VerificationRequest) => {
     setSelectedVerification(verification);
@@ -272,7 +276,7 @@ const EmployeeVerification: React.FC = () => {
   const handleDelete = (id: string) => {
     // Find the verification to check its status
     const verification = verifications.find(v => v.verificationRequestId === id);
-    if (verification?.status === 'APPROVED') {
+    if (verification?.status === 'VERIFIED') {
       Toast.show({
         type: 'error',
         text1: 'Cannot Delete',
@@ -334,11 +338,11 @@ const EmployeeVerification: React.FC = () => {
         label: 'IN REVIEW',
         icon: 'eye',
       },
-      APPROVED: {
+      VERIFIED: {
         bg: 'bg-green-50',
         border: 'border-green-200',
         text: 'text-green-700',
-        label: 'APPROVED',
+        label: 'VERIFIED',
         icon: 'check-circle',
       },
       REJECTED: {
@@ -386,7 +390,7 @@ const EmployeeVerification: React.FC = () => {
     renderVerificationCard = ({ item }: { item: VerificationRequest }) => {
       const statusConfig = getStatusConfig(item.status);
       const canEdit = item.status === 'PENDING' || item.status === 'REJECTED';
-      const canDelete = item.status !== 'APPROVED';
+      const canDelete = item.status !== 'VERIFIED';
 
       return (
         <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
@@ -399,14 +403,14 @@ const EmployeeVerification: React.FC = () => {
               <Feather name="briefcase" size={22} color={colors.primary} />
             </View>
 
-           
-              <View className="flex-1 ml-3">
-                <Text className="font-rubik-bold text-base text-gray-900">
-                  {item.companyName}
-                </Text>
-                
-              </View>
-            
+
+            <View className="flex-1 ml-3">
+              <Text className="font-rubik-bold text-base text-gray-900">
+                {item.companyName}
+              </Text>
+
+            </View>
+
             {/* Status Badge */}
             <View className={`px-2.5 py-1.5 rounded-full flex-row items-center ${statusConfig.bg} border ${statusConfig.border}`}>
               <Feather name={statusConfig.icon} size={10} color={statusConfig.text.replace('text-', '#')} />
@@ -417,27 +421,27 @@ const EmployeeVerification: React.FC = () => {
           </View>
 
           {/* Candidate Info Section */}
-      {user && !isEmployee(user.role) && (
-        <View className="bg-blue-50/30 px-3 py-2 rounded-xl border border-blue-100/50 mt-3">
-          <Text className="font-rubik-medium text-xs text-gray-500 mb-1.5">Candidate Details</Text>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center flex-1">
-             
-              <View className="flex-1">
-                <Text className="font-rubik-medium text-xs text-gray-900">
-                  {item.candidate.name}
-                </Text>
-                <Text className="font-rubik text-[10px] text-gray-500">
-                  {item.candidate.email}
-                </Text>
-                <Text className="font-rubik text-[10px] text-gray-500">
-                  {item.designation}
-                </Text>
+          {user && !isEmployee(user.role) && (
+            <View className="bg-blue-50/30 px-3 py-2 rounded-xl border border-blue-100/50 mt-3">
+              <Text className="font-rubik-medium text-xs text-gray-500 mb-1.5">Candidate Details</Text>
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+
+                  <View className="flex-1">
+                    <Text className="font-rubik-medium text-xs text-gray-900">
+                      {item.candidate.name}
+                    </Text>
+                    <Text className="font-rubik text-[10px] text-gray-500">
+                      {item.candidate.email}
+                    </Text>
+                    <Text className="font-rubik text-[10px] text-gray-500">
+                      {item.designation}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
-      )}
+          )}
 
           {/* Employment Details */}
           <View className="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
@@ -507,6 +511,7 @@ const EmployeeVerification: React.FC = () => {
 
           {/* Action Buttons */}
           <View className="flex-row justify-end items-center mt-4 gap-2">
+
             <TouchableOpacity
               className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-200"
               onPress={() => handlePreview(item)}
@@ -516,6 +521,18 @@ const EmployeeVerification: React.FC = () => {
                 View
               </Text>
             </TouchableOpacity>
+
+
+            {!isEmployee(user?.role) &&
+              <TouchableOpacity
+                className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-200"
+                onPress={() => handleReview(item)}
+              >
+                <Feather name="eye" size={14} color="#64748B" />
+                <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
+                  Review
+                </Text>
+              </TouchableOpacity>}
 
             {canEdit && (
               <TouchableOpacity
