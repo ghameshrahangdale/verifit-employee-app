@@ -20,12 +20,14 @@ import Toast from 'react-native-toast-message';
 import http from '../../services/http.api';
 import Loader from '../../components/ui/Loader';
 import SearchInput from '../../components/ui/SearchInput';
-import VerificationRequestForm, {VerificationFormData, DocumentFile } from './VerificationRequestForm'; 
+import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
+import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
 
 // Update the VerificationRequest interface based on API response
 interface VerificationRequest {
+  candidate: any;
   verificationRequestId: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'IN_REVIEW';
   requestedAt: string;
@@ -103,29 +105,29 @@ const EmployeeVerification: React.FC = () => {
         page,
         limit: 10,
       };
-      
+
       if (debouncedSearchQuery) {
         params.search = debouncedSearchQuery;
       }
-      
+
       if (selectedStatus !== 'all') {
         params.status = selectedStatus;
       }
 
       // Make API call
       const response = await http.get('/api/verification/employee/create-request', { params });
-      
+
       console.log(response);
       if (response.data) {
         const fetchedData = response.data;
         console.log(fetchedData)
-        
+
         // Sort by date (most recent first) - client-side sorting
         // const sortedData = [...fetchedData].sort((a, b) => 
         //   new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
         // );
 
-        setVerifications(prev => 
+        setVerifications(prev =>
           reset ? fetchedData : [...prev, ...fetchedData]
         );
 
@@ -133,7 +135,7 @@ const EmployeeVerification: React.FC = () => {
         // Assuming the API returns pagination info in headers or response
         const total = response.headers?.['x-total-count'] || fetchedData.length;
         const limit = 10;
-        
+
         setCurrentPage(page);
         setTotalPages(Math.ceil(total / limit));
         setTotalItems(total);
@@ -146,7 +148,7 @@ const EmployeeVerification: React.FC = () => {
         text1: 'Failed to Load Verifications',
         text2: error.response?.data?.message || 'Unable to fetch your verification requests',
       });
-      
+
       // Set empty data on error
       if (reset) {
         setVerifications([]);
@@ -184,10 +186,10 @@ const EmployeeVerification: React.FC = () => {
     try {
       // Create FormData object
       const formData = new FormData();
-      
+
       // Append the main data as JSON string
       formData.append('data', JSON.stringify(data));
-      
+
       // Append each document with the required structure
       documents.forEach((doc, index) => {
         formData.append(`documents[${index}][file]`, {
@@ -195,25 +197,25 @@ const EmployeeVerification: React.FC = () => {
           name: doc.name,
           type: doc.type,
         } as any);
-        
+
         formData.append(`documents[${index}][type]`, doc.documentType);
         formData.append(`documents[${index}][title]`, doc.title);
       });
 
       console.log(formData);
-      
+
       const response = await http.post('/api/verification/employee/create-request', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       Toast.show({
         type: 'success',
         text1: 'Success',
         text2: 'Verification request submitted successfully',
       });
-      
+
       setIsModalVisible(false);
       handleRefresh(); // Refresh the list
     } catch (error: any) {
@@ -230,18 +232,18 @@ const EmployeeVerification: React.FC = () => {
 
   const handleUpdateVerificationRequest = async (data: VerificationFormData) => {
     if (!selectedVerification) return;
-    
+
     setIsSubmitting(true);
     try {
       // Make API call for update - adjust endpoint as per your API
       const response = await http.put(`/api/verification/employee/${selectedVerification.verificationRequestId}`, data);
-      
+
       Toast.show({
         type: 'success',
         text1: 'Success',
         text2: 'Verification request updated successfully',
       });
-      
+
       setIsEditModalVisible(false);
       setSelectedVerification(null);
       handleRefresh(); // Refresh the list
@@ -291,7 +293,7 @@ const EmployeeVerification: React.FC = () => {
             try {
               // Make API call to delete
               await http.delete(`/api/verification/employee/${id}`);
-              
+
               setVerifications(prev => prev.filter(v => v.verificationRequestId !== id));
               Toast.show({
                 type: 'success',
@@ -346,6 +348,14 @@ const EmployeeVerification: React.FC = () => {
         label: 'REJECTED',
         icon: 'x-circle',
       },
+      DISCREPANCIES: {
+        bg: 'bg-red-50',
+        border: 'border-red-200',
+        text: 'text-red-700',
+        label: 'DISCREPANCIES',
+        icon: 'x-circle',
+      },
+
     };
     return configs[status as keyof typeof configs] || configs.PENDING;
   };
@@ -359,18 +369,6 @@ const EmployeeVerification: React.FC = () => {
     });
   };
 
-  const getTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return formatDate(dateString);
-  };
 
   const getEmploymentTypeLabel = (type: string) => {
     const types: Record<string, string> = {
@@ -384,150 +382,172 @@ const EmployeeVerification: React.FC = () => {
   };
 
   // Verification Card Component - Updated to use API response fields
-  const 
-  renderVerificationCard = ({ item }: { item: VerificationRequest }) => {
-    const statusConfig = getStatusConfig(item.status);
-    const canEdit = item.status === 'PENDING' || item.status === 'REJECTED';
-    const canDelete = item.status !== 'APPROVED';
+  const
+    renderVerificationCard = ({ item }: { item: VerificationRequest }) => {
+      const statusConfig = getStatusConfig(item.status);
+      const canEdit = item.status === 'PENDING' || item.status === 'REJECTED';
+      const canDelete = item.status !== 'APPROVED';
 
-    return (
-      <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
-        {/* Header: Company + Status */}
-        <View className="flex-row items-start">
-          <View 
-            className="w-12 h-12 rounded-xl items-center justify-center"
-            style={{ backgroundColor: colors.primary + '15' }}
-          >
-            <Feather name="briefcase" size={22} color={colors.primary} />
+      return (
+        <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
+          {/* Header: Company + Status */}
+          <View className="flex-row items-start">
+            <View
+              className="w-12 h-12 rounded-xl items-center justify-center"
+              style={{ backgroundColor: colors.primary + '15' }}
+            >
+              <Feather name="briefcase" size={22} color={colors.primary} />
+            </View>
+
+           
+              <View className="flex-1 ml-3">
+                <Text className="font-rubik-bold text-base text-gray-900">
+                  {item.companyName}
+                </Text>
+                
+              </View>
+            
+            {/* Status Badge */}
+            <View className={`px-2.5 py-1.5 rounded-full flex-row items-center ${statusConfig.bg} border ${statusConfig.border}`}>
+              <Feather name={statusConfig.icon} size={10} color={statusConfig.text.replace('text-', '#')} />
+              <Text className={`font-rubik-medium text-xs ml-1 ${statusConfig.text}`}>
+                {statusConfig.label}
+              </Text>
+            </View>
           </View>
 
-          <View className="flex-1 ml-3">
-            <Text className="font-rubik-bold text-base text-gray-900">
-              {item.companyName}
-            </Text>
-            <Text className="font-rubik text-xs text-gray-500 mt-0.5">
-              {item.designation}
-            </Text>
-          </View>
-
-          {/* Status Badge */}
-          <View className={`px-2.5 py-1.5 rounded-full flex-row items-center ${statusConfig.bg} border ${statusConfig.border}`}>
-            <Feather name={statusConfig.icon} size={10} color={statusConfig.text.replace('text-', '#')} />
-            <Text className={`font-rubik-medium text-xs ml-1 ${statusConfig.text}`}>
-              {statusConfig.label}
-            </Text>
+          {/* Candidate Info Section */}
+      {user && !isEmployee(user.role) && (
+        <View className="bg-blue-50/30 px-3 py-2 rounded-xl border border-blue-100/50 mt-3">
+          <Text className="font-rubik-medium text-xs text-gray-500 mb-1.5">Candidate Details</Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center flex-1">
+             
+              <View className="flex-1">
+                <Text className="font-rubik-medium text-xs text-gray-900">
+                  {item.candidate.name}
+                </Text>
+                <Text className="font-rubik text-[10px] text-gray-500">
+                  {item.candidate.email}
+                </Text>
+                <Text className="font-rubik text-[10px] text-gray-500">
+                  {item.designation}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
+      )}
 
-        {/* Employment Details */}
-        <View className="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-          {/* Employment Type */}
-          <View className="flex-row justify-between mb-2">
-            <View className="flex-row items-center">
-              <Feather name="users" size={12} color="#64748B" />
-              <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-                {getEmploymentTypeLabel(item.employmentType)}
-              </Text>
+          {/* Employment Details */}
+          <View className="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+            {/* Employment Type */}
+            <View className="flex-row justify-between mb-2">
+              <View className="flex-row items-center">
+                <Feather name="users" size={12} color="#64748B" />
+                <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
+                  {getEmploymentTypeLabel(item.employmentType)}
+                </Text>
+              </View>
             </View>
-          </View>
 
-          {/* Dates */}
-          <View className="flex-row justify-between">
-            <View className="flex-row items-center">
-              <Feather name="calendar" size={12} color="#64748B" />
-              <Text className="font-rubik text-xs text-gray-500 ml-1.5">
-                Start: {formatDate(item.startDate)}
-              </Text>
-            </View>
-            {item.endDate && (
+            {/* Dates */}
+            <View className="flex-row justify-between">
               <View className="flex-row items-center">
                 <Feather name="calendar" size={12} color="#64748B" />
                 <Text className="font-rubik text-xs text-gray-500 ml-1.5">
-                  End: {formatDate(item.endDate)}
+                  Start: {formatDate(item.startDate)}
                 </Text>
               </View>
-            )}
+              {item.endDate && (
+                <View className="flex-row items-center">
+                  <Feather name="calendar" size={12} color="#64748B" />
+                  <Text className="font-rubik text-xs text-gray-500 ml-1.5">
+                    End: {formatDate(item.endDate)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* HR Email */}
+            {item.hrEmail && <View className="mt-2 pt-2 border-t border-gray-200">
+              <Text className="font-rubik text-xs text-gray-400">HR Contact</Text>
+              <Text className="font-rubik-medium text-xs text-gray-700 mt-0.5">
+                {item.hrEmail}
+              </Text>
+            </View>}
           </View>
 
-          {/* HR Email */}
-          <View className="mt-2 pt-2 border-t border-gray-200">
-            <Text className="font-rubik text-xs text-gray-400">HR Contact</Text>
-            <Text className="font-rubik-medium text-xs text-gray-700 mt-0.5">
-              {item.hrEmail}
+          {/* Request Info */}
+          <View className="flex-row items-center mt-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+            <Feather name="clock" size={14} color="#94A3B8" />
+            <Text className="font-rubik text-xs text-gray-600 ml-2 flex-1">
+              Requested on: {formatDate(item.requestedAt)}
             </Text>
           </View>
-        </View>
 
-        {/* Request Info */}
-        <View className="flex-row items-center mt-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-          <Feather name="clock" size={14} color="#94A3B8" />
-          <Text className="font-rubik text-xs text-gray-600 ml-2 flex-1">
-            Requested {getTimeAgo(item.requestedAt)}
-          </Text>
-        </View>
+          {/* Comments/Feedback - if available */}
+          {item.comments && (
+            <View className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
+              <Text className="font-rubik-medium text-xs text-red-700">
+                Feedback: {item.comments}
+              </Text>
+              {item.status === 'REJECTED' && (
+                <TouchableOpacity
+                  onPress={() => handleResubmit(item)}
+                  className="mt-2"
+                >
+                  <Text className="font-rubik-medium text-xs text-red-600">
+                    Tap to resubmit →
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
-        {/* Comments/Feedback - if available */}
-        {item.comments && (
-          <View className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
-            <Text className="font-rubik-medium text-xs text-red-700">
-              Feedback: {item.comments}
-            </Text>
-            {item.status === 'REJECTED' && (
-              <TouchableOpacity 
-                onPress={() => handleResubmit(item)}
-                className="mt-2"
+          {/* Action Buttons */}
+          <View className="flex-row justify-end items-center mt-4 gap-2">
+            <TouchableOpacity
+              className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-200"
+              onPress={() => handlePreview(item)}
+            >
+              <Feather name="eye" size={14} color="#64748B" />
+              <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
+                View
+              </Text>
+            </TouchableOpacity>
+
+            {canEdit && (
+              <TouchableOpacity
+                className="flex-row items-center px-3.5 py-2 rounded-xl border"
+                style={{
+                  backgroundColor: colors.primary + '12',
+                  borderColor: colors.primary + '40'
+                }}
+                onPress={() => handleEdit(item)}
               >
-                <Text className="font-rubik-medium text-xs text-red-600">
-                  Tap to resubmit →
+                <Feather name="edit-2" size={14} color={colors.primary} />
+                <Text className="font-rubik-medium text-xs ml-1.5" style={{ color: colors.primary }}>
+                  Edit
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {canDelete && (
+              <TouchableOpacity
+                className="flex-row items-center bg-red-50 px-3.5 py-2 rounded-xl border border-red-200"
+                onPress={() => handleDelete(item.verificationRequestId)}
+              >
+                <Feather name="trash-2" size={14} color="#DC2626" />
+                <Text className="font-rubik-medium text-xs text-red-600 ml-1.5">
+                  Delete
                 </Text>
               </TouchableOpacity>
             )}
           </View>
-        )}
-
-        {/* Action Buttons */}
-        <View className="flex-row justify-end items-center mt-4 gap-2">
-          <TouchableOpacity
-            className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-200"
-            onPress={() => handlePreview(item)}
-          >
-            <Feather name="eye" size={14} color="#64748B" />
-            <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-              View
-            </Text>
-          </TouchableOpacity>
-
-          {canEdit && (
-            <TouchableOpacity
-              className="flex-row items-center px-3.5 py-2 rounded-xl border"
-              style={{ 
-                backgroundColor: colors.primary + '12',
-                borderColor: colors.primary + '40'
-              }}
-              onPress={() => handleEdit(item)}
-            >
-              <Feather name="edit-2" size={14} color={colors.primary} />
-              <Text className="font-rubik-medium text-xs ml-1.5" style={{ color: colors.primary }}>
-                Edit
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {canDelete && (
-            <TouchableOpacity
-              className="flex-row items-center bg-red-50 px-3.5 py-2 rounded-xl border border-red-200"
-              onPress={() => handleDelete(item.verificationRequestId)}
-            >
-              <Feather name="trash-2" size={14} color="#DC2626" />
-              <Text className="font-rubik-medium text-xs text-red-600 ml-1.5">
-                Delete
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
-      </View>
-    );
-  };
+      );
+    };
 
   // Status Filter Component
   const renderStatusFilter = () => (

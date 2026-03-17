@@ -35,7 +35,7 @@ export const MENU_ITEMS: MenuItemConfig[] = [
     label: 'Verification Requests',
     subtitle: 'Create and monitor your verification requests',
     route: 'employeeVerificationRequests',
-    roles: [ROLES.EMPLOYEE, ROLES.HR],
+    roles: [ROLES.EMPLOYEE, ROLES.HR, ROLES.ADMIN],
   },
   // {
   //   icon: 'user-plus',

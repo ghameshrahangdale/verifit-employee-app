@@ -39,7 +39,7 @@ export interface VerificationFormData {
   employmentType: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
   startDate: string;
   endDate?: string;
-  hrEmail: string;
+  hrEmail: any;
   location: string;
   reasonForLeaving?: string;
   salary?: SalaryRecord;
@@ -110,9 +110,8 @@ const currencyOptions = [
 
 const frequencyOptions = [
   { label: 'Monthly', value: 'monthly' },
-  { label: 'Annually', value: 'annual' },
+  { label: 'Annually', value: 'annually' },
   { label: 'Quarterly', value: 'quarterly' },
-  { label: 'One Time', value: 'one_time' },
 ];
 
 const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
@@ -139,7 +138,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
       employmentType: 'full_time',
       startDate: '',
       endDate: '',
-      hrEmail: '',
+      hrEmail: undefined,
       location: '',
       reasonForLeaving: '',
       salary: undefined,
@@ -293,6 +292,11 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
       ...(formData.verificationType === 'organization' && {
         organizationId: formData.organizationId,
       }),
+
+  ...(formData.verificationType === 'hr' && {
+    hrEmail: formData.hrEmail,
+  }),
+
       salary: formData.salary || undefined,
     };
 
@@ -496,8 +500,8 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
 
   const renderVerificationTypeSelector = () => (
     <View className="mb-6">
-      <Text className="font-rubik-medium text-sm text-gray-700 mb-3">
-        Verification Type <Text className="text-red-500">*</Text>
+      <Text className="font-rubik-medium text-lg text-gray-700 mb-3">
+        Select <Text className="text-red-500">*</Text>
       </Text>
       <View className="flex-row gap-4">
         {/* Organization */}
@@ -506,7 +510,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             setFormData(prev => ({
               ...prev,
               verificationType: 'organization',
-              hrEmail: ''
+               hrEmail: undefined,
             }));
           }}
           className="flex-1 p-4 rounded-xl border"
@@ -542,6 +546,8 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             setFormData(prev => ({
               ...prev,
               verificationType: 'hr',
+              organizationId: undefined, 
+
             }));
           }}
           className="flex-1 p-4 rounded-xl border"
@@ -580,7 +586,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
 
       {/* Conditional rendering based on verification type */}
       {formData.verificationType === 'organization' ? (
-        <>
+        <View className=''>
           {/* Company Name - Select Input */}
           <Input
             label="Company Name"
@@ -596,12 +602,8 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             }))}
           />
 
-          {loadingCompanies && (
-            <View className="items-center py-2">
-              <ActivityIndicator size="small" color={colors.primary} />
-            </View>
-          )}
-        </>
+          
+        </View>
       ) : (
         <>
           {/* HR Email - Only shown for HR type */}

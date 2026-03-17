@@ -703,7 +703,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
             </TouchableOpacity>
 
             {expandedSections.discrepancies && (
-              <View className="mt-4 space-y-3">
+              <View className="mt-4 gap-3">
                 {details.discrepancies.map((discrepancy) => (
                   <View 
                     key={discrepancy.id} 
