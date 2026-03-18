@@ -1011,7 +1011,6 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
       <View className="p-6">
         {renderStepContent()}
         {renderStepButtons()}
-
       </View>
     </ScrollView>
   );

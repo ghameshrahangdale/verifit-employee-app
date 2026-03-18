@@ -428,6 +428,93 @@ const HrReviewVerification: React.FC = () => {
     }
   };
 
+  const handleRejectRequest = async () => {
+  Alert.alert(
+    'Reject Verification Request',
+    'Are you sure you want to reject this verification request? This action cannot be undone.',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Reject',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setIsSubmitting(true);
+
+            const payload = {
+              verificationMethod: reviewData.verificationMethod,
+              
+              // Set all confirmations to false
+              companyNameConfirmed: false,
+              designationConfirmed: false,
+              departmentConfirmed: false,
+              employmentTypeConfirmed: false,
+              locationConfirmed: false,
+              startDateConfirmed: false,
+              endDateConfirmed: false,
+              reasonForLeavingConfirmed: false,
+              
+              // Summary confirmations all false
+              employmentConfirmed: false,
+              tenureConfirmed: false,
+              salaryConfirmed: false,
+              documentsConfirmed: false,
+              behaviorConfirmed: false,
+              
+              // Set status to REJECTED
+              status: 'REJECTED',
+              
+              // Include comments if any
+              comments: reviewData.comments || 'Request rejected by HR',
+              
+              // Include any discrepancies found
+              discrepancies: reviewData.discrepancies,
+              
+              // Behavior report data
+              behaviorReport: {
+                teamworkRating: reviewData.behaviorReport.teamworkRating,
+                leadershipRating: reviewData.behaviorReport.leadershipRating,
+                communicationRating: reviewData.behaviorReport.communicationRating,
+                integrityRating: reviewData.behaviorReport.integrityRating,
+                performanceRating: reviewData.behaviorReport.performanceRating,
+                policyViolation: reviewData.behaviorReport.policyViolation || false,
+                disciplinaryAction: reviewData.behaviorReport.disciplinaryAction || false,
+                rehireRecommendation: reviewData.behaviorReport.rehireRecommendation,
+                remarks: reviewData.behaviorReport.remarks,
+              },
+            };
+
+            const response = await http.patch(
+              `/api/verification/employee/create-request/${verificationId}`,
+              payload
+            );
+
+            if (response.data) {
+              Toast.show({
+                type: 'success',
+                text1: 'Request Rejected',
+                text2: 'The verification request has been rejected successfully',
+              });
+              navigation.goBack();
+            }
+          } catch (error: any) {
+            Toast.show({
+              type: 'error',
+              text1: 'Rejection Failed',
+              text2: error.response?.data?.message || 'Unable to reject request',
+            });
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+      },
+    ]
+  );
+};
+
   const handleOpenDocument = async (document: Document) => {
     try {
       const supported = await Linking.canOpenURL(document.fileUrl);
@@ -1393,12 +1480,20 @@ const HrReviewVerification: React.FC = () => {
         )}
 
         {/* Submit Button */}
-        <View className="mx-4 my-6">
+        <View className="mx-4 my-6 gap-3">
           <Button
             title="Submit Review"
             onPress={handleSubmitReview}
             loading={isSubmitting}
             disabled={isSubmitting}
+          />
+          <Button
+            title="Reject Request"
+            onPress={handleRejectRequest}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            variant="outline"
+            
           />
         </View>
       </ScrollView>
