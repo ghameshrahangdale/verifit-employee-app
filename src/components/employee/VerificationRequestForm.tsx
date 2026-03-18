@@ -33,7 +33,7 @@ export interface SalaryRecord {
 
 export interface VerificationFormData {
   organizationId: any;
-  // companyName: string;
+  companyName: string;
   designation: string;
   department: string;
   employmentType: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
@@ -132,7 +132,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   const [formData, setFormData] = useState<VerificationFormData>(
     initialData || {
       organizationId: undefined,
-      // companyName: '',
+      companyName: '',
       designation: '',
       department: '',
       employmentType: 'full_time',
@@ -217,12 +217,15 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         }
         // HR email is hidden for organization type, so no validation needed
       } else {
-        // HR type - validate HR email
-        if (!formData.hrEmail.trim()) {
-          newErrors.hrEmail = 'HR email is required';
-        } else if (!/\S+@\S+\.\S+/.test(formData.hrEmail)) {
-          newErrors.hrEmail = 'Invalid email format';
-        }
+         // HR type - validate company name and HR email
+      if (!formData.companyName?.trim()) {
+        newErrors.companyName = 'Company name is required';
+      }
+      if (!formData.hrEmail?.trim()) {
+        newErrors.hrEmail = 'HR email is required';
+      } else if (!/\S+@\S+\.\S+/.test(formData.hrEmail)) {
+        newErrors.hrEmail = 'Invalid email format';
+      }
       }
 
       // Common validations for both types
@@ -282,23 +285,25 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   const handleSubmit = async () => {
     // Get company name from selected company if organization type
     let companyName = '';
-    if (formData.verificationType === 'organization' && formData.organizationId) {
-      const selectedCompany = companies.find(c => c.id === formData.organizationId);
-      companyName = selectedCompany?.name || '';
-    }
+  if (formData.verificationType === 'organization' && formData.organizationId) {
+    const selectedCompany = companies.find(c => c.id === formData.organizationId);
+    companyName = selectedCompany?.name || '';
+  } else if (formData.verificationType === 'hr') {
+    companyName = formData.companyName || '';
+  }
 
     const finalData = {
-      ...formData,
-      ...(formData.verificationType === 'organization' && {
-        organizationId: formData.organizationId,
-      }),
+    ...formData,
+    companyName, // Include the resolved company name
+    ...(formData.verificationType === 'organization' && {
+      organizationId: formData.organizationId,
+    }),
+    ...(formData.verificationType === 'hr' && {
+      hrEmail: formData.hrEmail,
+    }),
+    salary: formData.salary || undefined,
+  };
 
-  ...(formData.verificationType === 'hr' && {
-    hrEmail: formData.hrEmail,
-  }),
-
-      salary: formData.salary || undefined,
-    };
 
     try {
       await onSubmit(finalData, documents);
@@ -510,7 +515,8 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             setFormData(prev => ({
               ...prev,
               verificationType: 'organization',
-               hrEmail: undefined,
+              hrEmail: undefined,
+              companyName: '', // Clear company name when switching to organization
             }));
           }}
           className="flex-1 p-4 rounded-xl border"
@@ -546,8 +552,8 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             setFormData(prev => ({
               ...prev,
               verificationType: 'hr',
-              organizationId: undefined, 
-
+              organizationId: undefined,
+              companyName: prev.companyName || '', // Keep company name if exists
             }));
           }}
           className="flex-1 p-4 rounded-xl border"
@@ -602,7 +608,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             }))}
           />
 
-          
+
         </View>
       ) : (
         <>
@@ -615,6 +621,16 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             keyboardType="email-address"
             autoCapitalize="none"
             error={errors.hrEmail}
+            required
+          />
+
+          {/* Company Name - Manual Input for HR type */}
+          <Input
+            label="Company Name"
+            value={formData.companyName || ''}
+            onChangeText={(text) => updateField('companyName', text)}
+            placeholder="Enter company name"
+            error={errors.companyName}
             required
           />
 

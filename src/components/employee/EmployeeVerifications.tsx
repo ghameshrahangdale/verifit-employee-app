@@ -25,6 +25,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
 import { formatDate, getEmploymentTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
+import ConfirmationPopup from '../ui/ConfirmationPopup';
 
 // Update the VerificationRequest interface based on API response
 interface VerificationRequest {
@@ -72,6 +73,13 @@ const EmployeeVerification: React.FC = () => {
   const [selectedVerification, setSelectedVerification] = useState<VerificationRequest | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    visible: boolean;
+    id: string | null;
+  }>({
+    visible: false,
+    id: null,
+  });
 
   // Status filter options - matching API status values
   const statusFilters = [
@@ -277,36 +285,35 @@ const EmployeeVerification: React.FC = () => {
       return;
     }
 
-    Alert.alert(
-      'Delete Verification Request',
-      'Are you sure you want to delete this verification request? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Make API call to delete
-              await http.delete(`/api/verification/employee/${id}`);
+    // Show confirmation popup instead of Alert
+    setDeleteConfirmation({
+      visible: true,
+      id: id,
+    });
+  };
 
-              setVerifications(prev => prev.filter(v => v.verificationRequestId !== id));
-              Toast.show({
-                type: 'success',
-                text1: 'Verification Deleted',
-                text2: 'Your verification request has been removed',
-              });
-            } catch (error: any) {
-              Toast.show({
-                type: 'error',
-                text1: 'Delete Failed',
-                text2: error.response?.data?.message || 'Failed to delete verification request',
-              });
-            }
-          },
-        },
-      ]
-    );
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+
+    try {
+      // Make API call to delete using the correct endpoint
+      await http.delete(`/api/verification/employee/create-request/${deleteConfirmation.id}`);
+
+      setVerifications(prev => prev.filter(v => v.verificationRequestId !== deleteConfirmation.id));
+      Toast.show({
+        type: 'success',
+        text1: 'Verification Deleted',
+        text2: 'Your verification request has been removed',
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Delete Failed',
+        text2: error.response?.data?.message || 'Failed to delete verification request',
+      });
+    } finally {
+      setDeleteConfirmation({ visible: false, id: null });
+    }
   };
 
   const handleResubmit = (verification: VerificationRequest) => {
@@ -314,13 +321,13 @@ const EmployeeVerification: React.FC = () => {
     setIsEditModalVisible(true);
   };
 
-  
+
   // Verification Card Component - Updated to use API response fields
   const
     renderVerificationCard = ({ item }: { item: VerificationRequest }) => {
       const statusConfig = getStatusConfig(item.status);
-      const canEdit = item.status === 'PENDING' && isEmployee(user?.role) ;
-      const canDelete = item.status !== 'VERIFIED' && isEmployee(user?.role) ;
+      const canEdit = item.status === 'PENDING' || item.status == 'DISCREPANCIES' && isEmployee(user?.role);
+      const canDelete = item.status !== 'VERIFIED' && item.status !== 'DISCREPANCIES' && isEmployee(user?.role);
 
       return (
         <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
@@ -762,6 +769,18 @@ const EmployeeVerification: React.FC = () => {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Delete Confirmation Popup */}
+      <ConfirmationPopup
+        visible={deleteConfirmation.visible}
+        title="Delete Verification Request"
+        message="Are you sure you want to delete this verification request? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmation({ visible: false, id: null })}
+      />
+
     </View>
   );
 };
