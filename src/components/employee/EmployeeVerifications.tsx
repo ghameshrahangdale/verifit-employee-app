@@ -24,6 +24,7 @@ import VerificationRequestForm, { VerificationFormData, DocumentFile } from './V
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
+import { formatDate, getEmploymentTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
 
 // Update the VerificationRequest interface based on API response
 interface VerificationRequest {
@@ -122,17 +123,10 @@ const EmployeeVerification: React.FC = () => {
         const fetchedData = response.data;
         console.log(fetchedData)
 
-        // Sort by date (most recent first) - client-side sorting
-        // const sortedData = [...fetchedData].sort((a, b) => 
-        //   new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-        // );
-
         setVerifications(prev =>
           reset ? fetchedData : [...prev, ...fetchedData]
         );
 
-        // Handle pagination metadata from response headers or response data
-        // Assuming the API returns pagination info in headers or response
         const total = response.headers?.['x-total-count'] || fetchedData.length;
         const limit = 10;
 
@@ -260,11 +254,9 @@ const EmployeeVerification: React.FC = () => {
   };
 
   const handlePreview = (verification: VerificationRequest) => {
-    // Navigate to verification details
     navigation.navigate('ViewVerification', { verificationId: verification.verificationRequestId });
   };
   const handleReview = (verification: VerificationRequest) => {
-    // Navigate to verification details
     navigation.navigate('HrReviewVerification', { verificationId: verification.verificationRequestId });
   };
 
@@ -322,75 +314,13 @@ const EmployeeVerification: React.FC = () => {
     setIsEditModalVisible(true);
   };
 
-  const getStatusConfig = (status: string) => {
-    const configs = {
-      PENDING: {
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
-        text: 'text-amber-700',
-        label: 'PENDING',
-        icon: 'clock',
-      },
-      IN_REVIEW: {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200',
-        text: 'text-blue-700',
-        label: 'IN REVIEW',
-        icon: 'eye',
-      },
-      VERIFIED: {
-        bg: 'bg-green-50',
-        border: 'border-green-200',
-        text: 'text-green-700',
-        label: 'VERIFIED',
-        icon: 'check-circle',
-      },
-      REJECTED: {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-700',
-        label: 'REJECTED',
-        icon: 'x-circle',
-      },
-      DISCREPANCIES: {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-700',
-        label: 'DISCREPANCIES',
-        icon: 'x-circle',
-      },
-
-    };
-    return configs[status as keyof typeof configs] || configs.PENDING;
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-
-  const getEmploymentTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      full_time: 'Full Time',
-      part_time: 'Part Time',
-      contract: 'Contract',
-      internship: 'Internship',
-      temporary: 'Temporary',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
+  
   // Verification Card Component - Updated to use API response fields
   const
     renderVerificationCard = ({ item }: { item: VerificationRequest }) => {
       const statusConfig = getStatusConfig(item.status);
-      const canEdit = item.status === 'PENDING' || item.status === 'REJECTED';
-      const canDelete = item.status !== 'VERIFIED';
+      const canEdit = item.status === 'PENDING' && isEmployee(user?.role) ;
+      const canDelete = item.status !== 'VERIFIED' && isEmployee(user?.role) ;
 
       return (
         <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
@@ -523,14 +453,14 @@ const EmployeeVerification: React.FC = () => {
             </TouchableOpacity>
 
 
-            {!isEmployee(user?.role) &&
+            {item.status === 'PENDING' && !isEmployee(user?.role) &&
               <TouchableOpacity
                 className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-200"
                 onPress={() => handleReview(item)}
               >
                 <Feather name="eye" size={14} color="#64748B" />
                 <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-                  Review
+                  Verify
                 </Text>
               </TouchableOpacity>}
 

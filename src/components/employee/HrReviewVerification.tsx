@@ -22,112 +22,11 @@ import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import { RefreshControl } from 'react-native-gesture-handler';
 import Slider from '@react-native-community/slider';
 import Input from '../ui/Input';
+import { Discrepancy, Document, FieldStatus, ReviewData, VerificationRequestDetails } from '../../types';
+import { formatDate, getCurrencySymbol, getDocumentTypeLabel, getEmploymentTypeLabel, getSalaryTypeLabel } from '../../utils/verificationHelpers';
 
 type HrReviewVerificationRouteProp = RouteProp<AppStackParamList, 'HrReviewVerification'>;
 
-interface Discrepancy {
-  fieldName: string;
-  employeeClaimedValue: string;
-  actualValue: string;
-  remarks?: string;
-}
-
-interface BehaviorReport {
-  teamworkRating: number;
-  leadershipRating: number;
-  communicationRating: number;
-  integrityRating: number;
-  performanceRating: number;
-  policyViolation: boolean;
-  disciplinaryAction: boolean;
-  rehireRecommendation: boolean;
-  remarks: string;
-}
-
-interface ReviewData {
-  status: 'APPROVED' | 'REJECTED' | 'DISCREPANCIES';
-  verificationMethod: 'MANUAL' | 'AUTO' | 'PARTIAL';
-  comments: string;
-  discrepancies: Discrepancy[];
-  behaviorReport: BehaviorReport;
-}
-
-interface FieldStatus {
-  [key: string]: {
-    confirmed: boolean | null;
-    actualValue: string;
-    showInput: boolean;
-  };
-}
-
-interface SalaryRecord {
-  id: string;
-  salaryType: string;
-  amount: string;
-  currency: string;
-  frequency: string;
-  bonusAmount: string | null;
-  stockOptions: string | null;
-  effectiveDate: string;
-  verified: boolean;
-}
-
-interface Document {
-  id: string;
-  title: string;
-  documentType: string;
-  fileUrl: string;
-  fileSize: number;
-  contentType: string;
-  verified: boolean;
-  uploadedAt: string;
-}
-
-interface Candidate {
-  employeeId: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  designation: string;
-  department: string;
-  linkedinUrl: string | null;
-}
-
-interface EmploymentRecord {
-  id: string;
-  companyName: string;
-  designation: string;
-  department: string;
-  employmentType: string;
-  startDate: string;
-  endDate: string;
-  location: string;
-  managerName: string;
-  managerEmail: string;
-  hrEmail: string;
-  reasonForLeaving: string;
-  rehireEligible: boolean;
-  verificationStatus: string;
-  verifiedAt: string | null;
-}
-
-interface VerificationRequestDetails {
-  verificationRequest: {
-    id: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'IN_REVIEW' | 'DISCREPANCIES';
-    requestedAt: string;
-    completedAt: string | null;
-    verificationMethod: string | null;
-    isPending: boolean;
-    isCompleted: boolean;
-    timeToComplete: string | null;
-  };
-  employmentRecord: EmploymentRecord;
-  candidate: Candidate;
-  salaryRecords: SalaryRecord[];
-  discrepancies: any[];
-  documents: Document[];
-}
 
 const HrReviewVerification: React.FC = () => {
   const { colors } = useTheme();
@@ -150,7 +49,7 @@ const HrReviewVerification: React.FC = () => {
 
   // Track confirmation status for each field
   const [fieldStatus, setFieldStatus] = useState<FieldStatus>({});
-  
+
   // Track which fields are being edited for actual value
   const [activeField, setActiveField] = useState<string | null>(null);
 
@@ -169,6 +68,10 @@ const HrReviewVerification: React.FC = () => {
       disciplinaryAction: false,
       rehireRecommendation: true,
       remarks: '',
+      id: '',
+      employmentRecordId: '',
+      createdBy: '',
+      createdAt: ''
     },
   });
 
@@ -180,7 +83,7 @@ const HrReviewVerification: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await http.get(`/api/verification/employee/create-request/${verificationId}`);
-      
+
       if (response.data) {
         setDetails(response.data);
         // Initialize field status for all fields
@@ -200,39 +103,90 @@ const HrReviewVerification: React.FC = () => {
   };
 
   const initializeFieldStatus = (data: VerificationRequestDetails) => {
+    const verificationResponse = data.verificationResponse;
+
     const initialStatus: FieldStatus = {
-      // Personal fields
-      'candidate_name': { confirmed: null, actualValue: '', showInput: false },
-      'candidate_email': { confirmed: null, actualValue: '', showInput: false },
-      'candidate_phone': { confirmed: null, actualValue: '', showInput: false },
-      
       // Employment fields
-      'company_name': { confirmed: null, actualValue: '', showInput: false },
-      'designation': { confirmed: null, actualValue: '', showInput: false },
-      'department': { confirmed: null, actualValue: '', showInput: false },
-      'employment_type': { confirmed: null, actualValue: '', showInput: false },
-      'start_date': { confirmed: null, actualValue: '', showInput: false },
-      'end_date': { confirmed: null, actualValue: '', showInput: false },
-      'location': { confirmed: null, actualValue: '', showInput: false },
-      'manager_name': { confirmed: null, actualValue: '', showInput: false },
-      'manager_email': { confirmed: null, actualValue: '', showInput: false },
-      'hr_email': { confirmed: null, actualValue: '', showInput: false },
-      'reason_for_leaving': { confirmed: null, actualValue: '', showInput: false },
-      'rehire_eligible': { confirmed: null, actualValue: '', showInput: false },
+      'company_name': {
+        confirmed: verificationResponse?.companyNameConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'designation': {
+        confirmed: verificationResponse?.designationConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'department': {
+        confirmed: verificationResponse?.departmentConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'employment_type': {
+        confirmed: verificationResponse?.employmentTypeConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'start_date': {
+        confirmed: verificationResponse?.startDateConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'end_date': {
+        confirmed: verificationResponse?.endDateConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'location': {
+        confirmed: verificationResponse?.locationConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
+      'reason_for_leaving': {
+        confirmed: verificationResponse?.reasonForLeavingConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      },
     };
 
     // Initialize salary fields
     data.salaryRecords.forEach((salary, index) => {
-      initialStatus[`salary_${index}_type`] = { confirmed: null, actualValue: '', showInput: false };
-      initialStatus[`salary_${index}_amount`] = { confirmed: null, actualValue: '', showInput: false };
-      initialStatus[`salary_${index}_frequency`] = { confirmed: null, actualValue: '', showInput: false };
+      initialStatus[`salary_${index}_type`] = {
+        confirmed: verificationResponse?.salaryConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      };
+      initialStatus[`salary_${index}_amount`] = {
+        confirmed: verificationResponse?.salaryConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      };
+      initialStatus[`salary_${index}_frequency`] = {
+        confirmed: verificationResponse?.salaryConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      };
       if (salary.bonusAmount) {
-        initialStatus[`salary_${index}_bonus`] = { confirmed: null, actualValue: '', showInput: false };
+        initialStatus[`salary_${index}_bonus`] = {
+          confirmed: verificationResponse?.salaryConfirmed ?? null,
+          actualValue: '',
+          showInput: false
+        };
       }
+    });
+
+    // Initialize document fields
+    data.documents.forEach((doc) => {
+      initialStatus[`document_${doc.id}`] = {
+        confirmed: verificationResponse?.documentsConfirmed ?? null,
+        actualValue: '',
+        showInput: false
+      };
     });
 
     setFieldStatus(initialStatus);
   };
+
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -288,7 +242,7 @@ const HrReviewVerification: React.FC = () => {
     // Get the original claimed value based on field type
     let claimedValue = '';
     const fieldName = formatFieldName(fieldKey);
-    
+
     if (fieldKey.startsWith('candidate_')) {
       if (fieldKey === 'candidate_name') claimedValue = details?.candidate.name || '';
       if (fieldKey === 'candidate_email') claimedValue = details?.candidate.email || '';
@@ -330,6 +284,9 @@ const HrReviewVerification: React.FC = () => {
       employeeClaimedValue: claimedValue,
       actualValue: field.actualValue,
       remarks: `Updated by HR during verification`,
+      id: '',
+      teamworkRaring: 0,
+      createdAt: ''
     };
 
     setReviewData(prev => ({
@@ -396,21 +353,55 @@ const HrReviewVerification: React.FC = () => {
         return;
       }
 
-      // Determine status based on discrepancies
-      const hasDiscrepancies = reviewData.discrepancies.length > 0;
-      const allConfirmed = Object.values(fieldStatus).every(field => field.confirmed === true);
-
+      // Build payload based on the working curl example
       const payload = {
-        status: hasDiscrepancies ? 'DISCREPANCIES' : (allConfirmed ? 'APPROVED' : 'REJECTED'),
         verificationMethod: reviewData.verificationMethod,
-        employmentConfirmed: fieldStatus['company_name']?.confirmed && fieldStatus['start_date']?.confirmed,
+
+        // Individual field confirmations
+        companyNameConfirmed: fieldStatus['company_name']?.confirmed || false,
         designationConfirmed: fieldStatus['designation']?.confirmed || false,
-        salaryConfirmed: Object.keys(fieldStatus).some(key => key.includes('salary_amount') && fieldStatus[key]?.confirmed),
-        tenureConfirmed: fieldStatus['start_date']?.confirmed && fieldStatus['end_date']?.confirmed,
-        behaviorConfirmed: true,
+        departmentConfirmed: fieldStatus['department']?.confirmed || false,
+        employmentTypeConfirmed: fieldStatus['employment_type']?.confirmed || false,
+        locationConfirmed: fieldStatus['location']?.confirmed || false,
+        startDateConfirmed: fieldStatus['start_date']?.confirmed || false,
+        endDateConfirmed: fieldStatus['end_date']?.confirmed || false,
+        reasonForLeavingConfirmed: fieldStatus['reason_for_leaving']?.confirmed || false,
+
+        // Summary confirmations (mapping from individual fields)
+        employmentConfirmed: fieldStatus['company_name']?.confirmed &&
+          fieldStatus['start_date']?.confirmed &&
+          fieldStatus['end_date']?.confirmed || false,
+        tenureConfirmed: fieldStatus['start_date']?.confirmed &&
+          fieldStatus['end_date']?.confirmed || false,
+
+        // Check if any salary field is confirmed
+        salaryConfirmed: Object.keys(fieldStatus).some(key =>
+          key.includes('salary_') && fieldStatus[key]?.confirmed === true
+        ) || false,
+
+        // In the payload section, update documentsConfirmed
+        documentsConfirmed: Object.keys(fieldStatus).some(key =>
+          key.startsWith('document_') && fieldStatus[key]?.confirmed === true
+        ) || false,
+
+        behaviorConfirmed: true, // Always true as we're collecting behavior data
+
+        // Comments and discrepancies
         comments: reviewData.comments,
         discrepancies: reviewData.discrepancies,
-        behaviorReport: reviewData.behaviorReport,
+
+        // Behavior report
+        behaviorReport: {
+          teamworkRating: reviewData.behaviorReport.teamworkRating,
+          leadershipRating: reviewData.behaviorReport.leadershipRating,
+          communicationRating: reviewData.behaviorReport.communicationRating,
+          integrityRating: reviewData.behaviorReport.integrityRating,
+          performanceRating: reviewData.behaviorReport.performanceRating,
+          policyViolation: reviewData.behaviorReport.policyViolation || false,
+          disciplinaryAction: reviewData.behaviorReport.disciplinaryAction || false,
+          rehireRecommendation: reviewData.behaviorReport.rehireRecommendation,
+          remarks: reviewData.behaviorReport.remarks,
+        },
       };
 
       const response = await http.patch(
@@ -458,14 +449,7 @@ const HrReviewVerification: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  
 
   const formatFieldName = (fieldKey: string): string => {
     return fieldKey
@@ -476,69 +460,21 @@ const HrReviewVerification: React.FC = () => {
       .join(' ');
   };
 
-  const getEmploymentTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      full_time: 'Full Time',
-      part_time: 'Part Time',
-      contract: 'Contract',
-      internship: 'Internship',
-      temporary: 'Temporary',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
-  const getDocumentTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      resume: 'Resume',
-      experience_letter: 'Experience Letter',
-      offer_letter: 'Offer Letter',
-      relieving_letter: 'Relieving Letter',
-      payslip: 'Payslip',
-      id_proof: 'ID Proof',
-      address_proof: 'Address Proof',
-      education_certificate: 'Education Certificate',
-      other: 'Other',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
-  const getSalaryTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      basic: 'Basic Salary',
-      hra: 'HRA',
-      special_allowance: 'Special Allowance',
-      bonus: 'Bonus',
-      other: 'Other',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
-  const getCurrencySymbol = (currency: string): string => {
-    const symbols: Record<string, string> = {
-      USD: '$',
-      EUR: '€',
-      GBP: '£',
-      INR: '₹',
-      AED: 'د.إ',
-      SGD: 'S$',
-    };
-    return symbols[currency] || currency;
-  };
-
+ 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const ReviewField = ({ 
-    label, 
-    value, 
+  const ReviewField = ({
+    label,
+    value,
     fieldKey,
-    isLast = false 
-  }: { 
-    label: string; 
-    value: string; 
+    isLast = false
+  }: {
+    label: string;
+    value: string;
     fieldKey: string;
     isLast?: boolean;
   }) => {
@@ -562,16 +498,16 @@ const HrReviewVerification: React.FC = () => {
           <View className="flex-row items-center ml-3">
             {status?.confirmed === true ? (
               <View className="bg-green-50 px-3 py-1.5 rounded-full border border-green-200 flex-row items-center">
-                <Feather name="check" size={14} color="#10B981" />
+                <Feather name="check" size={14} color="#040807" />
                 <Text className="font-rubik-medium text-xs text-green-700 ml-1">
-                  Confirmed
+                  Correct
                 </Text>
               </View>
             ) : status?.confirmed === false ? (
               <View className="bg-red-50 px-3 py-1.5 rounded-full border border-red-200 flex-row items-center">
                 <Feather name="x" size={14} color="#EF4444" />
                 <Text className="font-rubik-medium text-xs text-red-700 ml-1">
-                  Rejected
+                  Incorrect
                 </Text>
               </View>
             ) : (
@@ -579,13 +515,13 @@ const HrReviewVerification: React.FC = () => {
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={() => handleConfirm(fieldKey)}
-                    className="w-8 h-8 rounded-full bg-green-50 border border-green-200 items-center justify-center"
+                    className="w-8 h-8 rounded-lg bg-green-50 border border-green-200 items-center justify-center"
                   >
                     <Feather name="check" size={16} color="#10B981" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleReject(fieldKey)}
-                    className="w-8 h-8 rounded-full bg-red-50 border border-red-200 items-center justify-center"
+                    className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 items-center justify-center"
                   >
                     <Feather name="x" size={16} color="#EF4444" />
                   </TouchableOpacity>
@@ -598,12 +534,12 @@ const HrReviewVerification: React.FC = () => {
         {/* Actual Value Input */}
         {status?.showInput && (
           <View className="mt-3 bg-gray-50 rounded-xl p-3">
-           
-            
+
+
             <Input
-            label='Enter Actual Value'
+              label='Enter Actual Value'
               value={status.actualValue || ''}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFieldStatus(prev => ({
                   ...prev,
                   [fieldKey]: { ...prev[fieldKey], actualValue: text }
@@ -633,52 +569,11 @@ const HrReviewVerification: React.FC = () => {
     );
   };
 
-  const RatingSlider = ({ 
-    label, 
-    value, 
-    onChange,
-    icon 
-  }: { 
-    label: string; 
-    value: number; 
-    onChange: (val: number) => void;
-    icon: string;
-  }) => (
-    <View className="mb-4">
-      <View className="flex-row items-center justify-between mb-2">
-        <View className="flex-row items-center">
-          <Feather name={icon} size={16} color={colors.primary} />
-          <Text className="font-rubik-medium text-sm text-gray-700 ml-2">
-            {label}
-          </Text>
-        </View>
-        <View className="bg-primary-50 px-3 py-1 rounded-full">
-          <Text className="font-rubik-bold text-sm text-primary-600">
-            {value}/10
-          </Text>
-        </View>
-      </View>
-      <Slider
-        minimumValue={0}
-        maximumValue={10}
-        step={1}
-        value={value}
-        onValueChange={onChange}
-        minimumTrackTintColor={colors.primary}
-        maximumTrackTintColor="#E2E8F0"
-        thumbTintColor={colors.primary}
-      />
-      <View className="flex-row justify-between mt-1">
-        <Text className="font-rubik text-xs text-gray-400">Poor</Text>
-        <Text className="font-rubik text-xs text-gray-400">Excellent</Text>
-      </View>
-    </View>
-  );
 
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-50">
-        <Header title="Review Verification"/>
+        <Header title="Review Verification" />
         <Loader fullScreen />
       </View>
     );
@@ -724,7 +619,7 @@ const HrReviewVerification: React.FC = () => {
         }
       >
         {/* Request Info Banner */}
-        <View className="bg-primary-50 mx-4 mt-4 p-4 rounded-2xl border border-primary-200">
+        <View className="bg-purple-50 mx-4 mt-4 p-4 rounded-2xl border border-purple-200">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
               <Feather name="clipboard" size={20} color={colors.primary} />
@@ -741,7 +636,7 @@ const HrReviewVerification: React.FC = () => {
           </Text>
         </View>
 
-     
+
 
         {/* Employment Details Section */}
         <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
@@ -752,10 +647,10 @@ const HrReviewVerification: React.FC = () => {
             <Text className="font-rubik-bold text-base text-gray-800">
               Employment Details
             </Text>
-            <Feather 
-              name={expandedSections.employment ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#64748B" 
+            <Feather
+              name={expandedSections.employment ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#64748B"
             />
           </TouchableOpacity>
 
@@ -795,9 +690,8 @@ const HrReviewVerification: React.FC = () => {
                 label="Location"
                 value={details.employmentRecord.location}
                 fieldKey="location"
-              />            
-             
-              
+              />
+
               {details.employmentRecord.reasonForLeaving && (
                 <ReviewField
                   label="Reason for Leaving"
@@ -805,7 +699,7 @@ const HrReviewVerification: React.FC = () => {
                   fieldKey="reason_for_leaving"
                 />
               )}
-              
+
             </View>
           )}
         </View>
@@ -820,10 +714,10 @@ const HrReviewVerification: React.FC = () => {
               <Text className="font-rubik-bold text-base text-gray-800">
                 Salary Records ({details.salaryRecords.length})
               </Text>
-              <Feather 
-                name={expandedSections.salary ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#64748B" 
+              <Feather
+                name={expandedSections.salary ? "chevron-up" : "chevron-down"}
+                size={20}
+                color="#64748B"
               />
             </TouchableOpacity>
 
@@ -864,6 +758,7 @@ const HrReviewVerification: React.FC = () => {
         )}
 
         {/* Documents Section */}
+        {/* Documents Section */}
         {details.documents.length > 0 && (
           <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
             <TouchableOpacity
@@ -873,44 +768,242 @@ const HrReviewVerification: React.FC = () => {
               <Text className="font-rubik-bold text-base text-gray-800">
                 Documents ({details.documents.length})
               </Text>
-              <Feather 
-                name={expandedSections.documents ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#64748B" 
+              <Feather
+                name={expandedSections.documents ? "chevron-up" : "chevron-down"}
+                size={20}
+                color="#64748B"
               />
             </TouchableOpacity>
 
             {expandedSections.documents && (
               <View className="mt-4 gap-3">
-                {details.documents.map((doc) => (
-                  <TouchableOpacity
-                    key={doc.id}
-                    onPress={() => handleOpenDocument(doc)}
-                    className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex-row items-center"
-                  >
-                    <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center mr-3">
-                      <Feather 
-                        name={doc.contentType.includes('pdf') ? 'file-text' : 'image'} 
-                        size={20} 
-                        color="#6366F1" 
-                      />
+                {details.documents.map((doc, index) => {
+                  const documentKey = `document_${doc.id}`;
+                  const status = fieldStatus[documentKey];
+                  const isActive = activeField === documentKey;
+
+                  return (
+                    <View key={doc.id} className="border border-gray-100 rounded-xl">
+                      {/* Document Preview/View Button */}
+                      <TouchableOpacity
+                        onPress={() => handleOpenDocument(doc)}
+                        className="bg-gray-50 rounded-t-xl p-4 flex-row items-center"
+                        style={status?.confirmed !== null ? { borderBottomWidth: 1, borderBottomColor: '#E5E7EB' } : {}}
+                      >
+                        <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center mr-3">
+                          <Feather
+                            name={doc.contentType.includes('pdf') ? 'file-text' : 'image'}
+                            size={20}
+                            color="#6366F1"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="font-rubik-medium text-sm text-gray-800">
+                            {doc.title}
+                          </Text>
+                          <Text className="font-rubik text-xs text-gray-500 mt-1">
+                            {getDocumentTypeLabel(doc.documentType)} • {formatFileSize(doc.fileSize)}
+                          </Text>
+                        </View>
+                        <Feather name="eye" size={20} color="#94A3B8" />
+                      </TouchableOpacity>
+
+                      {/* Document Verification Status */}
+                      {status?.confirmed === true ? (
+                        <View className="bg-green-50 px-4 py-3 rounded-b-xl border-t border-green-200 flex-row items-center justify-between">
+                          <View className="flex-row items-center">
+                            <Feather name="check-circle" size={16} color="#10B981" />
+                            <Text className="font-rubik-medium text-xs text-green-700 ml-2">
+                              Document Verified - Correct
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setFieldStatus(prev => ({
+                                ...prev,
+                                [documentKey]: { ...prev[documentKey], confirmed: null, showInput: false }
+                              }));
+                              // Remove from discrepancies if it was added
+                              setReviewData(prev => ({
+                                ...prev,
+                                discrepancies: prev.discrepancies.filter(d => d.fieldName !== `Document: ${doc.title}`)
+                              }));
+                            }}
+                          >
+                            <Feather name="x" size={16} color="#10B981" />
+                          </TouchableOpacity>
+                        </View>
+                      ) : status?.confirmed === false ? (
+                        <View className="bg-red-50 px-4 py-3 rounded-b-xl border-t border-red-200">
+                          <View className="flex-row items-center justify-between mb-2">
+                            <View className="flex-row items-center">
+                              <Feather name="alert-circle" size={16} color="#EF4444" />
+                              <Text className="font-rubik-medium text-xs text-red-700 ml-2">
+                                Document Issue Reported
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setFieldStatus(prev => ({
+                                  ...prev,
+                                  [documentKey]: { ...prev[documentKey], confirmed: null, showInput: false }
+                                }));
+                                // Remove from discrepancies if it was added
+                                setReviewData(prev => ({
+                                  ...prev,
+                                  discrepancies: prev.discrepancies.filter(d => d.fieldName !== `Document: ${doc.title}`)
+                                }));
+                              }}
+                            >
+                              <Feather name="x" size={16} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
+                          {status.actualValue && (
+                            <Text className="font-rubik text-xs text-red-600">
+                              Issue: {status.actualValue}
+                            </Text>
+                          )}
+                        </View>
+                      ) : (
+                        /* Action Buttons - Only show if not confirmed/rejected */
+                        !status?.showInput && (
+                          <View className="flex-row gap-2 p-3 bg-gray-50/50 rounded-b-xl border-t border-gray-100">
+                            <TouchableOpacity
+                              onPress={() => {
+                                setFieldStatus(prev => ({
+                                  ...prev,
+                                  [documentKey]: {
+                                    ...prev[documentKey],
+                                    confirmed: true,
+                                    showInput: false,
+                                  }
+                                }));
+
+                                // Add to review data if needed
+                                Toast.show({
+                                  type: 'success',
+                                  text1: 'Document Verified',
+                                  text2: 'Document marked as correct',
+                                });
+                              }}
+                              className="flex-1 flex-row items-center justify-center bg-green-50 py-2.5 rounded-lg border border-green-200"
+                            >
+                              <Feather name="check" size={16} color="#10B981" />
+                              <Text className="font-rubik-medium text-xs text-green-700 ml-1.5">
+                                Correct
+                              </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              onPress={() => {
+                                setFieldStatus(prev => ({
+                                  ...prev,
+                                  [documentKey]: {
+                                    ...prev[documentKey],
+                                    confirmed: false,
+                                    showInput: true,
+                                  }
+                                }));
+                                setActiveField(documentKey);
+                              }}
+                              className="flex-1 flex-row items-center justify-center bg-red-50 py-2.5 rounded-lg border border-red-200"
+                            >
+                              <Feather name="x" size={16} color="#EF4444" />
+                              <Text className="font-rubik-medium text-xs text-red-700 ml-1.5">
+                                Issue
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )
+                      )}
+
+                      {/* Issue Description Input */}
+                      {status?.showInput && (
+                        <View className="bg-gray-50 p-4 rounded-b-xl border-t border-gray-200">
+                          <Text className="font-rubik-medium text-sm text-gray-700 mb-2">
+                            Describe the issue with this document
+                          </Text>
+                          <Input
+                            label="Issue Description"
+                            value={status.actualValue || ''}
+                            onChangeText={(text) =>
+                              setFieldStatus(prev => ({
+                                ...prev,
+                                [documentKey]: { ...prev[documentKey], actualValue: text }
+                              }))
+                            }
+                            placeholder="e.g., Document is illegible, wrong document uploaded, expired, etc."
+                            type="text"
+                            multiline
+                            numberOfLines={3}
+                          />
+
+                          <View className="flex-row gap-2 mt-3">
+                            <TouchableOpacity
+                              onPress={() => {
+                                if (!status.actualValue.trim()) {
+                                  Toast.show({
+                                    type: 'error',
+                                    text1: 'Description Required',
+                                    text2: 'Please describe the issue with this document',
+                                  });
+                                  return;
+                                }
+
+                                // Add to discrepancies
+                                const discrepancy: Discrepancy = {
+                                  fieldName: `Document: ${doc.title}`,
+                                  employeeClaimedValue: doc.title,
+                                  actualValue: status.actualValue,
+                                  remarks: `Document issue: ${status.actualValue}`,
+                                  id: '',
+                                  teamworkRaring: 0,
+                                  createdAt: ''
+                                };
+
+                                setReviewData(prev => ({
+                                  ...prev,
+                                  discrepancies: [...prev.discrepancies, discrepancy],
+                                }));
+
+                                setFieldStatus(prev => ({
+                                  ...prev,
+                                  [documentKey]: {
+                                    ...prev[documentKey],
+                                    showInput: false,
+                                  }
+                                }));
+                                setActiveField(null);
+
+                                Toast.show({
+                                  type: 'success',
+                                  text1: 'Issue Reported',
+                                  text2: 'Document issue has been recorded',
+                                });
+                              }}
+                              className="flex-1 bg-purple-500 py-3 rounded-lg items-center"
+                            >
+                              <Text className="font-rubik-medium text-sm text-white">Submit Issue</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              onPress={() => handleCancelInput(documentKey)}
+                              className="flex-1 bg-gray-200 py-3 rounded-lg items-center"
+                            >
+                              <Text className="font-rubik-medium text-sm text-gray-700">Cancel</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
                     </View>
-                    <View className="flex-1">
-                      <Text className="font-rubik-medium text-sm text-gray-800">
-                        {doc.title}
-                      </Text>
-                      <Text className="font-rubik text-xs text-gray-500 mt-1">
-                        {getDocumentTypeLabel(doc.documentType)} • {formatFileSize(doc.fileSize)}
-                      </Text>
-                    </View>
-                    <Feather name="eye" size={20} color="#94A3B8" />
-                  </TouchableOpacity>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
         )}
 
+        {/* Behavior Report Section */}
         {/* Behavior Report Section */}
         <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
           <TouchableOpacity
@@ -920,84 +1013,272 @@ const HrReviewVerification: React.FC = () => {
             <Text className="font-rubik-bold text-base text-gray-800">
               Behavior & Performance Review
             </Text>
-            <Feather 
-              name={expandedSections.behavior ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#64748B" 
+            <Feather
+              name={expandedSections.behavior ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#64748B"
             />
           </TouchableOpacity>
 
           {expandedSections.behavior && (
             <View className="mt-4">
-              {/* Ratings */}
-              <View className="space-y-2">
-                <RatingSlider
-                  label="Teamwork"
-                  value={reviewData.behaviorReport.teamworkRating}
-                  onChange={(val) => setReviewData(prev => ({
-                    ...prev,
-                    behaviorReport: { ...prev.behaviorReport, teamworkRating: val }
-                  }))}
-                  icon="users"
-                />
+              {/* Star Ratings */}
+              <View className="gap-4">
+                {/* Teamwork Rating */}
+                <View>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center">
+                      <Feather name="users" size={16} color={colors.primary} />
+                      <Text className="font-rubik-medium text-sm text-gray-700 ml-2">
+                        Teamwork
+                      </Text>
+                    </View>
+                    <Text className="font-rubik-bold text-sm text-primary-600">
+                      {reviewData.behaviorReport.teamworkRating}/5
+                    </Text>
+                  </View>
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewData(prev => ({
+                          ...prev,
+                          behaviorReport: { ...prev.behaviorReport, teamworkRating: star }
+                        }))}
+                        className="mr-2"
+                      >
+                        <Feather
+                          name={star <= reviewData.behaviorReport.teamworkRating ? "star" : "star"}
+                          size={24}
+                          color={star <= reviewData.behaviorReport.teamworkRating ? "#FBBF24" : "#D1D5DB"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-                <RatingSlider
-                  label="Leadership"
-                  value={reviewData.behaviorReport.leadershipRating}
-                  onChange={(val) => setReviewData(prev => ({
-                    ...prev,
-                    behaviorReport: { ...prev.behaviorReport, leadershipRating: val }
-                  }))}
-                  icon="star"
-                />
+                {/* Leadership Rating */}
+                <View>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center">
+                      <Feather name="star" size={16} color={colors.primary} />
+                      <Text className="font-rubik-medium text-sm text-gray-700 ml-2">
+                        Leadership
+                      </Text>
+                    </View>
+                    <Text className="font-rubik-bold text-sm text-primary-600">
+                      {reviewData.behaviorReport.leadershipRating}/5
+                    </Text>
+                  </View>
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewData(prev => ({
+                          ...prev,
+                          behaviorReport: { ...prev.behaviorReport, leadershipRating: star }
+                        }))}
+                        className="mr-2"
+                      >
+                        <Feather
+                          name={star <= reviewData.behaviorReport.leadershipRating ? "star" : "star"}
+                          size={24}
+                          color={star <= reviewData.behaviorReport.leadershipRating ? "#FBBF24" : "#D1D5DB"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-                <RatingSlider
-                  label="Communication"
-                  value={reviewData.behaviorReport.communicationRating}
-                  onChange={(val) => setReviewData(prev => ({
-                    ...prev,
-                    behaviorReport: { ...prev.behaviorReport, communicationRating: val }
-                  }))}
-                  icon="message-square"
-                />
+                {/* Communication Rating */}
+                <View>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center">
+                      <Feather name="message-square" size={16} color={colors.primary} />
+                      <Text className="font-rubik-medium text-sm text-gray-700 ml-2">
+                        Communication
+                      </Text>
+                    </View>
+                    <Text className="font-rubik-bold text-sm text-primary-600">
+                      {reviewData.behaviorReport.communicationRating}/5
+                    </Text>
+                  </View>
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewData(prev => ({
+                          ...prev,
+                          behaviorReport: { ...prev.behaviorReport, communicationRating: star }
+                        }))}
+                        className="mr-2"
+                      >
+                        <Feather
+                          name={star <= reviewData.behaviorReport.communicationRating ? "star" : "star"}
+                          size={24}
+                          color={star <= reviewData.behaviorReport.communicationRating ? "#FBBF24" : "#D1D5DB"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-                <RatingSlider
-                  label="Integrity"
-                  value={reviewData.behaviorReport.integrityRating}
-                  onChange={(val) => setReviewData(prev => ({
-                    ...prev,
-                    behaviorReport: { ...prev.behaviorReport, integrityRating: val }
-                  }))}
-                  icon="shield"
-                />
+                {/* Integrity Rating */}
+                <View>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center">
+                      <Feather name="shield" size={16} color={colors.primary} />
+                      <Text className="font-rubik-medium text-sm text-gray-700 ml-2">
+                        Integrity
+                      </Text>
+                    </View>
+                    <Text className="font-rubik-bold text-sm text-primary-600">
+                      {reviewData.behaviorReport.integrityRating}/5
+                    </Text>
+                  </View>
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewData(prev => ({
+                          ...prev,
+                          behaviorReport: { ...prev.behaviorReport, integrityRating: star }
+                        }))}
+                        className="mr-2"
+                      >
+                        <Feather
+                          name={star <= reviewData.behaviorReport.integrityRating ? "star" : "star"}
+                          size={24}
+                          color={star <= reviewData.behaviorReport.integrityRating ? "#FBBF24" : "#D1D5DB"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-                <RatingSlider
-                  label="Performance"
-                  value={reviewData.behaviorReport.performanceRating}
-                  onChange={(val) => setReviewData(prev => ({
-                    ...prev,
-                    behaviorReport: { ...prev.behaviorReport, performanceRating: val }
-                  }))}
-                  icon="trending-up"
-                />
+                {/* Performance Rating */}
+                <View>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center">
+                      <Feather name="trending-up" size={16} color={colors.primary} />
+                      <Text className="font-rubik-medium text-sm text-gray-700 ml-2">
+                        Performance
+                      </Text>
+                    </View>
+                    <Text className="font-rubik-bold text-sm text-primary-600">
+                      {reviewData.behaviorReport.performanceRating}/5
+                    </Text>
+                  </View>
+                  <View className="flex-row">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewData(prev => ({
+                          ...prev,
+                          behaviorReport: { ...prev.behaviorReport, performanceRating: star }
+                        }))}
+                        className="mr-2"
+                      >
+                        <Feather
+                          name={star <= reviewData.behaviorReport.performanceRating ? "star" : "star"}
+                          size={24}
+                          color={star <= reviewData.behaviorReport.performanceRating ? "#FBBF24" : "#D1D5DB"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
               </View>
 
               {/* Toggle Options */}
               <View className="mt-4 space-y-3">
-
+                {/* Policy Violation Toggle */}
                 <TouchableOpacity
                   onPress={() => setReviewData(prev => ({
                     ...prev,
-                    behaviorReport: { ...prev.behaviorReport, rehireRecommendation: !prev.behaviorReport.rehireRecommendation }
+                    behaviorReport: {
+                      ...prev.behaviorReport,
+                      policyViolation: !prev.behaviorReport.policyViolation
+                    }
                   }))}
-                  className="flex-row items-center justify-between"
+                  className="flex-row items-center justify-between py-2"
                 >
-                  <Text className="font-rubik text-sm text-gray-600">Rehire Recommendation</Text>
-                  <View className={`w-6 h-6 rounded-full border-2 ${
-                    reviewData.behaviorReport.rehireRecommendation 
-                      ? 'bg-green-500 border-green-500' 
+                  <View className="flex-row items-center flex-1">
+                    <Feather
+                      name="alert-triangle"
+                      size={16}
+                      color={reviewData.behaviorReport.policyViolation ? "#EF4444" : "#94A3B8"}
+                    />
+                    <Text className="font-rubik text-sm text-gray-600 ml-2">
+                      Policy Violation
+                    </Text>
+                  </View>
+                  <View className={`w-6 h-6 rounded-full border-2 ${reviewData.behaviorReport.policyViolation
+                      ? 'bg-red-500 border-red-500'
                       : 'border-gray-300'
-                  } items-center justify-center`}>
+                    } items-center justify-center`}>
+                    {reviewData.behaviorReport.policyViolation && (
+                      <Feather name="check" size={16} color="white" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Disciplinary Action Toggle */}
+                <TouchableOpacity
+                  onPress={() => setReviewData(prev => ({
+                    ...prev,
+                    behaviorReport: {
+                      ...prev.behaviorReport,
+                      disciplinaryAction: !prev.behaviorReport.disciplinaryAction
+                    }
+                  }))}
+                  className="flex-row items-center justify-between py-2"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <Feather
+                      name="clock"
+                      size={16}
+                      color={reviewData.behaviorReport.disciplinaryAction ? "#EF4444" : "#94A3B8"}
+                    />
+                    <Text className="font-rubik text-sm text-gray-600 ml-2">
+                      Disciplinary Action Taken
+                    </Text>
+                  </View>
+                  <View className={`w-6 h-6 rounded-full border-2 ${reviewData.behaviorReport.disciplinaryAction
+                      ? 'bg-red-500 border-red-500'
+                      : 'border-gray-300'
+                    } items-center justify-center`}>
+                    {reviewData.behaviorReport.disciplinaryAction && (
+                      <Feather name="check" size={16} color="white" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Rehire Recommendation Toggle */}
+                <TouchableOpacity
+                  onPress={() => setReviewData(prev => ({
+                    ...prev,
+                    behaviorReport: {
+                      ...prev.behaviorReport,
+                      rehireRecommendation: !prev.behaviorReport.rehireRecommendation
+                    }
+                  }))}
+                  className="flex-row items-center justify-between py-2"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <Feather
+                      name="user-check"
+                      size={16}
+                      color={reviewData.behaviorReport.rehireRecommendation ? "#10B981" : "#94A3B8"}
+                    />
+                    <Text className="font-rubik text-sm text-gray-600 ml-2">
+                      Rehire Recommendation
+                    </Text>
+                  </View>
+                  <View className={`w-6 h-6 rounded-full border-2 ${reviewData.behaviorReport.rehireRecommendation
+                      ? 'bg-green-500 border-green-500'
+                      : 'border-gray-300'
+                    } items-center justify-center`}>
                     {reviewData.behaviorReport.rehireRecommendation && (
                       <Feather name="check" size={16} color="white" />
                     )}
@@ -1037,10 +1318,10 @@ const HrReviewVerification: React.FC = () => {
             <Text className="font-rubik-bold text-base text-gray-800">
               Review Comments
             </Text>
-            <Feather 
-              name={expandedSections.review ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#64748B" 
+            <Feather
+              name={expandedSections.review ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#64748B"
             />
           </TouchableOpacity>
 
@@ -1056,8 +1337,8 @@ const HrReviewVerification: React.FC = () => {
                 value={reviewData.comments}
                 onChangeText={(text) => setReviewData(prev => ({ ...prev, comments: text }))}
               />
-              
-              <View className="mt-4">
+
+              {/* <View className="mt-4">
                 <Text className="font-rubik-medium text-sm text-gray-700 mb-2">
                   Verification Method
                 </Text>
@@ -1066,23 +1347,21 @@ const HrReviewVerification: React.FC = () => {
                     <TouchableOpacity
                       key={method}
                       onPress={() => setReviewData(prev => ({ ...prev, verificationMethod: method as any }))}
-                      className={`flex-1 py-3 rounded-xl border ${
-                        reviewData.verificationMethod === method
-                          ? 'bg-primary-50 border-primary-300'
-                          : 'bg-gray-50 border-gray-200'
-                      }`}
+                      className={`flex-1 py-3 rounded-xl border ${reviewData.verificationMethod === method
+                        ? 'bg-primary-50 border-primary-300'
+                        : 'bg-gray-50 border-gray-200'
+                        }`}
                     >
-                      <Text className={`font-rubik-medium text-xs text-center ${
-                        reviewData.verificationMethod === method
-                          ? 'text-primary-700'
-                          : 'text-gray-600'
-                      }`}>
+                      <Text className={`font-rubik-medium text-xs text-center ${reviewData.verificationMethod === method
+                        ? 'text-primary-700'
+                        : 'text-gray-600'
+                        }`}>
                         {method}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
+              </View> */}
             </View>
           )}
         </View>

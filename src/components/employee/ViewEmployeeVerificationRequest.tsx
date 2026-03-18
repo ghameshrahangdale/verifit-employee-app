@@ -19,73 +19,15 @@ import Loader from '../../components/ui/Loader';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import { RefreshControl } from 'react-native-gesture-handler';
+import { formatDate, formatDateTime, getCurrencySymbol, getDocumentTypeLabel, getEmploymentTypeLabel, getSalaryTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
+import { VerificationResponse, EmploymentRecord, SalaryRecord, Discrepancy, Document, Candidate, BehaviorReport} from '../../types';
 
 type ViewEmployeeVerificationRouteProp = RouteProp<AppStackParamList, 'ViewVerification'>;
-
-interface Discrepancy {
-  id: string;
-  fieldName: string;
-  employeeClaimedValue: string;
-  actualValue: string;
-  remarks?: string;
-  createdAt: string;
-}
-
-interface SalaryRecord {
-  id: string;
-  salaryType: string;
-  amount: string;
-  currency: string;
-  frequency: string;
-  bonusAmount: string | null;
-  stockOptions: string | null;
-  effectiveDate: string;
-  verified: boolean;
-}
-
-interface Document {
-  id: string;
-  title: string;
-  documentType: string;
-  fileUrl: string;
-  fileSize: number;
-  contentType: string;
-  verified: boolean;
-  uploadedAt: string;
-}
-
-interface Candidate {
-  employeeId: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  designation: string;
-  department: string;
-  linkedinUrl: string | null;
-}
-
-interface EmploymentRecord {
-  id: string;
-  companyName: string;
-  designation: string;
-  department: string;
-  employmentType: string;
-  startDate: string;
-  endDate: string;
-  location: string;
-  managerName: string;
-  managerEmail: string;
-  hrEmail: string;
-  reasonForLeaving: string;
-  rehireEligible: boolean;
-  verificationStatus: string;
-  verifiedAt: string | null;
-}
 
 interface VerificationRequestDetails {
   verificationRequest: {
     id: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'IN_REVIEW';
+    status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'IN_REVIEW' | 'DISCREPANCIES';
     requestedAt: string;
     completedAt: string | null;
     verificationMethod: string | null;
@@ -98,6 +40,8 @@ interface VerificationRequestDetails {
   salaryRecords: SalaryRecord[];
   discrepancies: Discrepancy[];
   documents: Document[];
+  verificationResponse?: VerificationResponse;
+  behaviorReport?: BehaviorReport | null;
 }
 
 const ViewEmployeeVerificationRequest: React.FC = () => {
@@ -113,6 +57,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     salary: true,
     documents: true,
     discrepancies: true,
+    behavior: true,
   });
 
   useEffect(() => {
@@ -123,7 +68,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     try {
       setIsLoading(true);
       const response = await http.get(`/api/verification/employee/create-request/${verificationId}`);
-      
+
       if (response.data) {
         setDetails(response.data);
       }
@@ -171,113 +116,10 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
   };
 
   const handleDownloadDocument = (document: Document) => {
-    // Implement download logic if needed
     handleOpenDocument(document);
   };
 
-  const getStatusConfig = (status: string) => {
-    const configs = {
-      PENDING: {
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
-        text: 'text-amber-700',
-        label: 'PENDING',
-        icon: 'clock',
-      },
-      IN_REVIEW: {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200',
-        text: 'text-blue-700',
-        label: 'IN REVIEW',
-        icon: 'eye',
-      },
-      APPROVED: {
-        bg: 'bg-green-50',
-        border: 'border-green-200',
-        text: 'text-green-700',
-        label: 'APPROVED',
-        icon: 'check-circle',
-      },
-      REJECTED: {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-700',
-        label: 'REJECTED',
-        icon: 'x-circle',
-      },
-    };
-    return configs[status as keyof typeof configs] || configs.PENDING;
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getEmploymentTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      full_time: 'Full Time',
-      part_time: 'Part Time',
-      contract: 'Contract',
-      internship: 'Internship',
-      temporary: 'Temporary',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
-  const getDocumentTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      resume: 'Resume',
-      experience_letter: 'Experience Letter',
-      offer_letter: 'Offer Letter',
-      relieving_letter: 'Relieving Letter',
-      payslip: 'Payslip',
-      id_proof: 'ID Proof',
-      address_proof: 'Address Proof',
-      education_certificate: 'Education Certificate',
-      other: 'Other',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
-  const getSalaryTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      basic: 'Basic Salary',
-      hra: 'HRA',
-      special_allowance: 'Special Allowance',
-      bonus: 'Bonus',
-      other: 'Other',
-    };
-    return types[type] || type.replace('_', ' ');
-  };
-
-  const getCurrencySymbol = (currency: string): string => {
-    const symbols: Record<string, string> = {
-      USD: '$',
-      EUR: '€',
-      GBP: '£',
-      INR: '₹',
-      AED: 'د.إ',
-      SGD: 'S$',
-    };
-    return symbols[currency] || currency;
-  };
-
+  
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -291,10 +133,57 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
       .join(' ');
   };
 
+  const renderStatusBadge = (isConfirmed: boolean | undefined) => {
+    if (isConfirmed === undefined) return null;
+
+    if (!isConfirmed) {
+      return (
+        <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
+          <View className="flex-row items-center">
+            <Feather name="alert-triangle" size={12} color="#DC2626" />
+            <Text className="font-rubik-medium text-xs text-red-700 ml-1">
+              Incorrect
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
+        <View className="flex-row items-center">
+          <Feather name="check-circle" size={12} color="#059669" />
+          <Text className="font-rubik-medium text-xs text-green-700 ml-1">
+            Correct
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <View className="flex-row items-center">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Feather
+            key={star}
+            name="star"
+            size={16}
+            color={star <= rating ? "#FBBF24" : "#D1D5DB"}
+            style={{ marginRight: 2 }}
+          />
+        ))}
+        <Text className="font-rubik-medium text-sm text-gray-600 ml-2">
+          {rating}/5
+        </Text>
+      </View>
+    );
+  };
+
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-50">
-        <Header title="Verification Details"  />
+        <Header title="Verification Details" />
         <Loader fullScreen />
       </View>
     );
@@ -303,7 +192,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
   if (!details) {
     return (
       <View className="flex-1 bg-gray-50">
-        <Header title="Verification Details"  />
+        <Header title="Verification Details" />
         <View className="flex-1 items-center justify-center px-8">
           <View className="w-20 h-20 rounded-2xl bg-red-100 items-center justify-center mb-4">
             <Feather name="alert-circle" size={36} color="#EF4444" />
@@ -328,7 +217,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <Header title="Verification Details"  />
+      <Header title="Verification Details" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -364,7 +253,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
         {/* Candidate Info Card */}
         <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
           <View className="flex-row items-center mb-4">
-            <View 
+            <View
               className="w-12 h-12 rounded-xl items-center justify-center"
               style={{ backgroundColor: colors.primary + '15' }}
             >
@@ -396,7 +285,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
               </View>
             )}
             {details.candidate.linkedinUrl && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="flex-row items-center"
                 onPress={() => Linking.openURL(details.candidate.linkedinUrl!)}
               >
@@ -416,126 +305,146 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
           </Text>
 
           <View className="space-y-4">
+            {/* Company Name */}
             <View>
-              <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                Company
-              </Text>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
+                  Company
+                </Text>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.companyNameConfirmed)}
+              </View>
               <Text className="font-rubik-medium text-base text-gray-900">
                 {details.employmentRecord.companyName}
               </Text>
             </View>
 
-            <View className="flex-row">
-              <View className="flex-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+            {/* Designation */}
+            <View>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
                   Designation
                 </Text>
-                <Text className="font-rubik-medium text-sm text-gray-800">
-                  {details.employmentRecord.designation}
-                </Text>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.designationConfirmed)}
               </View>
-              <View className="flex-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <Text className="font-rubik-medium text-base text-gray-900">
+                {details.employmentRecord.designation}
+              </Text>
+            </View>
+
+            {/* Department */}
+            <View>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
                   Department
                 </Text>
-                <Text className="font-rubik-medium text-sm text-gray-800">
-                  {details.employmentRecord.department}
-                </Text>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.departmentConfirmed)}
               </View>
+              <Text className="font-rubik-medium text-base text-gray-900">
+                {details.employmentRecord.department}
+              </Text>
             </View>
 
-            <View className="flex-row">
-              <View className="flex-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+            {/* Employment Type */}
+            <View>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
                   Employment Type
                 </Text>
-                <View className="flex-row items-center">
-                  <Feather name="users" size={12} color="#64748B" />
-                  <Text className="font-rubik-medium text-sm text-gray-800 ml-1.5">
-                    {getEmploymentTypeLabel(details.employmentRecord.employmentType)}
-                  </Text>
-                </View>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.employmentTypeConfirmed)}
               </View>
-              <View className="flex-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <View className="flex-row items-center">
+                <Feather name="users" size={14} color="#64748B" />
+                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
+                  {getEmploymentTypeLabel(details.employmentRecord.employmentType)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Location */}
+            <View>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
                   Location
                 </Text>
-                <View className="flex-row items-center">
-                  <Feather name="map-pin" size={12} color="#64748B" />
-                  <Text className="font-rubik-medium text-sm text-gray-800 ml-1.5">
-                    {details.employmentRecord.location}
-                  </Text>
-                </View>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.locationConfirmed)}
+              </View>
+              <View className="flex-row items-center">
+                <Feather name="map-pin" size={14} color="#64748B" />
+                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
+                  {details.employmentRecord.location}
+                </Text>
               </View>
             </View>
 
-            <View className="flex-row">
-              <View className="flex-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+            {/* Start Date */}
+            <View>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
                   Start Date
                 </Text>
-                <View className="flex-row items-center">
-                  <Feather name="calendar" size={12} color="#64748B" />
-                  <Text className="font-rubik-medium text-sm text-gray-800 ml-1.5">
-                    {formatDate(details.employmentRecord.startDate)}
-                  </Text>
-                </View>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.startDateConfirmed)}
               </View>
-              <View className="flex-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+              <View className="flex-row items-center">
+                <Feather name="calendar" size={14} color="#64748B" />
+                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
+                  {formatDate(details.employmentRecord.startDate)}
+                </Text>
+              </View>
+            </View>
+
+            {/* End Date */}
+            <View>
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
                   End Date
                 </Text>
-                <View className="flex-row items-center">
-                  <Feather name="calendar" size={12} color="#64748B" />
-                  <Text className="font-rubik-medium text-sm text-gray-800 ml-1.5">
-                    {formatDate(details.employmentRecord.endDate)}
-                  </Text>
-                </View>
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.endDateConfirmed)}
+              </View>
+              <View className="flex-row items-center">
+                <Feather name="calendar" size={14} color="#64748B" />
+                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
+                  {formatDate(details.employmentRecord.endDate)}
+                </Text>
               </View>
             </View>
 
-            <View>
-              <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                Manager
-              </Text>
-              <Text className="font-rubik-medium text-sm text-gray-800">
-                {details.employmentRecord.managerName}
-              </Text>
-              <Text className="font-rubik text-xs text-gray-500">
-                {details.employmentRecord.managerEmail}
-              </Text>
-            </View>
 
-            <View>
-              <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                HR Contact
-              </Text>
-              <Text className="font-rubik-medium text-sm text-gray-800">
-                {details.employmentRecord.hrEmail}
-              </Text>
-            </View>
 
-            {details.employmentRecord.reasonForLeaving && (
+            {/* HR Contact */}
+            {details.employmentRecord.hrEmail &&
               <View>
                 <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                  Reason for Leaving
+                  HR Contact
                 </Text>
+                <Text className="font-rubik-medium text-sm text-gray-800">
+                  {details.employmentRecord.hrEmail}
+                </Text>
+              </View>
+            }
+
+            {/* Reason for Leaving */}
+            {details.employmentRecord.reasonForLeaving && (
+              <View>
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
+                    Reason for Leaving
+                  </Text>
+                  {details.verificationResponse && renderStatusBadge(details.verificationResponse.reasonForLeavingConfirmed)}
+                </View>
                 <Text className="font-rubik text-sm text-gray-600">
                   {details.employmentRecord.reasonForLeaving}
                 </Text>
               </View>
             )}
 
-            <View className="flex-row items-center">
-              <Feather 
-                name={details.employmentRecord.rehireEligible ? "check-circle" : "x-circle"} 
-                size={14} 
-                color={details.employmentRecord.rehireEligible ? "#10B981" : "#EF4444"} 
-              />
-              <Text className={`font-rubik-medium text-sm ml-1.5 ${details.employmentRecord.rehireEligible ? 'text-green-600' : 'text-red-600'}`}>
-                {details.employmentRecord.rehireEligible ? 'Eligible for Rehire' : 'Not Eligible for Rehire'}
-              </Text>
-            </View>
+
+            {/* Verification Comments */}
+            {details.verificationResponse?.comments && (
+              <View className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <Text className="font-rubik-bold text-xs text-gray-500 mb-1">Verifier Comments</Text>
+                <Text className="font-rubik text-sm text-gray-700">{details.verificationResponse.comments}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -546,21 +455,27 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
               onPress={() => toggleSection('salary')}
               className="flex-row items-center justify-between"
             >
-              <Text className="font-rubik-bold text-base text-gray-800">
-                Salary Records ({details.salaryRecords.length})
-              </Text>
-              <Feather 
-                name={expandedSections.salary ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#64748B" 
-              />
+              <View className="flex-row items-center">
+                <Text className="font-rubik-bold text-base text-gray-800">
+                  Salary Records ({details.salaryRecords.length})
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.salaryConfirmed)}
+                <Feather
+                  name={expandedSections.salary ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#64748B"
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
             </TouchableOpacity>
 
             {expandedSections.salary && (
               <View className="mt-4 space-y-3">
                 {details.salaryRecords.map((salary, index) => (
-                  <View 
-                    key={salary.id} 
+                  <View
+                    key={salary.id}
                     className="bg-gray-50 rounded-xl p-4 border border-gray-100"
                   >
                     <View className="flex-row justify-between items-start mb-2">
@@ -573,11 +488,11 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                         </View>
                       )}
                     </View>
-                    
+
                     <Text className="font-rubik-bold text-lg text-gray-900 mb-2">
                       {getCurrencySymbol(salary.currency)}{parseFloat(salary.amount).toLocaleString()} / {salary.frequency}
                     </Text>
-                    
+
                     <View className="flex-row justify-between">
                       <Text className="font-rubik text-xs text-gray-400">
                         Effective: {formatDate(salary.effectiveDate)}
@@ -608,30 +523,36 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
               onPress={() => toggleSection('documents')}
               className="flex-row items-center justify-between"
             >
-              <Text className="font-rubik-bold text-base text-gray-800">
-                Documents ({details.documents.length})
-              </Text>
-              <Feather 
-                name={expandedSections.documents ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#64748B" 
-              />
+              <View className="flex-row items-center">
+                <Text className="font-rubik-bold text-base text-gray-800">
+                  Documents ({details.documents.length})
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.documentsConfirmed)}
+                <Feather
+                  name={expandedSections.documents ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#64748B"
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
             </TouchableOpacity>
 
             {expandedSections.documents && (
-              <View className="mt-4 space-y-3">
+              <View className="mt-4 gap-3">
                 {details.documents.map((doc) => (
-                  <View 
-                    key={doc.id} 
+                  <View
+                    key={doc.id}
                     className="bg-gray-50 rounded-xl p-4 border border-gray-100"
                   >
                     <View className="flex-row items-start">
                       <View className="mr-3">
                         <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
-                          <Feather 
-                            name={doc.contentType.includes('pdf') ? 'file' : 'image'} 
-                            size={20} 
-                            color="#6366F1" 
+                          <Feather
+                            name={doc.contentType.includes('pdf') ? 'file' : 'image'}
+                            size={20}
+                            color="#6366F1"
                           />
                         </View>
                       </View>
@@ -646,11 +567,11 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                             </View>
                           )}
                         </View>
-                        
+
                         <Text className="font-rubik text-xs text-gray-500 mt-1">
                           {getDocumentTypeLabel(doc.documentType)} • {formatFileSize(doc.fileSize)}
                         </Text>
-                        
+
                         <Text className="font-rubik text-xs text-gray-400 mt-1">
                           Uploaded {formatDate(doc.uploadedAt)}
                         </Text>
@@ -665,7 +586,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                               View
                             </Text>
                           </TouchableOpacity>
-                          
+
                           <TouchableOpacity
                             onPress={() => handleDownloadDocument(doc)}
                             className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg border border-gray-200"
@@ -685,6 +606,112 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
           </View>
         )}
 
+        {/* Behavior Report Section */}
+        {details.behaviorReport && (
+          <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
+            <TouchableOpacity
+              onPress={() => toggleSection('behavior')}
+              className="flex-row items-center justify-between"
+            >
+              <Text className="font-rubik-bold text-base text-gray-800">
+                Behavior Report
+              </Text>
+              <View className="flex-row items-center">
+                {details.verificationResponse && renderStatusBadge(details.verificationResponse.behaviorConfirmed)}
+                <Feather
+                  name={expandedSections.behavior ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#64748B"
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {expandedSections.behavior && (
+              <View className="mt-4 space-y-4">
+                {/* Ratings */}
+                <View className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <Text className="font-rubik-bold text-sm text-gray-700 mb-3">Ratings</Text>
+
+                  <View className="space-y-3">
+                    <View className="flex-row justify-between items-center">
+                      <Text className="font-rubik text-sm text-gray-600">Teamwork</Text>
+                      {renderStars(details.behaviorReport.teamworkRating)}
+                    </View>
+
+                    <View className="flex-row justify-between items-center">
+                      <Text className="font-rubik text-sm text-gray-600">Leadership</Text>
+                      {renderStars(details.behaviorReport.leadershipRating)}
+                    </View>
+
+                    <View className="flex-row justify-between items-center">
+                      <Text className="font-rubik text-sm text-gray-600">Communication</Text>
+                      {renderStars(details.behaviorReport.communicationRating)}
+                    </View>
+
+                    <View className="flex-row justify-between items-center">
+                      <Text className="font-rubik text-sm text-gray-600">Integrity</Text>
+                      {renderStars(details.behaviorReport.integrityRating)}
+                    </View>
+
+                    <View className="flex-row justify-between items-center">
+                      <Text className="font-rubik text-sm text-gray-600">Performance</Text>
+                      {renderStars(details.behaviorReport.performanceRating)}
+                    </View>
+                  </View>
+                </View>
+
+                {/* Flags */}
+                <View className="gap-2 my-3">
+                  <View className="flex-row items-center">
+                    <Feather
+                      name={details.behaviorReport.policyViolation ? "alert-circle" : "check-circle"}
+                      size={16}
+                      color={details.behaviorReport.policyViolation ? "#EF4444" : "#10B981"}
+                    />
+                    <Text className={`font-rubik-medium text-sm ml-2 ${details.behaviorReport.policyViolation ? 'text-red-600' : 'text-green-600'}`}>
+                      {details.behaviorReport.policyViolation ? 'Policy Violation Reported' : 'No Policy Violation'}
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-center">
+                    <Feather
+                      name={details.behaviorReport.disciplinaryAction ? "alert-circle" : "check-circle"}
+                      size={16}
+                      color={details.behaviorReport.disciplinaryAction ? "#EF4444" : "#10B981"}
+                    />
+                    <Text className={`font-rubik-medium text-sm ml-2 ${details.behaviorReport.disciplinaryAction ? 'text-red-600' : 'text-green-600'}`}>
+                      {details.behaviorReport.disciplinaryAction ? 'Disciplinary Action Taken' : 'No Disciplinary Action'}
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-center">
+                    <Feather
+                      name={details.behaviorReport.rehireRecommendation ? "thumbs-up" : "thumbs-down"}
+                      size={16}
+                      color={details.behaviorReport.rehireRecommendation ? "#10B981" : "#EF4444"}
+                    />
+                    <Text className={`font-rubik-medium text-sm ml-2 ${details.behaviorReport.rehireRecommendation ? 'text-green-600' : 'text-red-600'}`}>
+                      {details.behaviorReport.rehireRecommendation ? 'Recommended for Rehire' : 'Not Recommended for Rehire'}
+                    </Text>
+                  </View>
+                </View>
+
+                {details.behaviorReport.remarks ? (
+                  <View className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <Text className="font-rubik-bold text-xs text-gray-500 mb-1">Remarks</Text>
+                    <Text className="font-rubik text-sm text-gray-700">{details.behaviorReport.remarks}</Text>
+                  </View>
+                ) : null}
+
+                <Text className="font-rubik text-xs text-gray-400 mt-3">
+                  Reported on {formatDateTime(details.behaviorReport.createdAt)}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Discrepancies Section */}
         {details.discrepancies && details.discrepancies.length > 0 && (
           <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
@@ -695,18 +722,18 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
               <Text className="font-rubik-bold text-base text-gray-800">
                 Discrepancies ({details.discrepancies.length})
               </Text>
-              <Feather 
-                name={expandedSections.discrepancies ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#64748B" 
+              <Feather
+                name={expandedSections.discrepancies ? "chevron-up" : "chevron-down"}
+                size={20}
+                color="#64748B"
               />
             </TouchableOpacity>
 
             {expandedSections.discrepancies && (
               <View className="mt-4 gap-3">
                 {details.discrepancies.map((discrepancy) => (
-                  <View 
-                    key={discrepancy.id} 
+                  <View
+                    key={discrepancy.id}
                     className="bg-red-50 rounded-xl p-4 border border-red-200"
                   >
                     <View className="flex-row items-start mb-3">
@@ -765,7 +792,6 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                 title="Edit Request"
                 onPress={() => {
                   // Navigate to edit screen
-                //   navigation.navigate('EditVerification' as any, { verificationId });
                 }}
                 variant="outline"
                 className="flex-1"
@@ -778,8 +804,8 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                     'Are you sure you want to cancel this verification request?',
                     [
                       { text: 'No', style: 'cancel' },
-                      { 
-                        text: 'Yes, Cancel', 
+                      {
+                        text: 'Yes, Cancel',
                         style: 'destructive',
                         onPress: async () => {
                           try {
@@ -803,20 +829,8 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                   );
                 }}
                 className="flex-1"
-                // style={{ backgroundColor: '#FEE2E2' }}
-                // textStyle={{ color: '#DC2626' }}
               />
             </>
-          )}
-          
-          {details.verificationRequest.status === 'REJECTED' && (
-            <Button
-              title="Resubmit Request"
-              onPress={() => {
-                // navigation.navigate('EditVerification' as any, { verificationId });
-              }}
-              className="flex-1"
-            />
           )}
         </View>
       </ScrollView>
