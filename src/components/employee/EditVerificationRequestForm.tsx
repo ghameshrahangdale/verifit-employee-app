@@ -22,6 +22,9 @@ interface VerificationRequestFormProps {
   initialData?: VerificationFormData;
   initialDocuments?: DocumentFile[]; // Add this
   isEdit?: boolean;
+  shouldDisableField?: any;
+  verificationStatus?: any;
+
 }
 
 export interface SalaryRecord {
@@ -124,6 +127,8 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   initialData,
   isEdit = false,
   initialDocuments,
+  shouldDisableField = () => false,
+  verificationStatus
 }) => {
   const { colors } = useTheme();
 
@@ -451,6 +456,20 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
     });
   };
 
+  const isFieldDisabled = (fieldName: string): boolean => {
+    // If verification is completed, disable everything
+    if (verificationStatus === 'COMPLETED') {
+      return true;
+    }
+    
+    // If in discrepancies status, disable confirmed fields
+    if (verificationStatus === 'DISCREPANCIES') {
+      return shouldDisableField(fieldName);
+    }
+    
+    return false;
+  };
+
   const renderStepIndicator = () => {
     const steps = [
       { number: 1, title: 'Employment Details' },
@@ -630,6 +649,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
               label: company.name,
               value: company.id
             }))}
+            disabled={isFieldDisabled('companyName')}
           />
 
 
@@ -646,6 +666,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             autoCapitalize="none"
             error={errors.hrEmail}
             required
+            disabled={isFieldDisabled('hrEmail')}
           />
 
           {/* Company Name - Manual Input for HR type */}
@@ -656,6 +677,9 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             placeholder="Enter company name"
             error={errors.companyName}
             required
+            disabled={isFieldDisabled('companyName')}
+            
+
           />
 
 
@@ -672,6 +696,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             placeholder="e.g. Software Engineer"
             error={errors.designation}
             required
+             disabled={isFieldDisabled('designation')}
           />
         </View>
 
@@ -683,6 +708,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             placeholder="e.g. Engineering"
             error={errors.department}
             required
+             disabled={isFieldDisabled('department')}
           />
         </View>
       </View>
@@ -696,6 +722,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         required
         type="select"
         options={employmentTypeOptions}
+        disabled={isFieldDisabled('employmentType')}
       />
 
       {/* Dates Row */}
@@ -709,6 +736,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             error={errors.startDate}
             required
             type='date'
+            disabled={isFieldDisabled('startDate')}
           />
         </View>
 
@@ -720,6 +748,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             placeholder="YYYY-MM-DD (optional)"
             error={errors.endDate}
             type='date'
+            disabled={isFieldDisabled('endDate')}
           />
         </View>
       </View>
@@ -732,6 +761,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         placeholder="e.g. New York, NY"
         error={errors.location}
         required
+        disabled={isFieldDisabled('location')}
       />
 
       {/* Reason for Leaving (Optional) */}
@@ -742,6 +772,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         placeholder="Please provide reason for leaving (if applicable)"
         multiline
         numberOfLines={3}
+         disabled={isFieldDisabled('reasonForLeaving')}
       />
     </View>
   );
@@ -764,6 +795,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           required
           type="select"
           options={salaryTypeOptions}
+           disabled={isFieldDisabled('salary')}
         />
 
         {/* Amount */}
@@ -777,6 +809,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           placeholder="0.00"
           keyboardType="numeric"
           required
+            disabled={isFieldDisabled('salary')}
         />
 
         {/* Currency */}
@@ -790,6 +823,8 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           required
           type="select"
           options={currencyOptions}
+             disabled={isFieldDisabled('salary')}
+          
         />
 
         {/* Frequency */}
@@ -803,6 +838,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           required
           type="select"
           options={frequencyOptions}
+             disabled={isFieldDisabled('salary')}
         />
 
         {/* Effective Date */}
@@ -815,6 +851,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           placeholder="YYYY-MM-DD"
           required
           type="date"
+             disabled={isFieldDisabled('salary')}
         />
       </View>
     </View>
@@ -1044,7 +1081,6 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 24 }}
     >
       {renderStepIndicator()}
 

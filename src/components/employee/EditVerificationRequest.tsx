@@ -18,9 +18,8 @@ import http from '../../services/http.api';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import Header from '../../components/ui/Header';
-import { VerificationFormData, DocumentFile } from './VerificationRequestForm';
+import { VerificationFormData, DocumentFile, DocumentUpdate } from './VerificationRequestForm';
 import EditVerificationRequestForm from './EditVerificationRequestForm';
-
 
 // API Response Interfaces
 interface SalaryRecord {
@@ -44,6 +43,7 @@ interface Document {
   contentType: string;
   verified: boolean;
   uploadedAt: string;
+  confirmed?: boolean;
 }
 
 interface Discrepancy {
@@ -64,10 +64,10 @@ interface EmploymentRecord {
   startDate: string;
   endDate: string | null;
   location: string;
-  hrEmail: string;
+  hrEmail: string | null;
   reasonForLeaving: string | null;
   rehireEligible: boolean;
-  verificationStatus: string;
+  verificationStatus: any;
   verifiedAt: string | null;
 }
 
@@ -81,6 +81,27 @@ interface Candidate {
   linkedinUrl: string | null;
 }
 
+interface VerificationResponse {
+  id: string;
+  employmentConfirmed: boolean;
+  designationConfirmed: boolean;
+  salaryConfirmed: boolean;
+  tenureConfirmed: boolean;
+  behaviorConfirmed: boolean;
+  companyNameConfirmed: boolean;
+  departmentConfirmed: boolean;
+  employmentTypeConfirmed: boolean;
+  locationConfirmed: boolean;
+  startDateConfirmed: boolean;
+  endDateConfirmed: boolean;
+  documentConfirmations: Array<{ id: string; confirmed: boolean }>;
+  reasonForLeavingConfirmed: boolean;
+  comments: string;
+  status: string;
+  verifiedAt: string;
+  verifiedByUserId: string;
+}
+
 interface VerificationRequestDetails {
   verificationRequest: {
     id: string;
@@ -92,12 +113,13 @@ interface VerificationRequestDetails {
     isCompleted: boolean;
     timeToComplete: number | null;
   };
+  verificationStatus:string;
   employmentRecord: EmploymentRecord;
   candidate: Candidate;
   salaryRecords: SalaryRecord[];
   discrepancies: Discrepancy[];
   documents: Document[];
-  verificationResponse: any | null;
+  verificationResponse: VerificationResponse | null;
   behaviorReport: any | null;
 }
 
@@ -125,6 +147,7 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
   const [initialDocuments, setInitialDocuments] = useState<DocumentFile[]>([]);
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
   const [expandedDiscrepancies, setExpandedDiscrepancies] = useState(true);
+  const [confirmedFields, setConfirmedFields] = useState<Set<string>>(new Set());
 
   // Fetch verification details on mount
   useEffect(() => {
@@ -143,6 +166,24 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         // Set discrepancies
         if (data.discrepancies && data.discrepancies.length > 0) {
           setDiscrepancies(data.discrepancies);
+        }
+        
+        // Set confirmed fields from verification response
+        if (data.verificationResponse) {
+          const confirmed = new Set<string>();
+          const vr = data.verificationResponse;
+          
+          if (vr.designationConfirmed) confirmed.add('designation');
+          if (vr.departmentConfirmed) confirmed.add('department');
+          if (vr.employmentTypeConfirmed) confirmed.add('employmentType');
+          if (vr.locationConfirmed) confirmed.add('location');
+          if (vr.startDateConfirmed) confirmed.add('startDate');
+          if (vr.endDateConfirmed) confirmed.add('endDate');
+          if (vr.companyNameConfirmed) confirmed.add('companyName');
+          if (vr.reasonForLeavingConfirmed) confirmed.add('reasonForLeaving');
+          if (vr.salaryConfirmed && data.salaryRecords[0]) confirmed.add('salary');
+          
+          setConfirmedFields(confirmed);
         }
         
         // Map API response to form data structure
@@ -174,7 +215,7 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
   };
 
   const mapApiResponseToFormData = (data: VerificationRequestDetails): VerificationFormData => {
-    const { employmentRecord, salaryRecords } = data;
+    const { employmentRecord, salaryRecords, verificationResponse } = data;
     
     // Determine verification type based on available data
     const verificationType = employmentRecord.hrEmail && !employmentRecord.companyName 
@@ -203,8 +244,22 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         frequency: salaryRecord.frequency,
         effectiveDate: salaryRecord.effectiveDate || '',
         verified: salaryRecord.verified,
+        bonusAmount: salaryRecord.bonusAmount,
+        stockOptions: salaryRecord.stockOptions,
       } : undefined,
       verificationType: verificationType,
+      verificationStatus: data.verificationRequest.status,
+      confirmedFields: verificationResponse ? {
+        designationConfirmed: verificationResponse.designationConfirmed,
+        departmentConfirmed: verificationResponse.departmentConfirmed,
+        employmentTypeConfirmed: verificationResponse.employmentTypeConfirmed,
+        locationConfirmed: verificationResponse.locationConfirmed,
+        startDateConfirmed: verificationResponse.startDateConfirmed,
+        endDateConfirmed: verificationResponse.endDateConfirmed,
+        companyNameConfirmed: verificationResponse.companyNameConfirmed,
+        reasonForLeavingConfirmed: verificationResponse.reasonForLeavingConfirmed,
+        salaryConfirmed: verificationResponse.salaryConfirmed,
+      } : undefined,
     };
   };
 
@@ -218,14 +273,34 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
       title: doc.title,
       fileSize: doc.fileSize,
       verified: doc.verified,
+      confirmed: doc.confirmed,
     }));
+  };
+
+  const shouldDisableField = (fieldName: string): boolean => {
+    const status = verificationDetails?.verificationRequest.status;
+    
+    // If status is DISCREPANCIES and field is confirmed, disable it
+    if (status === 'DISCREPANCIES' && confirmedFields.has(fieldName)) {
+      return true;
+    }
+    
+    // If status is COMPLETED, disable everything
+    if (status === 'COMPLETED') {
+      return true;
+    }
+    
+    return false;
   };
 
   const handleSubmit = async (data: VerificationFormData, documents: DocumentFile[]) => {
     setSubmitting(true);
     try {
-      // Prepare the update payload
-      const updatePayload: any = {
+      // Prepare form data for multipart/form-data
+      const formDataObj = new FormData();
+      
+      // Add text fields
+      const payload: any = {
         designation: data.designation,
         department: data.department,
         employmentType: data.employmentType,
@@ -233,16 +308,19 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         endDate: data.endDate || null,
         location: data.location,
         reasonForLeaving: data.reasonForLeaving || '',
-        rehireEligible: true,
-        hrEmail: data.hrEmail,
         companyName: data.companyName,
       };
 
-      // Include salary if exists
+      // Add HR email if verification type is HR
+      if (data.verificationType === 'hr' && data.hrEmail) {
+        payload.hrEmail = data.hrEmail;
+      }
+
+      // Add salary if exists
       if (data.salary) {
         const originalSalary = verificationDetails?.salaryRecords?.[0];
         
-        updatePayload.salary = {
+        payload.salary = {
           ...(originalSalary?.id && { id: originalSalary.id }),
           salaryType: data.salary.salaryType,
           amount: data.salary.amount,
@@ -250,15 +328,96 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
           frequency: data.salary.frequency,
           effectiveDate: data.salary.effectiveDate || null,
         };
+        
+        // Add bonus and stock options if they exist
+        if (data.salary.bonusAmount) {
+          payload.salary.bonusAmount = data.salary.bonusAmount;
+        }
+        if (data.salary.stockOptions) {
+          payload.salary.stockOptions = data.salary.stockOptions;
+        }
       }
 
-      // Make the PUT request
+      // Prepare documents update
+      const documentsToUpdate: DocumentUpdate[] = [];
+      const newDocuments: DocumentFile[] = [];
+      
+      // Separate existing documents (with IDs) from new documents
+      documents.forEach(doc => {
+        if (doc.id) {
+          // Existing document - check if it needs update (has new file)
+          const originalDoc = verificationDetails?.documents.find(d => d.id === doc.id);
+          if (originalDoc && doc.uri !== originalDoc.fileUrl) {
+            // Document has been updated with new file
+            documentsToUpdate.push({
+              id: doc.id,
+              title: doc.title,
+              documentType: doc.documentType,
+              file: doc, // Will be added as file
+            });
+          } else {
+            // Document unchanged, just update metadata if needed
+            if (doc.title !== originalDoc?.title || doc.documentType !== originalDoc?.documentType) {
+              documentsToUpdate.push({
+                id: doc.id,
+                title: doc.title,
+                documentType: doc.documentType,
+              });
+            }
+          }
+        } else {
+          // New document
+          newDocuments.push(doc);
+        }
+      });
+
+      // Add documents to payload
+      if (documentsToUpdate.length > 0 || newDocuments.length > 0) {
+        payload.documents = [
+          ...documentsToUpdate.map(doc => ({
+            id: doc.id,
+            title: doc.title,
+            documentType: doc.documentType,
+          })),
+          ...newDocuments.map(doc => ({
+            title: doc.title,
+            documentType: doc.documentType,
+          })),
+        ];
+      }
+
+      // Add data as JSON string
+      formDataObj.append('data', JSON.stringify(payload));
+
+      // Add files for updated documents
+      documentsToUpdate.forEach((doc, index) => {
+        if (doc.file) {
+          const fileObj = {
+            uri: doc.file.uri,
+            type: doc.file.type,
+            name: doc.file.name,
+          };
+          formDataObj.append(`documents[${doc.id}][file]`, fileObj as any);
+        }
+      });
+
+      // Add files for new documents
+      newDocuments.forEach((doc, index) => {
+        const fileObj = {
+          uri: doc.uri,
+          type: doc.type,
+          name: doc.name,
+        };
+        formDataObj.append(`documents[new_${index}][file]`, fileObj as any);
+      });
+
+      // Make the PUT request with multipart/form-data
       await http.put(
         `/api/verification/employee/create-request/${verificationId}`,
-        updatePayload,
+        formDataObj,
         {
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'multipart/form-data',
           },
         }
       );
@@ -308,6 +467,19 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
     setExpandedDiscrepancies(!expandedDiscrepancies);
   };
 
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case 'PENDING':
+        return '#F59E0B';
+      case 'DISCREPANCIES':
+        return '#EF4444';
+      case 'COMPLETED':
+        return '#10B981';
+      default:
+        return '#6B7280';
+    }
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50">
@@ -322,7 +494,7 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
     );
   }
 
-  if (!formInitialData) {
+  if (!formInitialData || !verificationDetails) {
     return (
       <View className="flex-1 bg-gray-50">
         <Header title="Edit Verification" />
@@ -347,6 +519,10 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
     );
   }
 
+  const { candidate, verificationRequest } = verificationDetails;
+  const status = verificationRequest.status;
+  const canEdit = status === 'PENDING' || (status === 'DISCREPANCIES' && !verificationRequest.isCompleted);
+
   return (
     <View className="flex-1 bg-gray-50">
       <Header title="Edit Verification" />
@@ -366,6 +542,93 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="bg-white"
         >
+          {/* Candidate Information Card */}
+          <View className="bg-white rounded-2xl mx-4 mt-4 mb-4 p-5 shadow-sm border border-gray-100">
+            <View className="flex-row items-center mb-4">
+              <View className="w-12 h-12 rounded-full bg-primary-50 items-center justify-center">
+                <Feather name="user" size={24} color={colors.primary} />
+              </View>
+              <View className="ml-3">
+                <Text className="font-rubik-bold text-lg text-gray-800">
+                  {candidate.name}
+                </Text>
+              
+              </View>
+              <View className="ml-auto">
+                <View 
+                  className="px-3 py-1 rounded-full"
+                  style={{ backgroundColor: getStatusColor(status) + '20' }}
+                >
+                  <Text 
+                    className="font-rubik-medium text-xs"
+                    style={{ color: getStatusColor(status) }}
+                  >
+                    {status}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="border-t border-gray-100 pt-4">
+              <View className="flex-row mb-3">
+                <View className="flex-1">
+                  <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                    Email
+                  </Text>
+                  <Text className="font-rubik-medium text-sm text-gray-700">
+                    {candidate.email}
+                  </Text>
+                </View>
+                {candidate.phone && (
+                  <View className="flex-1">
+                    <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                      Phone
+                    </Text>
+                    <Text className="font-rubik-medium text-sm text-gray-700">
+                      {candidate.phone}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View className="flex-row">
+                {candidate.designation && (
+                  <View className="flex-1">
+                    <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                      Current Designation
+                    </Text>
+                    <Text className="font-rubik-medium text-sm text-gray-700">
+                      {candidate.designation}
+                    </Text>
+                  </View>
+                )}
+                {candidate.department && (
+                  <View className="flex-1">
+                    <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                      Current Department
+                    </Text>
+                    <Text className="font-rubik-medium text-sm text-gray-700">
+                      {candidate.department}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {!canEdit && (
+              <View className="mt-4 bg-amber-50 rounded-xl p-3 border border-amber-200">
+                <View className="flex-row items-center">
+                  <Feather name="info" size={16} color="#F59E0B" />
+                  <Text className="font-rubik text-sm text-amber-700 ml-2">
+                    {status === 'COMPLETED' 
+                      ? 'This verification is completed and cannot be edited.'
+                      : 'This verification has discrepancies. Only fields with discrepancies can be edited.'}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
           {/* Form */}
           <EditVerificationRequestForm
             onSubmit={handleSubmit}
@@ -374,6 +637,8 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
             initialData={formInitialData}
             initialDocuments={initialDocuments}
             isEdit={true}
+            shouldDisableField={shouldDisableField}
+            verificationStatus={status}
           />
 
           {/* Discrepancies Section - Display after form if available */}

@@ -32,6 +32,8 @@ export interface SalaryRecord {
   frequency: 'monthly' | 'annually' | 'quarterly';
   effectiveDate: string;
   verified?: boolean;
+  bonusAmount?: any;
+  stockOptions?: any;
 }
 
 export interface VerificationFormData {
@@ -45,11 +47,21 @@ export interface VerificationFormData {
   hrEmail: any;
   location: string;
   reasonForLeaving?: string;
+  verificationStatus?: string;
+  confirmedFields?: any;
   salary?: SalaryRecord;
   verificationType: 'organization' | 'hr'; // New field for radio selection
 }
 
+export interface DocumentUpdate {
+  id: string;                    // Required for existing documents
+  title: string;                 // Document title
+  documentType: string;          // Type of document (resume, offer_letter, etc.)
+  file?: DocumentFile;           // Optional - new file to upload for this document
+}
+
 export interface DocumentFile {
+  id?:string;
   uri: string;
   name: string;
   type: string;

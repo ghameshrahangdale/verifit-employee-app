@@ -220,6 +220,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
       <Header title="Verification Details" />
 
       <ScrollView
+      className='mb-4'
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -787,55 +788,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
           </View>
         )}
 
-        {/* Action Buttons */}
-        <View className="flex-row gap-3 mx-4 my-6">
-          {details.verificationRequest.status === 'PENDING' && (
-            <>
-              <Button
-                title="Edit Request"
-                onPress={() => {
-                  // Navigate to edit screen
-                }}
-                variant="outline"
-                className="flex-1"
-              />
-              <Button
-                title="Cancel Request"
-                onPress={() => {
-                  Alert.alert(
-                    'Cancel Request',
-                    'Are you sure you want to cancel this verification request?',
-                    [
-                      { text: 'No', style: 'cancel' },
-                      {
-                        text: 'Yes, Cancel',
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            await http.delete(`/api/verification/employee/${verificationId}`);
-                            Toast.show({
-                              type: 'success',
-                              text1: 'Request Cancelled',
-                              text2: 'Your verification request has been cancelled',
-                            });
-                            navigation.goBack();
-                          } catch (error: any) {
-                            Toast.show({
-                              type: 'error',
-                              text1: 'Failed to Cancel',
-                              text2: error.response?.data?.message || 'Unable to cancel request',
-                            });
-                          }
-                        }
-                      },
-                    ]
-                  );
-                }}
-                className="flex-1"
-              />
-            </>
-          )}
-        </View>
+       
       </ScrollView>
     </View>
   );

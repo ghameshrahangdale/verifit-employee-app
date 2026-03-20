@@ -1,4 +1,4 @@
-import { ROLES, UserRole } from "../constants/roles";
+import { isEmployee, ROLES, UserRole } from "../constants/roles";
 
 export interface MenuItemConfig {
   icon: string;
@@ -11,7 +11,7 @@ export interface MenuItemConfig {
 
 // Function to get menu items based on user role
 export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
-  const isEmployee = userRole === ROLES.EMPLOYEE;
+  const emp = isEmployee(userRole);
   
   return [
     {
@@ -36,7 +36,7 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
     // },
     {
       icon: 'file-text',
-      label: isEmployee ? 'My Verification Requests' : 'All Verification Requests',
+      label: emp ? 'My Verification Requests' : 'All Verification Requests',
       subtitle: 'Create and monitor your verification requests',
       route: 'employeeVerificationRequests',
       roles: [ROLES.EMPLOYEE, ROLES.HR, ROLES.ADMIN],
