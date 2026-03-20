@@ -263,7 +263,7 @@ const EmployeeVerification: React.FC = () => {
     navigation.navigate('ViewVerification', { verificationId: verification.verificationRequestId });
   };
   const handleReview = (verification: VerificationRequest) => {
-    navigation.navigate('HrReviewVerification', { verificationId: verification.verificationRequestId });
+    navigation.navigate('VerifyRequestScreen', { verificationId: verification.verificationRequestId });
   };
 
 

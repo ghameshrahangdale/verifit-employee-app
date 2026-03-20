@@ -213,4 +213,5 @@ export interface VerificationResponse {
   status: string;
   verifiedAt: string;
   verifiedByUserId: string;
+  documentConfirmations?:any;
 }

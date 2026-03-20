@@ -18,7 +18,7 @@ import TeamManagementScreen from '../screens/TeamManagementScreen';
 import EmployeeDetailsScreen from '../components/employee/EmployeeDetailsScreen';
 import EmployeeVerifications from '../components/employee/EmployeeVerifications';
 import ViewEmployeeVerificationRequest from '../components/employee/ViewEmployeeVerificationRequest';
-import HrReviewVerification from '../components/employee/HrReviewVerification';
+import VerifyRequestScreen from '../components/employee/VerifyRequestScreen';
 import EditVerificationRequest from '../components/employee/EditVerificationRequest';
 import IncomingVerificationRequests from '../components/employee/IncomingVerificationRequests';
 import OutgoingVerificationRequests from '../components/employee/OutgoingVerificationRequests';
@@ -45,7 +45,7 @@ export type AppStackParamList = {
   ViewVerification:{
     verificationId:string;
   }
-  HrReviewVerification:{
+  VerifyRequestScreen:{
     verificationId:string;
   }
   EditVerification:{
@@ -89,7 +89,7 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />
       <Stack.Screen name="employeeVerificationRequests" component={EmployeeVerifications} />
       <Stack.Screen name="ViewVerification" component={ViewEmployeeVerificationRequest} />
-      <Stack.Screen name="HrReviewVerification" component={HrReviewVerification} />
+      <Stack.Screen name="VerifyRequestScreen" component={VerifyRequestScreen} />
       <Stack.Screen name="EditVerification" component={EditVerificationRequest} />
       <Stack.Screen name="incomingRequests" component={IncomingVerificationRequests} />
       <Stack.Screen name="outgoingRequests" component={OutgoingVerificationRequests} />

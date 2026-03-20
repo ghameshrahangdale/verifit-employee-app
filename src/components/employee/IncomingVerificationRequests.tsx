@@ -180,7 +180,7 @@ const IncomingVerificationRequests: React.FC = () => {
   };
   
   const handleReview = (verification: VerificationRequest) => {
-    navigation.navigate('HrReviewVerification', { verificationId: verification.verificationRequestId });
+    navigation.navigate('VerifyRequestScreen', { verificationId: verification.verificationRequestId });
   };
 
   const handleDelete = (id: string) => {

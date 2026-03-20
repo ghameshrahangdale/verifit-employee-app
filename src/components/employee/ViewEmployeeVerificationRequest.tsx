@@ -20,7 +20,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { formatDate, formatDateTime, getCurrencySymbol, getDocumentTypeLabel, getEmploymentTypeLabel, getSalaryTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
-import { VerificationResponse, EmploymentRecord, SalaryRecord, Discrepancy, Document, Candidate, BehaviorReport} from '../../types';
+import { VerificationResponse, EmploymentRecord, SalaryRecord, Discrepancy, Document, Candidate, BehaviorReport } from '../../types';
 
 type ViewEmployeeVerificationRouteProp = RouteProp<AppStackParamList, 'ViewVerification'>;
 
@@ -119,7 +119,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     handleOpenDocument(document);
   };
 
-  
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -528,84 +528,87 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                   Documents ({details.documents.length})
                 </Text>
               </View>
-              <View className="flex-row items-center">
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.documentsConfirmed)}
-                <Feather
-                  name={expandedSections.documents ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#64748B"
-                  style={{ marginLeft: 8 }}
-                />
-              </View>
+           
             </TouchableOpacity>
 
             {expandedSections.documents && (
               <View className="mt-4 gap-3">
-                {details.documents.map((doc) => (
-                  <View
-                    key={doc.id}
-                    className="bg-gray-50 rounded-xl p-4 border border-gray-100"
-                  >
-                    <View className="flex-row items-start">
-                      <View className="mr-3">
-                        <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
-                          <Feather
-                            name={doc.contentType.includes('pdf') ? 'file' : 'image'}
-                            size={20}
-                            color="#6366F1"
-                          />
+                {details.documents.map((doc) => {
+                  // Find confirmation status for this document
+                  const documentConfirmation = details.verificationResponse?.documentConfirmations?.find(
+                    (conf: { id: string; }) => conf.id === doc.id
+                  );
+                  const isConfirmed = documentConfirmation?.confirmed;
+
+                  return (
+                    <View
+                      key={doc.id}
+                      className="bg-gray-50 rounded-xl p-4 border border-gray-100"
+                    >
+                      <View className="flex-row items-start">
+                        <View className="mr-3">
+                          <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
+                            <Feather
+                              name={doc.contentType.includes('pdf') ? 'file' : 'image'}
+                              size={20}
+                              color="#6366F1"
+                            />
+                          </View>
                         </View>
-                      </View>
-                      <View className="flex-1">
-                        <View className="flex-row items-center justify-between">
-                          <Text className="font-rubik-medium text-base text-gray-800 flex-1">
-                            {doc.title}
-                          </Text>
-                          {doc.verified && (
-                            <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200 ml-2">
-                              <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
+                        <View className="flex-1">
+                          <View className="flex-row items-center justify-between">
+                            <Text className="font-rubik-medium text-base text-gray-800 flex-1">
+                              {doc.title}
+                            </Text>
+                            <View className="flex-row items-center gap-2">
+                              {/* Individual document confirmation badge */}
+                              {details.verificationResponse && renderStatusBadge(isConfirmed)}
+                              {doc.verified && (
+                                <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200 ml-2">
+                                  <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
+                                </View>
+                              )}
                             </View>
-                          )}
-                        </View>
+                          </View>
 
-                        <Text className="font-rubik text-xs text-gray-500 mt-1">
-                          {getDocumentTypeLabel(doc.documentType)} • {formatFileSize(doc.fileSize)}
-                        </Text>
+                          <Text className="font-rubik text-xs text-gray-500 mt-1">
+                            {getDocumentTypeLabel(doc.documentType)} • {formatFileSize(doc.fileSize)}
+                          </Text>
 
-                        <Text className="font-rubik text-xs text-gray-400 mt-1">
-                          Uploaded {formatDate(doc.uploadedAt)}
-                        </Text>
+                          <Text className="font-rubik text-xs text-gray-400 mt-1">
+                            Uploaded {formatDate(doc.uploadedAt)}
+                          </Text>
 
-                        <View className="flex-row mt-3 gap-2">
-                          <TouchableOpacity
-                            onPress={() => handleOpenDocument(doc)}
-                            className="flex-row items-center bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200"
-                          >
-                            <Feather name="eye" size={14} color="#6366F1" />
-                            <Text className="font-rubik-medium text-xs text-indigo-600 ml-1.5">
-                              View
-                            </Text>
-                          </TouchableOpacity>
+                          <View className="flex-row mt-3 gap-2">
+                            <TouchableOpacity
+                              onPress={() => handleOpenDocument(doc)}
+                              className="flex-row items-center bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200"
+                            >
+                              <Feather name="eye" size={14} color="#6366F1" />
+                              <Text className="font-rubik-medium text-xs text-indigo-600 ml-1.5">
+                                View
+                              </Text>
+                            </TouchableOpacity>
 
-                          <TouchableOpacity
-                            onPress={() => handleDownloadDocument(doc)}
-                            className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg border border-gray-200"
-                          >
-                            <Feather name="download" size={14} color="#64748B" />
-                            <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-                              Download
-                            </Text>
-                          </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDownloadDocument(doc)}
+                              className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg border border-gray-200"
+                            >
+                              <Feather name="download" size={14} color="#64748B" />
+                              <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
+                                Download
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       </View>
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
         )}
-
         {/* Behavior Report Section */}
         {details.behaviorReport && (
           <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">

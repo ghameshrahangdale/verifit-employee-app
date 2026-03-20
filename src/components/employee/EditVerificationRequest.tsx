@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../context/ThemeContext';
@@ -14,16 +15,12 @@ import Button from '../ui/Button';
 import Toast from 'react-native-toast-message';
 import Input from '../ui/Input';
 import http from '../../services/http.api';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
-import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
+import Header from '../../components/ui/Header';
+import { VerificationFormData, DocumentFile } from './VerificationRequestForm';
 import EditVerificationRequestForm from './EditVerificationRequestForm';
 
-interface EditVerificationRequestProps {
-  onSubmit?: (data: VerificationFormData, documents: DocumentFile[]) => Promise<void>;
-  onCancel?: () => void;
-  isLoading?: boolean;
-}
 
 // API Response Interfaces
 interface SalaryRecord {
@@ -47,6 +44,15 @@ interface Document {
   contentType: string;
   verified: boolean;
   uploadedAt: string;
+}
+
+interface Discrepancy {
+  id: string;
+  fieldName: string;
+  employeeClaimedValue: string;
+  actualValue: string;
+  remarks: string;
+  createdAt: string;
 }
 
 interface EmploymentRecord {
@@ -89,10 +95,16 @@ interface VerificationRequestDetails {
   employmentRecord: EmploymentRecord;
   candidate: Candidate;
   salaryRecords: SalaryRecord[];
-  discrepancies: any[];
+  discrepancies: Discrepancy[];
   documents: Document[];
   verificationResponse: any | null;
   behaviorReport: any | null;
+}
+
+interface EditVerificationRequestProps {
+  onSubmit?: (data: VerificationFormData, documents: DocumentFile[]) => Promise<void>;
+  onCancel?: () => void;
+  isLoading?: boolean;
 }
 
 const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
@@ -102,13 +114,17 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
 }) => {
   const { colors } = useTheme();
   const route = useRoute<RouteProp<AppStackParamList, 'EditVerification'>>();
+  const navigation = useNavigation();
   const { verificationId } = route.params;
 
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [verificationDetails, setVerificationDetails] = useState<VerificationRequestDetails | null>(null);
   const [formInitialData, setFormInitialData] = useState<VerificationFormData | undefined>(undefined);
   const [initialDocuments, setInitialDocuments] = useState<DocumentFile[]>([]);
+  const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+  const [expandedDiscrepancies, setExpandedDiscrepancies] = useState(true);
 
   // Fetch verification details on mount
   useEffect(() => {
@@ -116,13 +132,18 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
   }, [verificationId]);
 
   const fetchVerificationDetails = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const response = await http.get(`/api/verification/employee/create-request/${verificationId}`);
       
-      if ( response.data) {
+      if (response.data) {
         const data = response.data;
         setVerificationDetails(data);
+        
+        // Set discrepancies
+        if (data.discrepancies && data.discrepancies.length > 0) {
+          setDiscrepancies(data.discrepancies);
+        }
         
         // Map API response to form data structure
         const mappedFormData = mapApiResponseToFormData(data);
@@ -140,9 +161,16 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         text1: 'Failed to Load Verification',
         text2: error.response?.data?.message || 'Unable to fetch verification details',
       });
+      navigation.goBack();
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchVerificationDetails();
   };
 
   const mapApiResponseToFormData = (data: VerificationRequestDetails): VerificationFormData => {
@@ -155,7 +183,6 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
 
     // Get the first salary record if exists
     const salaryRecord = salaryRecords && salaryRecords.length > 0 ? salaryRecords[0] : undefined;
-    console.log(salaryRecord, "salary")
 
     return {
       organizationId: verificationType === 'organization' ? employmentRecord.companyName : undefined,
@@ -206,14 +233,13 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         endDate: data.endDate || null,
         location: data.location,
         reasonForLeaving: data.reasonForLeaving || '',
-        rehireEligible: true, // You might want to make this configurable
+        rehireEligible: true,
         hrEmail: data.hrEmail,
         companyName: data.companyName,
       };
 
       // Include salary if exists
       if (data.salary) {
-        // Find the original salary record to get its ID
         const originalSalary = verificationDetails?.salaryRecords?.[0];
         
         updatePayload.salary = {
@@ -227,7 +253,7 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
       }
 
       // Make the PUT request
-      const response = await http.put(
+      await http.put(
         `/api/verification/employee/create-request/${verificationId}`,
         updatePayload,
         {
@@ -248,6 +274,9 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         await externalOnSubmit(data, documents);
       }
 
+      // Navigate back after successful update
+      navigation.goBack();
+
     } catch (error: any) {
       Toast.show({
         type: 'error',
@@ -263,58 +292,167 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
   const handleCancel = () => {
     if (onCancel) {
       onCancel();
+    } else {
+      navigation.goBack();
     }
+  };
+
+  const formatFieldName = (fieldName: string): string => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const toggleDiscrepancies = () => {
+    setExpandedDiscrepancies(!expandedDiscrepancies);
   };
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text className="font-rubik text-sm text-gray-400 mt-3">
-          Loading verification details...
-        </Text>
+      <View className="flex-1 bg-gray-50">
+        <Header title="Edit Verification" />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text className="font-rubik text-sm text-gray-400 mt-3">
+            Loading verification details...
+          </Text>
+        </View>
       </View>
     );
   }
 
   if (!formInitialData) {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-8">
-        <View className="w-20 h-20 rounded-2xl bg-red-50 items-center justify-center mb-4">
-          <Feather name="alert-circle" size={36} color="#EF4444" />
+      <View className="flex-1 bg-gray-50">
+        <Header title="Edit Verification" />
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-20 h-20 rounded-2xl bg-red-50 items-center justify-center mb-4">
+            <Feather name="alert-circle" size={36} color="#EF4444" />
+          </View>
+          <Text className="font-rubik-bold text-lg text-gray-900 text-center">
+            Failed to Load
+          </Text>
+          <Text className="font-rubik text-sm text-gray-400 text-center mt-2">
+            Unable to load verification details. Please try again.
+          </Text>
+          <Button
+            title="Go Back"
+            onPress={handleCancel}
+            className="mt-6"
+            variant="outline"
+          />
         </View>
-        <Text className="font-rubik-bold text-lg text-gray-900 text-center">
-          Failed to Load
-        </Text>
-        <Text className="font-rubik text-sm text-gray-400 text-center mt-2">
-          Unable to load verification details. Please try again.
-        </Text>
-        <Button
-          title="Go Back"
-          onPress={handleCancel}
-          className="mt-6"
-          variant="outline"
-        />
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
-    >
+    <View className="flex-1 bg-gray-50">
+      <Header title="Edit Verification" />
       
-      {/* Form */}
-      <EditVerificationRequestForm
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        isLoading={submitting || externalLoading}
-        initialData={formInitialData}
-        initialDocuments={initialDocuments}
-        isEdit={true}
-      />
-    </KeyboardAvoidingView>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="bg-white"
+        >
+          {/* Form */}
+          <EditVerificationRequestForm
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            isLoading={submitting || externalLoading}
+            initialData={formInitialData}
+            initialDocuments={initialDocuments}
+            isEdit={true}
+          />
+
+          {/* Discrepancies Section - Display after form if available */}
+          {discrepancies.length > 0 && (
+            <View className="bg-white rounded-2xl mx-4 mb-4 p-5 shadow-sm border border-gray-100">
+              <TouchableOpacity
+                onPress={toggleDiscrepancies}
+                className="flex-row items-center justify-between"
+              >
+                <View className="flex-row items-center">
+                  <Feather name="alert-triangle" size={20} color="#EF4444" />
+                  <Text className="font-rubik-bold text-base text-gray-800 ml-2">
+                    Discrepancies Found ({discrepancies.length})
+                  </Text>
+                </View>
+                <Feather
+                  name={expandedDiscrepancies ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#64748B"
+                />
+              </TouchableOpacity>
+
+              {expandedDiscrepancies && (
+                <View className="mt-4 gap-3">
+                  {discrepancies.map((discrepancy) => (
+                    <View
+                      key={discrepancy.id}
+                      className="bg-red-50 rounded-xl p-4 border border-red-200"
+                    >
+                      <View className="flex-row items-start mb-3">
+                        <Feather name="alert-triangle" size={16} color="#EF4444" />
+                        <Text className="font-rubik-bold text-sm text-red-700 ml-2">
+                          {formatFieldName(discrepancy.fieldName)}
+                        </Text>
+                      </View>
+
+                      <View className="space-y-2">
+                        <View>
+                          <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
+                            Employee Claimed
+                          </Text>
+                          <Text className="font-rubik-medium text-sm text-red-700 bg-white/50 p-2 rounded-lg">
+                            {discrepancy.employeeClaimedValue}
+                          </Text>
+                        </View>
+
+                        <View>
+                          <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
+                            Actual Value
+                          </Text>
+                          <Text className="font-rubik-medium text-sm text-red-700 bg-white/50 p-2 rounded-lg">
+                            {discrepancy.actualValue}
+                          </Text>
+                        </View>
+
+                        {discrepancy.remarks && (
+                          <View className="mt-2">
+                            <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
+                              Remarks
+                            </Text>
+                            <Text className="font-rubik text-sm text-red-600">
+                              {discrepancy.remarks}
+                            </Text>
+                          </View>
+                        )}
+
+                        <Text className="font-rubik text-xs text-red-400 mt-2">
+                          Reported on {new Date(discrepancy.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </ScrollView>
+    </View>
   );
 };
 
