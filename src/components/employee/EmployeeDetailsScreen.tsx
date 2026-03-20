@@ -5,8 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Linking,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Linking,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -16,7 +18,7 @@ import Avatar from '../ui/Avatar';
 import Toast from 'react-native-toast-message';
 import http from '../../services/http.api';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
-
+import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
 
 interface EmployeeProfile {
   id: string;
@@ -36,7 +38,6 @@ interface EmployeeProfile {
   socialProfiles: SocialProfile[];
   createdAt: string;
   updatedAt: string;
-  employeeDocuments: EmployeeDocument[];
 }
 
 interface Qualification {
@@ -60,16 +61,6 @@ interface SocialProfile {
   platform: string;
 }
 
-interface EmployeeDocument {
-  id: string;
-  documentType: string;
-  title: string;
-  fileUrl: string;
-  fileSize: number;
-  contentType: string;
-  createdAt: string;
-}
-
 const EmployeeDetailsScreen: React.FC = () => {
   const { colors } = useTheme();
   const navigation = useNavigation();
@@ -78,8 +69,8 @@ const EmployeeDetailsScreen: React.FC = () => {
 
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDocument, setSelectedDocument] = useState<EmployeeDocument | null>(null);
-  const [isDocumentModalVisible, setIsDocumentModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchEmployeeProfile();
@@ -115,30 +106,6 @@ const EmployeeDetailsScreen: React.FC = () => {
     });
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const openDocument = (document: EmployeeDocument) => {
-    setSelectedDocument(document);
-    setIsDocumentModalVisible(true);
-  };
-
-  const downloadDocument = async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Toast.show({ type: 'error', text1: 'Cannot Open Document', text2: 'URL scheme not supported' });
-      }
-    } catch (error) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to open document' });
-    }
-  };
-
   const getEmploymentTypeBadge = (type: string) => {
     const types: Record<string, { label: string; color: string; bgColor: string }> = {
       full_time: { label: 'Full Time', color: '#15803D', bgColor: '#DCFCE7' },
@@ -157,6 +124,72 @@ const EmployeeDetailsScreen: React.FC = () => {
       instagram: 'instagram',
     };
     return map[platform?.toLowerCase()] || 'globe';
+  };
+
+  const handleSubmitVerificationRequest = async (data: VerificationFormData, documents: DocumentFile[]) => {
+    setIsSubmitting(true);
+    try {
+      // Create FormData object
+      const formData = new FormData();
+
+      const requestData = {
+        employeeId: employeeId, // Using employeeId
+        organizationId: data.organizationId, 
+        designation: data.designation,
+        department: data.department,
+        employmentType: data.employmentType,
+        startDate: data.startDate,
+        endDate: data.endDate || undefined,
+        location: data.location,
+        reasonForLeaving: data.reasonForLeaving || undefined,
+        salary: data.salary ? {
+          salaryType: data.salary.salaryType,
+          amount: data.salary.amount,
+          currency: data.salary.currency,
+          frequency: data.salary.frequency,
+        } : undefined,
+      };
+
+      // Append the main data as JSON string
+      formData.append('data', JSON.stringify(requestData));
+
+      // Append each document with the required structure
+      documents.forEach((doc, index) => {
+        formData.append(`documents[${index}][file]`, {
+          uri: doc.uri,
+          name: doc.name,
+          type: doc.type,
+        } as any);
+
+        formData.append(`documents[${index}][type]`, doc.documentType);
+        formData.append(`documents[${index}][title]`, doc.title);
+      });
+
+      console.log(formData);
+
+      const response = await http.post('/api/verification/employee/create-request', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Verification request submitted successfully',
+      });
+
+      setIsModalVisible(false);
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Submission Failed',
+        text2: error.response?.data?.message || 'Failed to submit verification request',
+      });
+      throw error; // Re-throw to let the form handle it
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ─── Sub-components ───────────────────────────────────────────────
@@ -342,7 +375,6 @@ const EmployeeDetailsScreen: React.FC = () => {
         </View>
 
         <View className="px-4 pt-6">
-
           {/* ── Personal IDs ──────────────────────────────────────── */}
           <Section label="Identity & Compliance" icon="shield">
             <Card>
@@ -475,63 +507,6 @@ const EmployeeDetailsScreen: React.FC = () => {
             </Section>
           )}
 
-          {/* ── Documents ─────────────────────────────────────────── */}
-          <Section label="Documents" icon="file-text">
-            {profile.employeeDocuments && profile.employeeDocuments.length > 0 ? (
-              <Card noPad>
-                {profile.employeeDocuments.map((doc, i) => (
-                  <TouchableOpacity
-                    key={doc.id}
-                    onPress={() => openDocument(doc)}
-                    activeOpacity={0.7}
-                    className={`flex-row items-center px-4 py-3.5 ${
-                      i < profile.employeeDocuments.length - 1 ? 'border-b border-gray-50' : ''
-                    }`}
-                  >
-                    {/* File type icon */}
-                    <View
-                      className="w-10 h-10 rounded-xl items-center justify-center"
-                      style={{ backgroundColor: `${colors.primary}12` }}
-                    >
-                      <Feather
-                        name={doc.contentType?.includes('pdf') ? 'file-text' : 'file'}
-                        size={18}
-                        color={colors.primary}
-                      />
-                    </View>
-
-                    {/* Info */}
-                    <View className="flex-1 ml-3">
-                      <Text className="text-sm font-rubik-medium text-gray-900" numberOfLines={1}>
-                        {doc.title}
-                      </Text>
-                      <View className="flex-row items-center mt-0.5">
-                        <Text className="text-xs font-rubik text-gray-400 capitalize">
-                          {doc.documentType.replace(/_/g, ' ')}
-                        </Text>
-                        <Text className="text-gray-300 mx-1.5">•</Text>
-                        <Text className="text-xs font-rubik text-gray-400">
-                          {formatFileSize(doc.fileSize)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="w-7 h-7 rounded-full bg-gray-100 items-center justify-center ml-2">
-                      <Feather name="chevron-right" size={14} color="#94A3B8" />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </Card>
-            ) : (
-              <View className="bg-white rounded-2xl border border-gray-100 py-10 items-center">
-                <View className="w-14 h-14 rounded-2xl bg-gray-100 items-center justify-center mb-3">
-                  <Feather name="file" size={24} color="#CBD5E1" />
-                </View>
-                <Text className="text-sm font-rubik-medium text-gray-400">No Documents Uploaded</Text>
-              </View>
-            )}
-          </Section>
-
           {/* ── Social Profiles ───────────────────────────────────── */}
           {profile.socialProfiles && profile.socialProfiles.length > 0 && (
             <Section label="Social Profiles" icon="share-2">
@@ -560,71 +535,72 @@ const EmployeeDetailsScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* ── Document Preview Modal ──────────────────────────────── */}
+      {/* ── Verify Employee Button ──────────────────────────────── */}
+      <View className="px-4 py-4 bg-white border-t border-gray-100">
+        <TouchableOpacity
+          onPress={() => setIsModalVisible(true)}
+          className="py-4 rounded-xl items-center"
+          style={{ backgroundColor: colors.primary }}
+        >
+          <Text className="font-rubik-medium text-white text-base">Verify Employee</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Verification Request Modal ──────────────────────────── */}
       <Modal
-        visible={isDocumentModalVisible}
-        transparent
+        visible={isModalVisible}
         animationType="slide"
-        onRequestClose={() => setIsDocumentModalVisible(false)}
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
       >
-        <View className="flex-1 bg-black/40 justify-end">
-          <View className="bg-white rounded-t-3xl overflow-hidden">
-            {/* Drag handle */}
-            <View className="items-center pt-3 pb-1">
-              <View className="w-10 h-1 rounded-full bg-gray-200" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <TouchableOpacity
+            className="flex-1 bg-black/45"
+            activeOpacity={1}
+            onPress={() => setIsModalVisible(false)}
+          >
+            <View className="flex-1 justify-end">
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                className="bg-white rounded-t-3xl shadow-lg max-h-[90%]"
+              >
+                {/* Modal handle bar */}
+                <View className="items-center pt-3">
+                  <View className="w-9 h-1 rounded-full bg-gray-200" />
+                </View>
+
+                {/* Modal header */}
+                <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
+                  <View>
+                    <Text className="font-rubik-bold text-xl text-gray-900">
+                      Verify Employee
+                    </Text>
+                    <Text className="font-rubik text-xs text-gray-400 mt-0.5">
+                      Submit employment verification request for {profile.designation}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setIsModalVisible(false)}
+                    className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
+                  >
+                    <Feather name="x" size={18} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Form */}
+                <VerificationRequestForm
+                  onSubmit={handleSubmitVerificationRequest}
+                  onCancel={() => setIsModalVisible(false)}
+                  isLoading={isSubmitting}
+                />
+              </TouchableOpacity>
             </View>
-
-            {selectedDocument && (
-              <>
-                {/* Icon + meta */}
-                <View className="px-6 pt-5 pb-6 items-center">
-                  <View
-                    className="w-20 h-20 rounded-3xl items-center justify-center mb-4"
-                    style={{ backgroundColor: `${colors.primary}15` }}
-                  >
-                    <Feather
-                      name={selectedDocument.contentType?.includes('pdf') ? 'file-text' : 'file'}
-                      size={34}
-                      color={colors.primary}
-                    />
-                  </View>
-                  <Text className="text-lg font-rubik-bold text-gray-900 text-center">
-                    {selectedDocument.title}
-                  </Text>
-                  <View className="flex-row items-center mt-1.5">
-                    <Text className="text-xs font-rubik text-gray-400 capitalize">
-                      {selectedDocument.documentType.replace(/_/g, ' ')}
-                    </Text>
-                    <Text className="text-gray-300 mx-1.5">•</Text>
-                    <Text className="text-xs font-rubik text-gray-400">
-                      {formatFileSize(selectedDocument.fileSize)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Actions */}
-                <View className="flex-row px-5 pb-8 gap-3">
-                  <TouchableOpacity
-                    onPress={() => setIsDocumentModalVisible(false)}
-                    className="flex-1 py-3.5 rounded-xl border border-gray-200 items-center"
-                  >
-                    <Text className="font-rubik-medium text-gray-600">Dismiss</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setIsDocumentModalVisible(false);
-                      downloadDocument(selectedDocument.fileUrl);
-                    }}
-                    className="flex-1 py-3.5 rounded-xl items-center"
-                    style={{ backgroundColor: colors.primary }}
-                  >
-                    <Text className="font-rubik-medium text-white">Open File</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

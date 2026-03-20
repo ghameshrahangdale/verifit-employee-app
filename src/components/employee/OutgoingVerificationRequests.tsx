@@ -1,3 +1,4 @@
+// OutgoingVerificationRequests.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -9,7 +10,6 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../context/ThemeContext';
@@ -23,7 +23,7 @@ import SearchInput from '../../components/ui/SearchInput';
 import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
-import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
+import { isEmployee, ROLES } from '../../constants/roles';
 import { formatDate, getEmploymentTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
 import ConfirmationPopup from '../ui/ConfirmationPopup';
 import VerificationCard from './VerificationCard';
@@ -49,11 +49,10 @@ interface VerificationRequest {
   fileSize?: string;
 }
 
-const EmployeeVerification: React.FC = () => {
+const OutgoingVerificationRequests: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<NavigationProp<AppStackParamList>>();
-
 
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,10 +94,10 @@ const EmployeeVerification: React.FC = () => {
   }, [searchQuery]);
 
   useEffect(() => {
-    fetchMyVerifications(1, true);
+    fetchOutgoingVerifications(1, true);
   }, [debouncedSearchQuery, selectedStatus]);
 
-  const fetchMyVerifications = async (page: number = 1, reset: boolean = false) => {
+  const fetchOutgoingVerifications = async (page: number = 1, reset: boolean = false) => {
     try {
       if (reset) {
         setIsLoading(true);
@@ -106,9 +105,9 @@ const EmployeeVerification: React.FC = () => {
         setIsLoadingMore(true);
       }
 
-      // Build query params
+      // Build query params with view=outgoing
       const params: any = {
-        view: isEmployee(user?.role) ? 'my' : 'all',
+        view: 'outgoing',
         page,
         limit: 10,
       };
@@ -121,7 +120,7 @@ const EmployeeVerification: React.FC = () => {
         params.status = selectedStatus;
       }
 
-      // Make API call
+      // Make API call with outgoing view
       const response = await http.get('/api/verification/employee/create-request', { params });
 
       console.log(response);
@@ -146,7 +145,7 @@ const EmployeeVerification: React.FC = () => {
       Toast.show({
         type: 'error',
         text1: 'Failed to Load Verifications',
-        text2: error.response?.data?.message || 'Unable to fetch your verification requests',
+        text2: error.response?.data?.message || 'Unable to fetch outgoing verification requests',
       });
 
       // Set empty data on error
@@ -164,12 +163,12 @@ const EmployeeVerification: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchMyVerifications(1, true);
+    fetchOutgoingVerifications(1, true);
   }, [debouncedSearchQuery, selectedStatus]);
 
   const handleLoadMore = () => {
     if (hasNextPage && !isLoadingMore && !isLoading) {
-      fetchMyVerifications(currentPage + 1, false);
+      fetchOutgoingVerifications(currentPage + 1, false);
     }
   };
 
@@ -262,10 +261,10 @@ const EmployeeVerification: React.FC = () => {
   const handlePreview = (verification: VerificationRequest) => {
     navigation.navigate('ViewVerification', { verificationId: verification.verificationRequestId });
   };
+  
   const handleReview = (verification: VerificationRequest) => {
     navigation.navigate('HrReviewVerification', { verificationId: verification.verificationRequestId });
   };
-
 
   const handleDelete = (id: string) => {
     // Find the verification to check its status
@@ -279,7 +278,7 @@ const EmployeeVerification: React.FC = () => {
       return;
     }
 
-    // Show confirmation popup instead of Alert
+    // Show confirmation popup
     setDeleteConfirmation({
       visible: true,
       id: id,
@@ -321,8 +320,7 @@ const EmployeeVerification: React.FC = () => {
     });
   };
 
-
-  // Verification Card Component - Updated to use API response fields
+  // Verification Card Component
   const renderVerificationCard = ({ item }: { item: VerificationRequest }) => (
     <VerificationCard
       item={item}
@@ -334,9 +332,10 @@ const EmployeeVerification: React.FC = () => {
       onResubmit={handleResubmit}
     />
   );
+
   // Status Filter Component
   const renderStatusFilter = () => (
-    <View className=" mt-3 mb-4">
+    <View className="mt-3 mb-4">
       <FlatList
         horizontal
         data={statusFilters}
@@ -380,9 +379,9 @@ const EmployeeVerification: React.FC = () => {
       {totalItems > 0 && (
         <View className="flex-row justify-between items-center mt-4 mb-1">
           <Text className="font-rubik text-xs text-gray-400">
-            {totalItems} verification{totalItems !== 1 ? 's' : ''}
+            {totalItems} outgoing verification{totalItems !== 1 ? 's' : ''}
           </Text>
-          {isEmployee(user?.role) &&
+          {isEmployee(user?.role) && (
             <TouchableOpacity
               onPress={() => setIsModalVisible(true)}
               className="flex-row items-center px-3 py-1.5 rounded-xl border"
@@ -396,8 +395,7 @@ const EmployeeVerification: React.FC = () => {
                 New Request
               </Text>
             </TouchableOpacity>
-          }
-
+          )}
         </View>
       )}
     </View>
@@ -417,17 +415,17 @@ const EmployeeVerification: React.FC = () => {
     return (
       <View className="flex-1 items-center justify-center px-8 py-16">
         <View className="w-20 h-20 rounded-2xl bg-gray-100 items-center justify-center mb-4">
-          <Feather name="file-text" size={36} color="#CBD5E1" />
+          <Feather name="send" size={36} color="#CBD5E1" />
         </View>
         <Text className="font-rubik-bold text-lg text-gray-900 text-center">
-          {searchQuery ? 'No verifications found' : 'No verification requests'}
+          {searchQuery ? 'No outgoing verifications found' : 'No outgoing verification requests'}
         </Text>
         <Text className="font-rubik text-sm text-gray-400 text-center mt-2 leading-5">
           {searchQuery
             ? `No requests matching "${searchQuery}"`
             : 'Submit your first employment verification request to get started'}
         </Text>
-        {!searchQuery && (
+        {!searchQuery && isEmployee(user?.role) && (
           <Button
             title="Create Verification Request"
             className="mt-4"
@@ -441,7 +439,7 @@ const EmployeeVerification: React.FC = () => {
   if (isLoading && verifications.length === 0) {
     return (
       <View className="flex-1 bg-gray-50">
-        <Header title="My Verifications" />
+        <Header title="Outgoing Verifications" />
         <Loader fullScreen />
       </View>
     );
@@ -449,7 +447,7 @@ const EmployeeVerification: React.FC = () => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <Header title="My Verifications" />
+      <Header title="Outgoing Verifications" />
 
       <FlatList
         data={verifications}
@@ -618,4 +616,4 @@ const EmployeeVerification: React.FC = () => {
   );
 };
 
-export default EmployeeVerification;
+export default OutgoingVerificationRequests;

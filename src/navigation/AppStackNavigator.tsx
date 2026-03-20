@@ -19,6 +19,10 @@ import EmployeeDetailsScreen from '../components/employee/EmployeeDetailsScreen'
 import EmployeeVerifications from '../components/employee/EmployeeVerifications';
 import ViewEmployeeVerificationRequest from '../components/employee/ViewEmployeeVerificationRequest';
 import HrReviewVerification from '../components/employee/HrReviewVerification';
+import EditVerificationRequest from '../components/employee/EditVerificationRequest';
+import IncomingVerificationRequests from '../components/employee/IncomingVerificationRequests';
+import OutgoingVerificationRequests from '../components/employee/OutgoingVerificationRequests';
+
 
 export type AppStackParamList = {
   Tabs: undefined;
@@ -44,6 +48,11 @@ export type AppStackParamList = {
   HrReviewVerification:{
     verificationId:string;
   }
+  EditVerification:{
+    verificationId:string;
+  }
+  incomingRequests:undefined;
+  outgoingRequests:undefined;
 };
 
 
@@ -81,6 +90,9 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="employeeVerificationRequests" component={EmployeeVerifications} />
       <Stack.Screen name="ViewVerification" component={ViewEmployeeVerificationRequest} />
       <Stack.Screen name="HrReviewVerification" component={HrReviewVerification} />
+      <Stack.Screen name="EditVerification" component={EditVerificationRequest} />
+      <Stack.Screen name="incomingRequests" component={IncomingVerificationRequests} />
+      <Stack.Screen name="outgoingRequests" component={OutgoingVerificationRequests} />
     </Stack.Navigator>
   );
 };

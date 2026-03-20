@@ -117,7 +117,7 @@ const frequencyOptions = [
   { label: 'Quarterly', value: 'quarterly' },
 ];
 
-const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
+const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
@@ -1056,4 +1056,4 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   );
 };
 
-export default VerificationRequestForm;
+export default EditVerificationRequestForm;

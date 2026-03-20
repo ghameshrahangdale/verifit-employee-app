@@ -32,23 +32,26 @@ export const MENU_ITEMS: MenuItemConfig[] = [
   // },
   {
     icon: 'file-text',
-    label: 'Verification Requests',
+    label: 'My Verification Requests',
     subtitle: 'Create and monitor your verification requests',
     route: 'employeeVerificationRequests',
     roles: [ROLES.EMPLOYEE, ROLES.HR, ROLES.ADMIN],
   },
-  // {
-  //   icon: 'user-plus',
-  //   label: 'Invite Ex-Employee',
-  //   subtitle: 'Send invitation to former employees',
-  //   route: 'InviteExEmployee',
-  // },
-  // {
-  //   icon: 'settings',
-  //   label: 'Account Settings',
-  //   subtitle: 'Manage account preferences and security',
-  //   route: 'AccountSettings',
-  // },
+  {
+    icon: 'file-text',
+    label: 'Incoming Verification Requests',
+    subtitle: 'Create and monitor your verification requests',
+    route: 'incomingRequests',
+    roles: [ROLES.ADMIN, ROLES.HR ],
+  },
+  {
+    icon: 'file-text',
+    label: 'Outgoing Verification Requests',
+    subtitle: 'Create and monitor your verification requests',
+    route: 'outgoingRequests',
+    roles: [ROLES.ADMIN, ROLES.HR ],
+  },
+  
   {
     icon: 'bell',
     label: 'Notifications',

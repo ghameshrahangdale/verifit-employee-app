@@ -1,3 +1,4 @@
+// IncomingVerificationRequests.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -6,10 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,10 +17,9 @@ import Toast from 'react-native-toast-message';
 import http from '../../services/http.api';
 import Loader from '../../components/ui/Loader';
 import SearchInput from '../../components/ui/SearchInput';
-import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
-import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
+import { isEmployee, ROLES } from '../../constants/roles';
 import { formatDate, getEmploymentTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
 import ConfirmationPopup from '../ui/ConfirmationPopup';
 import VerificationCard from './VerificationCard';
@@ -49,11 +45,10 @@ interface VerificationRequest {
   fileSize?: string;
 }
 
-const EmployeeVerification: React.FC = () => {
+const IncomingVerificationRequests: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<NavigationProp<AppStackParamList>>();
-
 
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +60,6 @@ const EmployeeVerification: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedVerification, setSelectedVerification] = useState<VerificationRequest | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -95,10 +89,10 @@ const EmployeeVerification: React.FC = () => {
   }, [searchQuery]);
 
   useEffect(() => {
-    fetchMyVerifications(1, true);
+    fetchIncomingVerifications(1, true);
   }, [debouncedSearchQuery, selectedStatus]);
 
-  const fetchMyVerifications = async (page: number = 1, reset: boolean = false) => {
+  const fetchIncomingVerifications = async (page: number = 1, reset: boolean = false) => {
     try {
       if (reset) {
         setIsLoading(true);
@@ -106,9 +100,9 @@ const EmployeeVerification: React.FC = () => {
         setIsLoadingMore(true);
       }
 
-      // Build query params
+      // Build query params with view=incoming
       const params: any = {
-        view: isEmployee(user?.role) ? 'my' : 'all',
+        view: 'incoming',
         page,
         limit: 10,
       };
@@ -121,7 +115,7 @@ const EmployeeVerification: React.FC = () => {
         params.status = selectedStatus;
       }
 
-      // Make API call
+      // Make API call with incoming view
       const response = await http.get('/api/verification/employee/create-request', { params });
 
       console.log(response);
@@ -146,7 +140,7 @@ const EmployeeVerification: React.FC = () => {
       Toast.show({
         type: 'error',
         text1: 'Failed to Load Verifications',
-        text2: error.response?.data?.message || 'Unable to fetch your verification requests',
+        text2: error.response?.data?.message || 'Unable to fetch incoming verification requests',
       });
 
       // Set empty data on error
@@ -164,12 +158,12 @@ const EmployeeVerification: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchMyVerifications(1, true);
+    fetchIncomingVerifications(1, true);
   }, [debouncedSearchQuery, selectedStatus]);
 
   const handleLoadMore = () => {
     if (hasNextPage && !isLoadingMore && !isLoading) {
-      fetchMyVerifications(currentPage + 1, false);
+      fetchIncomingVerifications(currentPage + 1, false);
     }
   };
 
@@ -181,91 +175,13 @@ const EmployeeVerification: React.FC = () => {
     setSearchQuery('');
   };
 
-  const handleSubmitVerificationRequest = async (data: VerificationFormData, documents: DocumentFile[]) => {
-    setIsSubmitting(true);
-    try {
-      // Create FormData object
-      const formData = new FormData();
-
-      // Append the main data as JSON string
-      formData.append('data', JSON.stringify(data));
-
-      // Append each document with the required structure
-      documents.forEach((doc, index) => {
-        formData.append(`documents[${index}][file]`, {
-          uri: doc.uri,
-          name: doc.name,
-          type: doc.type,
-        } as any);
-
-        formData.append(`documents[${index}][type]`, doc.documentType);
-        formData.append(`documents[${index}][title]`, doc.title);
-      });
-
-      console.log(formData);
-
-      const response = await http.post('/api/verification/employee/create-request', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Verification request submitted successfully',
-      });
-
-      setIsModalVisible(false);
-      handleRefresh(); // Refresh the list
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Submission Failed',
-        text2: error.response?.data?.message || 'Failed to submit verification request',
-      });
-      throw error; // Re-throw to let the form handle it
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateVerificationRequest = async (data: VerificationFormData) => {
-    if (!selectedVerification) return;
-
-    setIsSubmitting(true);
-    try {
-      // Make API call for update - adjust endpoint as per your API
-      const response = await http.put(`/api/verification/employee/${selectedVerification.verificationRequestId}`, data);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Verification request updated successfully',
-      });
-
-      setIsEditModalVisible(false);
-      setSelectedVerification(null);
-      handleRefresh(); // Refresh the list
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Update Failed',
-        text2: error.response?.data?.message || 'Failed to update verification request',
-      });
-      throw error; // Re-throw to let the form handle it
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handlePreview = (verification: VerificationRequest) => {
     navigation.navigate('ViewVerification', { verificationId: verification.verificationRequestId });
   };
+  
   const handleReview = (verification: VerificationRequest) => {
     navigation.navigate('HrReviewVerification', { verificationId: verification.verificationRequestId });
   };
-
 
   const handleDelete = (id: string) => {
     // Find the verification to check its status
@@ -279,7 +195,7 @@ const EmployeeVerification: React.FC = () => {
       return;
     }
 
-    // Show confirmation popup instead of Alert
+    // Show confirmation popup
     setDeleteConfirmation({
       visible: true,
       id: id,
@@ -321,8 +237,7 @@ const EmployeeVerification: React.FC = () => {
     });
   };
 
-
-  // Verification Card Component - Updated to use API response fields
+  // Verification Card Component
   const renderVerificationCard = ({ item }: { item: VerificationRequest }) => (
     <VerificationCard
       item={item}
@@ -334,9 +249,10 @@ const EmployeeVerification: React.FC = () => {
       onResubmit={handleResubmit}
     />
   );
+
   // Status Filter Component
   const renderStatusFilter = () => (
-    <View className=" mt-3 mb-4">
+    <View className="mt-3 mb-4">
       <FlatList
         horizontal
         data={statusFilters}
@@ -376,28 +292,12 @@ const EmployeeVerification: React.FC = () => {
       {/* Status Filter */}
       {renderStatusFilter()}
 
-      {/* Header with count and create button */}
+      {/* Header with count only - No create button */}
       {totalItems > 0 && (
         <View className="flex-row justify-between items-center mt-4 mb-1">
           <Text className="font-rubik text-xs text-gray-400">
-            {totalItems} verification{totalItems !== 1 ? 's' : ''}
+            {totalItems} incoming verification{totalItems !== 1 ? 's' : ''}
           </Text>
-          {isEmployee(user?.role) &&
-            <TouchableOpacity
-              onPress={() => setIsModalVisible(true)}
-              className="flex-row items-center px-3 py-1.5 rounded-xl border"
-              style={{
-                backgroundColor: colors.primary + '12',
-                borderColor: colors.primary + '40',
-              }}
-            >
-              <Feather name="plus" size={14} color={colors.primary} />
-              <Text className="font-rubik-medium text-sm ml-1.5" style={{ color: colors.primary }}>
-                New Request
-              </Text>
-            </TouchableOpacity>
-          }
-
         </View>
       )}
     </View>
@@ -417,23 +317,16 @@ const EmployeeVerification: React.FC = () => {
     return (
       <View className="flex-1 items-center justify-center px-8 py-16">
         <View className="w-20 h-20 rounded-2xl bg-gray-100 items-center justify-center mb-4">
-          <Feather name="file-text" size={36} color="#CBD5E1" />
+          <Feather name="inbox" size={36} color="#CBD5E1" />
         </View>
         <Text className="font-rubik-bold text-lg text-gray-900 text-center">
-          {searchQuery ? 'No verifications found' : 'No verification requests'}
+          {searchQuery ? 'No incoming verifications found' : 'No incoming verification requests'}
         </Text>
         <Text className="font-rubik text-sm text-gray-400 text-center mt-2 leading-5">
           {searchQuery
             ? `No requests matching "${searchQuery}"`
-            : 'Submit your first employment verification request to get started'}
+            : 'There are no verification requests pending for your review'}
         </Text>
-        {!searchQuery && (
-          <Button
-            title="Create Verification Request"
-            className="mt-4"
-            onPress={() => setIsModalVisible(true)}
-          />
-        )}
       </View>
     );
   };
@@ -441,7 +334,7 @@ const EmployeeVerification: React.FC = () => {
   if (isLoading && verifications.length === 0) {
     return (
       <View className="flex-1 bg-gray-50">
-        <Header title="My Verifications" />
+        <Header title="Incoming Verifications" />
         <Loader fullScreen />
       </View>
     );
@@ -449,7 +342,7 @@ const EmployeeVerification: React.FC = () => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <Header title="My Verifications" />
+      <Header title="Incoming Verifications" />
 
       <FlatList
         data={verifications}
@@ -475,134 +368,6 @@ const EmployeeVerification: React.FC = () => {
         }}
       />
 
-      {/* Create New Verification Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
-        >
-          <TouchableOpacity
-            className="flex-1 bg-black/45"
-            activeOpacity={1}
-            onPress={() => setIsModalVisible(false)}
-          >
-            <View className="flex-1 justify-end">
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={(e) => e.stopPropagation()}
-                className="bg-white rounded-t-3xl shadow-lg max-h-[90%]"
-              >
-                {/* Modal handle bar */}
-                <View className="items-center pt-3">
-                  <View className="w-9 h-1 rounded-full bg-gray-200" />
-                </View>
-
-                {/* Modal header */}
-                <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
-                  <View>
-                    <Text className="font-rubik-bold text-xl text-gray-900">
-                      New Verification Request
-                    </Text>
-                    <Text className="font-rubik text-xs text-gray-400 mt-0.5">
-                      Submit employment details for verification
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setIsModalVisible(false)}
-                    className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
-                  >
-                    <Feather name="x" size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Form */}
-                <VerificationRequestForm
-                  onSubmit={handleSubmitVerificationRequest}
-                  onCancel={() => setIsModalVisible(false)}
-                  isLoading={isSubmitting}
-                />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Edit Verification Modal */}
-      <Modal
-        visible={isEditModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
-        >
-          <TouchableOpacity
-            className="flex-1 bg-black/45"
-            activeOpacity={1}
-            onPress={() => {
-              setIsEditModalVisible(false);
-              setSelectedVerification(null);
-            }}
-          >
-            <View className="flex-1 justify-end">
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={(e) => e.stopPropagation()}
-                className="bg-white rounded-t-3xl shadow-lg max-h-[90%]"
-              >
-                {/* Modal handle bar */}
-                <View className="items-center pt-3">
-                  <View className="w-9 h-1 rounded-full bg-gray-200" />
-                </View>
-
-                {/* Modal header */}
-                <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
-                  <View>
-                    <Text className="font-rubik-bold text-xl text-gray-900">
-                      Edit Verification Request
-                    </Text>
-                    <Text className="font-rubik text-xs text-gray-400 mt-0.5">
-                      Update your employment details
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setIsEditModalVisible(false);
-                      setSelectedVerification(null);
-                    }}
-                    className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
-                  >
-                    <Feather name="x" size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Edit Form */}
-                {selectedVerification && (
-                  <VerificationRequestForm
-                    onSubmit={handleUpdateVerificationRequest}
-                    onCancel={() => {
-                      setIsEditModalVisible(false);
-                      setSelectedVerification(null);
-                    }}
-                    isLoading={isSubmitting}
-                    // You'll need to map your verification data to the form's expected format
-                    // initialData={mapVerificationToFormData(selectedVerification)}
-                    isEdit={true}
-                  />
-                )}
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
-
       {/* Delete Confirmation Popup */}
       <ConfirmationPopup
         visible={deleteConfirmation.visible}
@@ -618,4 +383,4 @@ const EmployeeVerification: React.FC = () => {
   );
 };
 
-export default EmployeeVerification;
+export default IncomingVerificationRequests;

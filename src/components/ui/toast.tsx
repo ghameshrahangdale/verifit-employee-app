@@ -18,7 +18,7 @@ export const toastConfig = {
       style={[shadow]}
       className="w-[90%] bg-white rounded-xl px-3 py-2 flex-row items-center"
     >
-      <Logo source={Images.logo_icon} size="sm" />
+      {/* <Logo source={Images.logo_icon} size="sm" /> */}
       <View className=" flex-1">
         <Text className="text-green-600 font-rubik-semibold text-sm">
           {text1}
