@@ -604,110 +604,66 @@ const EmployeeListScreen: React.FC = () => {
       )}
       {/* ────────────────────────────────────────────────────────────────────── */}
 
-      {canAddEmployee && (
-        <Modal
-          visible={isModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setIsModalVisible(false)}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
+     {canAddEmployee && (
+  <Modal
+    visible={isModalVisible}
+    animationType="slide"
+    transparent={true}
+    onRequestClose={() => setIsModalVisible(false)}
+  >
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1"
+    >
+      <TouchableOpacity
+        className="flex-1 bg-black/45"
+        activeOpacity={1}
+        onPress={() => setIsModalVisible(false)}
+      >
+        <View className="flex-1 justify-end">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            className="bg-white rounded-t-3xl shadow-lg"
+            style={{ maxHeight: '90%' }}
           >
-            <TouchableOpacity
-              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
-              activeOpacity={1}
-              onPress={() => setIsModalVisible(false)}
-            >
-              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                <TouchableOpacity
-                  activeOpacity={1}
-                  onPress={(e) => e.stopPropagation()}
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderTopLeftRadius: 28,
-                    borderTopRightRadius: 28,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.12,
-                    shadowRadius: 24,
-                    shadowOffset: { width: 0, height: -6 },
-                    elevation: 12,
-                  }}
-                >
-                  {/* Modal handle bar */}
-                  <View style={{ alignItems: 'center', paddingTop: 12 }}>
-                    <View
-                      style={{
-                        width: 36,
-                        height: 4,
-                        borderRadius: 2,
-                        backgroundColor: '#E2E8F0',
-                      }}
-                    />
-                  </View>
+            {/* Modal handle bar */}
+            <View className="items-center pt-3">
+              <View className="w-9 h-1 rounded-full bg-gray-200" />
+            </View>
 
-                  {/* Modal header */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      paddingHorizontal: 24,
-                      paddingTop: 16,
-                      paddingBottom: 16,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#F1F5F9',
-                    }}
-                  >
-                    <View>
-                      <Text
-                        style={{
-                          fontFamily: 'Rubik-Bold',
-                          fontSize: 20,
-                          color: '#0F172A',
-                          letterSpacing: -0.3,
-                        }}
-                      >
-                        Add Employee
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: 'Rubik-Regular',
-                          fontSize: 12,
-                          color: '#94A3B8',
-                          marginTop: 2,
-                        }}
-                      >
-                        Invite a new team member
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => setIsModalVisible(false)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 12,
-                        backgroundColor: '#F1F5F9',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Feather name="x" size={18} color="#64748B" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <AddEmployeeForm
-                    onSubmit={handleAddEmployee}
-                    onCancel={() => setIsModalVisible(false)}
-                    isLoading={isAddingEmployee}
-                  />
-                </TouchableOpacity>
+            {/* Modal header */}
+            <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
+              <View>
+                <Text className="font-rubik-bold text-xl text-slate-900 tracking-tight">
+                  Add Employee
+                </Text>
+                <Text className="font-rubik text-xs text-slate-400 mt-0.5">
+                  Invite a new team member
+                </Text>
               </View>
-            </TouchableOpacity>
-          </KeyboardAvoidingView>
-        </Modal>
-      )}
+              <TouchableOpacity
+                onPress={() => setIsModalVisible(false)}
+                className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
+              >
+                <Feather name="x" size={18} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Scrollable content area */}
+            <View className="" style={{ maxHeight: '85%' }}>
+              <AddEmployeeForm
+                onSubmit={handleAddEmployee}
+                onCancel={() => setIsModalVisible(false)}
+                isLoading={isAddingEmployee}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
+  </Modal>
+)}
     </View>
   );
 };

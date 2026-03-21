@@ -14,6 +14,7 @@ import Input from '../ui/Input';
 import Toast from 'react-native-toast-message';
 import http from '../../services/http.api';
 import Icon from 'react-native-vector-icons/Feather';
+import { formatDate } from '../../utils/verificationHelpers';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -519,19 +520,7 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
     setIsEditing(false);
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  
 
   const formatEmploymentType = (type: EmploymentType) => {
     switch (type) {
@@ -903,6 +892,7 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                   value={work.fromDate}
                   onChangeText={(text) => handleWorkHistoryChange(index, 'fromDate', text)}
                   placeholder="YYYY-MM-DD"
+                  type={'date'}
                 />
                 {/* Current Job toggle */}
                 <TouchableOpacity
@@ -1065,10 +1055,10 @@ const EmployeeProfessionalDetails: React.FC<EmployeeProfessionalDetailsProps> = 
                     <Text className="font-rubik text-sm text-gray-500">{qual.institution}</Text>
                     <View className="flex-row gap-4 mt-1">
                       <Text className="font-rubik text-xs text-gray-400">
-                        {qual.percentage ? `${qual.percentage}%` : ''}
+                        {qual.percentage ? `Score: ${qual.percentage}%` : ''}
                       </Text>
                       <Text className="font-rubik text-xs text-gray-400">
-                        {qual.yearOfPassing ? `Batch of ${qual.yearOfPassing}` : ''}
+                        {qual.yearOfPassing ? `${qual.yearOfPassing} Passout` : ''}
                       </Text>
                     </View>
                   </View>

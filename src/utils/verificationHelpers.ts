@@ -24,6 +24,13 @@ export const getStatusConfig = (status: string): StatusConfig => {
       label: 'VERIFIED',
       icon: 'check-circle',
     },
+    APPROVED: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      text: 'text-green-700',
+      label: 'VERIFIED',
+      icon: 'check-circle',
+    },
     REJECTED: {
       bg: 'bg-red-50',
       border: 'border-red-200',

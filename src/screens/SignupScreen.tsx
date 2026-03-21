@@ -71,6 +71,7 @@ const SignupScreen: React.FC = () => {
     confirmPassword: '',
     phone: '',
   });
+  const [registeredEmail, setRegisteredEmail] = useState(String);
 
   const navigation = useNavigation<SignupScreenNavigationProp>();
 
@@ -231,14 +232,16 @@ const SignupScreen: React.FC = () => {
           phone: formData.phone.trim(),
         };
       } else {
-        // Organization registration
         payload = {
           ...payload,
-          // organizationName and organizationAddress will be added in the next step
         };
       }
+      debugger;
 
       const response = await AuthService.register(payload);
+      console.log(response);
+      setRegisteredEmail(response.data.email)
+
 
       // Show success message
       setSuccessMessage(response.message || "Registration successful! Please check your email to verify your account.");
@@ -394,7 +397,7 @@ const SignupScreen: React.FC = () => {
                   className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-3 mb-6 w-full items-center"
                 >
                   <Text className="text-purple-700 font-rubik-medium text-base">
-                    {formData.email}
+                    {registeredEmail}
                   </Text>
                 </TouchableOpacity>
 
@@ -570,6 +573,7 @@ const SignupScreen: React.FC = () => {
                         keyboardType="phone-pad"
                         required
                         error={fieldErrors.phone}
+                        maxLength={10}
                       />
 
                       

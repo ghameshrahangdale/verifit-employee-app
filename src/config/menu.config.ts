@@ -12,7 +12,7 @@ export interface MenuItemConfig {
 // Function to get menu items based on user role
 export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
   const emp = isEmployee(userRole);
-  
+
   return [
     {
       icon: 'user',
@@ -55,7 +55,14 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       route: 'outgoingRequests',
       roles: [ROLES.ADMIN, ROLES.HR],
     },
-    
+    {
+      icon: 'alert-circle', // indicates pending state
+      label: 'Pending Invitations',
+      subtitle: 'View and manage your pending approvals',
+      route: 'pendingInvitations',
+      roles: [ROLES.EMPLOYEE],
+    },
+
     // {
     //   icon: 'bell',
     //   label: 'Notifications',

@@ -22,6 +22,7 @@ import VerifyRequestScreen from '../components/employee/VerifyRequestScreen';
 import EditVerificationRequest from '../components/employee/EditVerificationRequest';
 import IncomingVerificationRequests from '../components/employee/IncomingVerificationRequests';
 import OutgoingVerificationRequests from '../components/employee/OutgoingVerificationRequests';
+import PendingInvitationsScreen from '../screens/PendingInvitationsScreen';
 
 
 export type AppStackParamList = {
@@ -53,6 +54,7 @@ export type AppStackParamList = {
   }
   incomingRequests:undefined;
   outgoingRequests:undefined;
+  pendingInvitations:undefined;
 };
 
 
@@ -93,6 +95,7 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="EditVerification" component={EditVerificationRequest} />
       <Stack.Screen name="incomingRequests" component={IncomingVerificationRequests} />
       <Stack.Screen name="outgoingRequests" component={OutgoingVerificationRequests} />
+      <Stack.Screen name="pendingInvitations" component={PendingInvitationsScreen} />
     </Stack.Navigator>
   );
 };

@@ -3,6 +3,7 @@ import { View, Text, Image, StyleProp, ViewStyle } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+type RoundedType = 'full' | 'corners';
 
 interface AvatarProps {
   name?: string;
@@ -10,6 +11,7 @@ interface AvatarProps {
   imageUrl?: string;
   size?: AvatarSize;
   customSize?: number;
+  rounded?: RoundedType;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -22,17 +24,24 @@ const SIZE_MAP: Record<AvatarSize, number> = {
   '3xl': 120,
 };
 
+const ROUNDED_MAP: Record<RoundedType, number> = {
+  full: 9999,
+  corners: 12,
+};
+
 const Avatar: React.FC<AvatarProps> = ({
   name,
   email,
   imageUrl,
   size = 'md',
   customSize,
+  rounded = 'full',
   style,
 }) => {
   const { user } = useAuth();
 
   const avatarSize = customSize || SIZE_MAP[size];
+  const borderRadius = ROUNDED_MAP[rounded];
 
   // Determine if avatar is used for logged-in user
   const isUsingAuthUser = !name && !email && !imageUrl;
@@ -64,7 +73,7 @@ const Avatar: React.FC<AvatarProps> = ({
         {
           width: avatarSize,
           height: avatarSize,
-          borderRadius: avatarSize / 2,
+          borderRadius: borderRadius,
         },
         style,
       ]}
@@ -76,7 +85,7 @@ const Avatar: React.FC<AvatarProps> = ({
           style={{
             width: avatarSize,
             height: avatarSize,
-            borderRadius: avatarSize / 2,
+            borderRadius: borderRadius,
           }}
           resizeMode="cover"
         />

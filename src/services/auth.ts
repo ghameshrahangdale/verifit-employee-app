@@ -49,6 +49,7 @@ export interface AuthResponse {
   message: string;
   user?: any;
   token?: string;
+  data?:any;
 }
 
 export interface VerifyEmailResponse {
