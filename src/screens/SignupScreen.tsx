@@ -1,5 +1,5 @@
 // screens/SignupScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,25 +18,41 @@ import { AuthStackParamList } from '../navigation/AuthNavigator';
 import Toast from 'react-native-toast-message';
 import Logo from '../components/common/Logo';
 import { useTheme } from '../context/ThemeContext';
-// import Checkbox from '../components/ui/Checkbox'; 
 import Icon from 'react-native-vector-icons/Feather';
+import http from '../services/http.api';
 
 type SignupScreenNavigationProp = StackNavigationProp<
   AuthStackParamList,
   'Signup'
 >;
 
+interface Company {
+  id: string;
+  name: string;
+}
+
+type UserRole = 'organization' | 'employee';
+
 const SignupScreen: React.FC = () => {
   const { colors } = useTheme();
-  // Form state matching web version
+  
+  // Role selection state
+  const [selectedRole, setSelectedRole] = useState<UserRole>('organization');
+  
+  // Companies state for employee registration
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [companyPage, setCompanyPage] = useState(1);
+  const [hasMoreCompanies, setHasMoreCompanies] = useState(true);
+  
+  // Form state
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    // organizationName: '',
-    // organizationAddress: '',
+    phone: '', // Added for employee
   });
 
   const [isChecked, setIsChecked] = useState(false);
@@ -53,9 +69,52 @@ const SignupScreen: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    phone: '',
   });
 
   const navigation = useNavigation<SignupScreenNavigationProp>();
+
+  // Fetch companies when employee role is selected
+  useEffect(() => {
+    if (selectedRole === 'employee') {
+      fetchCompanies();
+    }
+  }, [selectedRole]);
+
+  const fetchCompanies = async (page: number = 1) => {
+    if (loadingCompanies) return;
+
+    setLoadingCompanies(true);
+    try {
+      const response = await http.get(`api/organization?page=${page}&limit=20`);
+
+      const newCompanies = response.data.data;
+
+      if (page === 1) {
+        setCompanies(newCompanies);
+      } else {
+        setCompanies(prev => [...prev, ...newCompanies]);
+      }
+
+      setHasMoreCompanies(response.data.pagination?.hasNextPage || false);
+      setCompanyPage(page);
+
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Load Companies',
+        text2: 'Unable to fetch company list',
+      });
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  const loadMoreCompanies = () => {
+    if (hasMoreCompanies && !loadingCompanies) {
+      fetchCompanies(companyPage + 1);
+    }
+  };
 
   // Handle input changes
   const handleChange = (field: string, value: string) => {
@@ -72,7 +131,8 @@ const SignupScreen: React.FC = () => {
 
     if (error) setError(null);
   };
-  // Validate form
+
+  // Validate form based on role
   const validateForm = (): boolean => {
     let valid = true;
 
@@ -82,6 +142,7 @@ const SignupScreen: React.FC = () => {
       email: '',
       password: '',
       confirmPassword: '',
+      phone: '',
     };
 
     if (!formData.firstName.trim()) {
@@ -122,6 +183,19 @@ const SignupScreen: React.FC = () => {
       valid = false;
     }
 
+    // Employee-specific validations
+    if (selectedRole === 'employee') {
+      if (!formData.phone.trim()) {
+        errors.phone = 'Please enter phone number';
+        valid = false;
+      } else if (!/^\d{10}$/.test(formData.phone.trim())) {
+        errors.phone = 'Please enter a valid 10-digit phone number';
+        valid = false;
+      }
+
+      
+    }
+
     if (!isChecked) {
       setError('Please accept the Terms and Conditions and Privacy Policy');
       valid = false;
@@ -141,16 +215,28 @@ const SignupScreen: React.FC = () => {
     setSuccessMessage(null);
 
     try {
-      // Prepare payload
-      const payload = {
+      // Prepare payload based on role
+      let payload: any = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
         confirmPassword: formData.confirmPassword,
-        // organizationName: formData.organizationName.trim(),
-        // organizationAddress: formData.organizationAddress.trim() || undefined,
       };
+
+      if (selectedRole === 'employee') {
+        payload = {
+          ...payload,
+          role: 'employee',
+          phone: formData.phone.trim(),
+        };
+      } else {
+        // Organization registration
+        payload = {
+          ...payload,
+          // organizationName and organizationAddress will be added in the next step
+        };
+      }
 
       const response = await AuthService.register(payload);
 
@@ -171,15 +257,9 @@ const SignupScreen: React.FC = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        // organizationName: '',
-        // organizationAddress: '',
+        phone: '',
       });
       setIsChecked(false);
-
-      // Navigate to verification screen after delay
-      // setTimeout(() => {
-      //   navigation.navigate('VerifyEmail'); 
-      // }, 3000);
 
     } catch (err: any) {
       // Handle error
@@ -196,6 +276,86 @@ const SignupScreen: React.FC = () => {
     }
   };
 
+  const renderRoleSelector = () => (
+    <View className="mb-6">
+      <Text className="font-rubik-medium text-lg text-gray-700 mb-3">
+        Register as <Text className="text-red-500">*</Text>
+      </Text>
+      <View className="flex-row gap-4">
+        {/* Organization */}
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedRole('organization');
+            // Reset employee-specific fields
+            setFormData(prev => ({
+              ...prev,
+              phone: '',
+            }));
+            setFieldErrors(prev => ({
+              ...prev,
+              phone: '',
+            }));
+          }}
+          className="flex-1 p-4 rounded-xl border"
+          style={{
+            borderColor: selectedRole === 'organization'
+              ? colors.primary
+              : '#E5E7EB',
+            backgroundColor: selectedRole === 'organization'
+              ? `${colors.primary}10`
+              : 'transparent',
+          }}
+          activeOpacity={0.8}
+        >
+          <Text
+            className="font-rubik-medium text-base"
+            style={{
+              color: selectedRole === 'organization'
+                ? colors.primary
+                : '#1F2937',
+            }}
+          >
+            Organization
+          </Text>
+
+          <Text className="font-rubik text-xs mt-1 text-gray-500">
+            Create a new organization account
+          </Text>
+        </TouchableOpacity>
+
+        {/* Employee */}
+        <TouchableOpacity
+          onPress={() => setSelectedRole('employee')}
+          className="flex-1 p-4 rounded-xl border"
+          style={{
+            borderColor: selectedRole === 'employee'
+              ? colors.primary
+              : '#E5E7EB',
+            backgroundColor: selectedRole === 'employee'
+              ? `${colors.primary}10`
+              : 'transparent',
+          }}
+          activeOpacity={0.8}
+        >
+          <Text
+            className="font-rubik-medium text-base"
+            style={{
+              color: selectedRole === 'employee'
+                ? colors.primary
+                : '#1F2937',
+            }}
+          >
+            Employee
+          </Text>
+
+          <Text className="font-rubik text-xs mt-1 text-gray-500">
+            Join an existing organization
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <View className="flex-1 bg-gray-50">
       <KeyboardAvoidingView
@@ -210,7 +370,6 @@ const SignupScreen: React.FC = () => {
 
           <View className="px-6 py-8">
             {successMessage ? (
-
               // Success UI - shown after successful registration
               <View className="items-center px-6 py-10">
 
@@ -224,7 +383,7 @@ const SignupScreen: React.FC = () => {
                   Check your inbox
                 </Text>
                 <Text className="text-gray-500 text-center font-rubik text-sm leading-5 mb-6 px-4">
-                  Your organization account has been created. We've sent a verification link to:
+                  Your account has been created. We've sent a verification link to:
                 </Text>
 
                 {/* Email Display */}
@@ -235,7 +394,7 @@ const SignupScreen: React.FC = () => {
                   className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-3 mb-6 w-full items-center"
                 >
                   <Text className="text-purple-700 font-rubik-medium text-base">
-                    {formData.email || 'aryan@yopmail.com'}
+                    {formData.email}
                   </Text>
                 </TouchableOpacity>
 
@@ -338,6 +497,9 @@ const SignupScreen: React.FC = () => {
 
                 {/* Form Fields */}
                 <View className="space-y-4">
+                  {/* Role Selector */}
+                  {renderRoleSelector()}
+
                   {/* First Name & Last Name Row */}
                   <View className="flex-col gap-3">
                     <View className="flex-1">
@@ -394,10 +556,25 @@ const SignupScreen: React.FC = () => {
                     placeholder="Confirm your password"
                     required
                     error={fieldErrors.confirmPassword}
-
                   />
 
+                  {/* Employee-specific fields */}
+                  {selectedRole === 'employee' && (
+                    <>
+                      {/* Phone */}
+                      <Input
+                        label="Phone Number"
+                        value={formData.phone}
+                        onChangeText={(value) => handleChange('phone', value)}
+                        placeholder="Enter 10-digit phone number"
+                        keyboardType="phone-pad"
+                        required
+                        error={fieldErrors.phone}
+                      />
 
+                      
+                    </>
+                  )}
 
                   {/* Terms Checkbox */}
                   <TouchableOpacity
@@ -426,7 +603,7 @@ const SignupScreen: React.FC = () => {
 
                   {/* Submit Button */}
                   <Button
-                    title={isLoading ? "Creating organization..." : "Register Organization"}
+                    title={isLoading ? "Creating account..." : selectedRole === 'organization' ? "Register Organization" : "Register as Employee"}
                     onPress={handleSignup}
                     loading={isLoading}
                     fullWidth
