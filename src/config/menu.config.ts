@@ -1,4 +1,4 @@
-import { isEmployee, ROLES, UserRole } from "../constants/roles";
+import { isAdminOrHR, isEmployee, ROLES, UserRole } from "../constants/roles";
 
 export interface MenuItemConfig {
   icon: string;
@@ -11,7 +11,8 @@ export interface MenuItemConfig {
 
 // Function to get menu items based on user role
 export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
-  const emp = isEmployee(userRole);
+  const emp = !isAdminOrHR(userRole);
+  console.log(emp, "isEMP")
 
   return [
     {
@@ -27,13 +28,21 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       route: 'teams',
       roles: [ROLES.ADMIN],
     },
-    // {
-    //   icon: 'check-square',
-    //   label: 'Verification Requests',
-    //   subtitle: 'Manage employee verification requests and review status',
-    //   route: 'verificationRequests',
-    //   roles: [ROLES.ADMIN, ROLES.HR,],
-    // },
+       {
+      icon: 'mail',
+      label: 'Sent Invitations',
+      subtitle: 'Track invitations sent to team members',
+      route: 'sentInvitations',
+      roles: [ROLES.ADMIN, ROLES.HR],
+    },
+    
+    {
+      icon: 'file-text',
+      label: 'My Verification Requests',
+      subtitle: 'Create and monitor your verification requests',
+      route: 'myVerificationRequests',
+      roles: [ ROLES.HR, ROLES.ADMIN],
+    },
     {
       icon: 'file-text',
       label: emp ? 'My Verification Requests' : 'All Verification Requests',
@@ -42,33 +51,27 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       roles: [ROLES.EMPLOYEE, ROLES.HR, ROLES.ADMIN],
     },
     {
-      icon: 'inbox', // Updated icon for incoming
+      icon: 'inbox', 
       label: 'Incoming Verification Requests',
       subtitle: 'View and manage verification requests received',
       route: 'incomingRequests',
       roles: [ROLES.ADMIN, ROLES.HR],
     },
     {
-      icon: 'send', // Updated icon for outgoing
+      icon: 'send', 
       label: 'Outgoing Verification Requests',
       subtitle: 'View and track verification requests sent',
       route: 'outgoingRequests',
       roles: [ROLES.ADMIN, ROLES.HR],
     },
     {
-      icon: 'alert-circle', // indicates pending state
-      label: 'Pending Invitations',
+      icon: 'alert-circle', 
+      label: 'Invitations',
       subtitle: 'View and manage your pending approvals',
       route: 'pendingInvitations',
       roles: [ROLES.EMPLOYEE],
     },
 
-    // {
-    //   icon: 'bell',
-    //   label: 'Notifications',
-    //   subtitle: 'Manage notification preferences',
-    //   route: 'Notifications',
-    // },
     {
       icon: 'settings',
       label: 'Settings',

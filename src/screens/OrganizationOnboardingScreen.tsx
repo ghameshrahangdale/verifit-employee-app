@@ -29,6 +29,8 @@ type OrganizationOnboardingScreenNavigationProp = StackNavigationProp<
 >;
 
 const OrganizationOnboardingScreen: React.FC = () => {
+  const { refreshUser, user } = useAuth();
+
   // Form state matching the API requirements
   const [formData, setFormData] = useState({
     name: '',
@@ -39,7 +41,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
     country: '',
     state: '',
     city: '',
-    businessEmail: '',
+    businessEmail: user?.email || '',
     companyWebsite: '',
     logoUrl: '',
     udyamNumber: '',
@@ -66,6 +68,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
     logoUrl: '',
     udyamNumber: '',
     cinNumber: '',
+    companyType:''
   });
 
   const handlePickLogo = async () => {
@@ -104,7 +107,6 @@ const OrganizationOnboardingScreen: React.FC = () => {
   };
 
   const navigation = useNavigation<OrganizationOnboardingScreenNavigationProp>();
-  const { refreshUser } = useAuth();
 
   // Company type options
   const companyTypes = [
@@ -483,7 +485,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
         options={companyTypes}
         placeholder="Select company type"
         required
-        error={fieldErrors.businessEmail}
+        error={fieldErrors.companyType}
       />
 
       <Select
@@ -557,6 +559,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
         placeholder="Enter business email"
         required
         error={fieldErrors.businessEmail}
+        disabled
       />
 
       <Input

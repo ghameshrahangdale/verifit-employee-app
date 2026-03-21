@@ -387,6 +387,7 @@ const TeamManagementScreen: React.FC = () => {
       </View>
     );
   };
+  
   // ─────────────────────────────────────────────────────────────────────────
 
   const renderHeader = () => (

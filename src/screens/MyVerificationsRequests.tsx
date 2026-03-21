@@ -12,21 +12,21 @@ import {
   Alert,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
-import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
-import Header from '../../components/ui/Header';
-import Button from '../../components/ui/Button';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import Header from '../components/ui/Header';
+import Button from '../components/ui/Button';
 import Toast from 'react-native-toast-message';
-import http from '../../services/http.api';
-import Loader from '../../components/ui/Loader';
-import SearchInput from '../../components/ui/SearchInput';
-import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
+import http from '../services/http.api';
+import Loader from '../components/ui/Loader';
+import SearchInput from '../components/ui/SearchInput';
+import VerificationRequestForm, { VerificationFormData, DocumentFile } from '../components/employee/VerificationRequestForm';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { AppStackParamList } from '../../navigation/AppStackNavigator';
-import { isAdminOrHR, isEmployee, ROLES } from '../../constants/roles';
-import { formatDate, getEmploymentTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
-import ConfirmationPopup from '../ui/ConfirmationPopup';
-import VerificationCard from './VerificationCard';
+import { AppStackParamList } from '../navigation/AppStackNavigator';
+import { isAdminOrHR, isEmployee, ROLES } from '../constants/roles';
+import { formatDate, getEmploymentTypeLabel, getStatusConfig } from '../utils/verificationHelpers';
+import ConfirmationPopup from '../components/ui/ConfirmationPopup';
+import VerificationCard from '../components/employee/VerificationCard';
 
 // Update the VerificationRequest interface based on API response
 interface VerificationRequest {
@@ -49,11 +49,10 @@ interface VerificationRequest {
   fileSize?: string;
 }
 
-const EmployeeVerification: React.FC = () => {
+const MyVerificationsRequests: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<NavigationProp<AppStackParamList>>();
-
 
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +107,7 @@ const EmployeeVerification: React.FC = () => {
 
       // Build query params
       const params: any = {
-        view:  'all',
+        view:  'my',
         page,
         limit: 10,
       };
@@ -618,4 +617,4 @@ const EmployeeVerification: React.FC = () => {
   );
 };
 
-export default EmployeeVerification;
+export default MyVerificationsRequests;

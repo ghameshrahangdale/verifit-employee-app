@@ -8,7 +8,7 @@ type RoundedType = 'full' | 'corners';
 interface AvatarProps {
   name?: string;
   email?: string;
-  imageUrl?: string;
+  imageUrl?: any;
   size?: AvatarSize;
   customSize?: number;
   rounded?: RoundedType;

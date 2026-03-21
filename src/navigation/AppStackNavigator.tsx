@@ -23,6 +23,8 @@ import EditVerificationRequest from '../components/employee/EditVerificationRequ
 import IncomingVerificationRequests from '../components/employee/IncomingVerificationRequests';
 import OutgoingVerificationRequests from '../components/employee/OutgoingVerificationRequests';
 import PendingInvitationsScreen from '../screens/PendingInvitationsScreen';
+import MyVerificationsRequests from '../screens/MyVerificationsRequests';
+import SentInvitationsScreen from '../screens/SentInvitations';
 
 
 export type AppStackParamList = {
@@ -55,6 +57,8 @@ export type AppStackParamList = {
   incomingRequests:undefined;
   outgoingRequests:undefined;
   pendingInvitations:undefined;
+  myVerificationRequests:undefined;
+  sentInvitations:undefined;
 };
 
 
@@ -96,6 +100,8 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="incomingRequests" component={IncomingVerificationRequests} />
       <Stack.Screen name="outgoingRequests" component={OutgoingVerificationRequests} />
       <Stack.Screen name="pendingInvitations" component={PendingInvitationsScreen} />
+      <Stack.Screen name="myVerificationRequests" component={MyVerificationsRequests} />
+      <Stack.Screen name="sentInvitations" component={SentInvitationsScreen} />
     </Stack.Navigator>
   );
 };
