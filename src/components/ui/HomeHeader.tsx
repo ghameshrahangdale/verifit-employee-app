@@ -84,9 +84,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             paddingHorizontal: 16,
             paddingVertical: 12,
             backgroundColor: colors.background,
-            elevation: isDarkMode ? 0 : 1,
-            borderBottomWidth: 1,
-            borderBottomColor: '#E5E7EB',
+          
           },
           style,
         ]}

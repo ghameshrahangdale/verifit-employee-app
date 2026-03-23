@@ -6,8 +6,6 @@ import RecentVerifications from '../components/home/RecentVerifications';
 import HomeHeader from '../components/ui/HomeHeader';
 
 const HomeScreen: React.FC = () => {
-
-  // 🔥 Static User Config (Replace later with Redux/API)
   const USER = {
     displayName: 'Ghamesh Rahangdale',
     email: 'ghamesh@example.com',
@@ -15,7 +13,7 @@ const HomeScreen: React.FC = () => {
   };
 
   return (
-    <View>
+    <View className='bg-white'>
       <HomeHeader
         avatarImageUrl={USER.photoURL}
         avatarName={USER.displayName}
@@ -25,7 +23,6 @@ const HomeScreen: React.FC = () => {
       contentContainerStyle={{
         paddingHorizontal: 20,
         paddingTop: 20,
-        paddingBottom: 40,
       }}
       showsVerticalScrollIndicator={false}
     >

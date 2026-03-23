@@ -18,6 +18,8 @@ import Logo from '../components/common/Logo';
 import Toast from 'react-native-toast-message';
 import { AuthService } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Screen } from '../components/layout/Screen';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -31,7 +33,7 @@ const LoginScreen: React.FC = () => {
   const { login, isLoading, error, clearError, getProfile } = useAuth();
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
-   useEffect(() => {
+  useEffect(() => {
     if (email) setEmailError('');
     if (password) setPasswordError('');
     if (error) clearError();
@@ -64,133 +66,137 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleLogin = async () => {
-  if (!validateForm()) return;
-  
-  try {
-    const response = await login(email, password);
-    console.log('Login response:', response); // Debug log
+    if (!validateForm()) return;
 
-    await getProfile();
+    try {
+      const response = await login(email, password);
+      console.log('Login response:', response); // Debug log
 
-    Toast.show({
-      type: 'success',
-      text1: 'Login Successful',
-      text2: 'Welcome back! 👋',
-      visibilityTime: 3000,
-    });
-    
-  } catch (error: any) {
-    Toast.show({
-      type: 'error',
-      text1: 'Login Failed',
-      text2: error.message || 'Failed to login',
-      visibilityTime: 4000,
-    });
-  }
-};
+      await getProfile();
+
+      Toast.show({
+        type: 'success',
+        text1: 'Login Successful',
+        text2: 'Welcome back! 👋',
+        visibilityTime: 3000,
+      });
+
+    } catch (error: any) {
+      console.log(error);
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: error.message || 'Failed to login',
+        visibilityTime: 4000,
+      });
+    }
+  };
 
 
-  
+
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-          showsVerticalScrollIndicator={false}
+    <Screen>
+
+      <View className="flex-1 bg-gray-50">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
         >
-          <View className="px-6 py-8">
-            {/* Card */}
-            <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
-              
-              {/* Logo */}
-              <View className="mb-6 items-center">
-                <Logo size="lg" />
-              </View>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="px-6 py-8">
+              {/* Card */}
+              <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
 
-              {/* Title */}
-              <Text className="text-2xl font-rubik-bold text-gray-900 text-center">
-                Sign in to your account
-              </Text>
-              <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
-                Enter your email and password to sign in!
-              </Text>
-
-              {/* Error Display */}
-              {error ? (
-                <View className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
-                  <Text className="text-red-600 text-center font-rubik text-sm">
-                    {error}
-                  </Text>
+                {/* Logo */}
+                <View className="mb-6 items-center">
+                  <Logo size="lg" />
                 </View>
-              ) : null}
 
-              {/* Inputs */}
-              <Input
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                // autoComplete="email"
-                error={emailError}
-                required
-              />
+                {/* Title */}
+                <Text className="text-2xl font-rubik-bold text-gray-900 text-center">
+                  Sign in to your account
+                </Text>
+                <Text className="text-gray-500 text-center font-rubik mt-1 mb-8">
+                  Enter your email and password to sign in!
+                </Text>
 
-              <Input
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                secureTextEntry
-                error={passwordError}
-                required
-              />
+                {/* Error Display */}
+                {error ? (
+                  <View className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                    <Text className="text-red-600 text-center font-rubik text-sm">
+                      {error}
+                    </Text>
+                  </View>
+                ) : null}
 
-              {/* Forgot Password */}
-              <TouchableOpacity 
-                className="self-end mb-6"
-                onPress={() => navigation.navigate('ForgotPassword')}
-              >
-                <Text className="text-sm font-rubik"
-                style={{color: colors.primary}}
+                {/* Inputs */}
+                <Input
+                  label="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  // autoComplete="email"
+                  error={emailError}
+                  required
+                />
+
+                <Input
+                  label="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  secureTextEntry
+                  error={passwordError}
+                  required
+                />
+
+                {/* Forgot Password */}
+                <TouchableOpacity
+                  className="self-end mb-6"
+                  onPress={() => navigation.navigate('ForgotPassword')}
                 >
-                  Forgot password?
-                </Text>
-              </TouchableOpacity>
-
-              {/* Login Button */}
-              <Button
-                title={isLoading ? "Signing in..." : "Sign In"}
-                onPress={handleLogin}
-                loading={isLoading}
-                disabled={isLoading}
-                fullWidth
-              />
-
-              {/* Signup Link */}
-              <View className="flex-row justify-center mt-6">
-                <Text className="text-gray-600 font-rubik">
-                  Don't have an account?
-                </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                  <Text className=" font-rubik ml-1"
-                  style={{color: colors.primary}}
+                  <Text className="text-sm font-rubik"
+                    style={{ color: colors.primary }}
                   >
-                    Sign up
+                    Forgot password?
                   </Text>
                 </TouchableOpacity>
+
+                {/* Login Button */}
+                <Button
+                  title={isLoading ? "Signing in..." : "Sign In"}
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  fullWidth
+                />
+
+                {/* Signup Link */}
+                <View className="flex-row justify-center mt-6">
+                  <Text className="text-gray-600 font-rubik">
+                    Don't have an account?
+                  </Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+                    <Text className=" font-rubik ml-1"
+                      style={{ color: colors.primary }}
+                    >
+                      Sign up
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </Screen>
   );
 };
 

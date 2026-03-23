@@ -6,6 +6,7 @@ import AppStackNavigator from './AppStackNavigator';
 import SplashScreen from '../screens/SplashScreen';
 import BiometricGate from '../screens/BiometricGateScreen';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
+import { Screen } from '../components/layout/Screen';
 
 const Navigation: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth(); // Removed isSigningUp as it might not exist in AuthContext
@@ -23,7 +24,7 @@ const Navigation: React.FC = () => {
         setIsBiometricLoaded(true);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -50,7 +51,9 @@ const Navigation: React.FC = () => {
   }
 
   // If biometric is not enabled, go directly to app
-  return <AppStackNavigator />;
+  return <Screen>
+    <AppStackNavigator />
+  </Screen>;
 };
 
 export default Navigation;

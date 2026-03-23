@@ -8,6 +8,8 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +21,9 @@ import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 import SearchInput from '../components/ui/SearchInput';
 import ConfirmationPopup from '../components/ui/ConfirmationPopup';
+import AddEmployeeForm from '../components/AddEmployeeForm'; // Import the form
+import Button from '../components/ui/Button'; // Import Button component
+import StatusBadge from '../components/ui/StatusBadge';
 
 interface User {
   id: string;
@@ -65,10 +70,11 @@ interface Summary {
   rejected: number;
 }
 
-interface ApiResponse {
-  invitations: Invitation[];
-  pagination: Pagination;
-  summary: Summary;
+interface AddEmployeeData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'employee';
 }
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
@@ -85,6 +91,9 @@ const SentInvitationsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
 
+  // Check if user can add employees
+  const canAddEmployee = user?.role === 'hr' || user?.role === 'admin';
+
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [pagination, setPagination] = useState<Pagination>({
@@ -93,7 +102,7 @@ const SentInvitationsScreen: React.FC = () => {
     limit: 6,
     totalPages: 1,
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,6 +117,10 @@ const SentInvitationsScreen: React.FC = () => {
     invitationId: string;
     email: string;
   } | null>(null);
+
+  // State for Add Employee Modal
+  const [isAddEmployeeModalVisible, setIsAddEmployeeModalVisible] = useState(false);
+  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
 
   // Status configuration
   const getStatusConfig = (status: string): StatusConfig => {
@@ -177,18 +190,17 @@ const SentInvitationsScreen: React.FC = () => {
 
       const response = await http.get('/api/organization/team/invitations', { params });
 
+      const { invitations: fetchedInvitations, pagination: paginationData, summary: summaryData } = response.data;
 
-        const { invitations: fetchedInvitations, pagination: paginationData, summary: summaryData } = response.data;
-        
-        if (pagination.page === 1) {
-          setInvitations(fetchedInvitations);
-        } else {
-          setInvitations(prev => [...prev, ...fetchedInvitations]);
-        }
-        
-        setPagination(paginationData);
-        setSummary(summaryData);
-      
+      if (pagination.page === 1) {
+        setInvitations(fetchedInvitations);
+      } else {
+        setInvitations(prev => [...prev, ...fetchedInvitations]);
+      }
+
+      setPagination(paginationData);
+      setSummary(summaryData);
+
     } catch (error: any) {
       Toast.show({
         type: 'error',
@@ -228,6 +240,30 @@ const SentInvitationsScreen: React.FC = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  // Add Employee Handler
+  const handleAddEmployee = async (formData: AddEmployeeData) => {
+    try {
+      setIsAddingEmployee(true);
+      await http.post('/api/organization/team', formData);
+      Toast.show({
+        type: 'success',
+        text1: 'Employee Added',
+        text2: `${formData.firstName} ${formData.lastName} has been added`,
+      });
+      setIsAddEmployeeModalVisible(false);
+      handleRefresh(); // Refresh the invitations list
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to Add Employee',
+        text2: error.response?.data?.message || 'Unable to add employee',
+      });
+      throw error;
+    } finally {
+      setIsAddingEmployee(false);
+    }
+  };
+
   const showConfirmationPopup = (type: 'resend' | 'cancel', invitationId: string, email: string) => {
     setPopupConfig({ type, invitationId, email });
     setPopupVisible(true);
@@ -239,18 +275,17 @@ const SentInvitationsScreen: React.FC = () => {
     try {
       setProcessingId(popupConfig.invitationId);
       setPopupVisible(false);
-      
+
       await http.post('/api/organization/team/invitations/resend', {
         invitationId: popupConfig.invitationId,
       });
-      
+
       Toast.show({
         type: 'success',
         text1: 'Invitation Resent',
         text2: `Invitation has been resent to ${popupConfig.email}`,
       });
-      
-      // Refresh the list
+
       handleRefresh();
     } catch (error: any) {
       Toast.show({
@@ -270,16 +305,15 @@ const SentInvitationsScreen: React.FC = () => {
     try {
       setProcessingId(popupConfig.invitationId);
       setPopupVisible(false);
-      
+
       await http.delete(`/api/organization/team/invitations?approvalId=${popupConfig.invitationId}`);
-      
+
       Toast.show({
         type: 'success',
         text1: 'Invitation Cancelled',
         text2: `Invitation to ${popupConfig.email} has been cancelled`,
       });
-      
-      // Refresh the list
+
       handleRefresh();
     } catch (error: any) {
       Toast.show({
@@ -345,25 +379,23 @@ const SentInvitationsScreen: React.FC = () => {
             <TouchableOpacity
               key={filter.value}
               onPress={() => handleStatusFilter(filter.value)}
-              className={`px-4 py-2 rounded-full ${
-                selectedStatus === filter.value
-                  ? 'bg-purple-500'
-                  : 'bg-slate-100'
-              }`}
+              className={`px-4 py-2 rounded-full ${selectedStatus === filter.value
+                ? 'bg-purple-500'
+                : 'bg-slate-100'
+                }`}
             >
               <Text
-                className={`font-rubik-medium text-sm ${
-                  selectedStatus === filter.value
-                    ? 'text-white'
-                    : 'text-slate-600'
-                }`}
+                className={`font-rubik-medium text-sm ${selectedStatus === filter.value
+                  ? 'text-white'
+                  : 'text-slate-600'
+                  }`}
               >
                 {filter.label}
                 {filter.value !== 'all' && summary && (
                   <Text className="ml-1">
-                    ({filter.value === 'pending' ? summary.pending : 
-                      filter.value === 'approved' ? summary.approved : 
-                      summary.rejected})
+                    ({filter.value === 'pending' ? summary.pending :
+                      filter.value === 'approved' ? summary.approved :
+                        summary.rejected})
                   </Text>
                 )}
               </Text>
@@ -407,45 +439,62 @@ const SentInvitationsScreen: React.FC = () => {
               <Text className="font-rubik-bold text-[15px] text-slate-900 tracking-tight">
                 {fullName}
               </Text>
+            </View>
+            <View className='flex-row items-center flex-wrap'>
+              <Text className="font-rubik text-xs text-slate-500 mt-0.5">
+                {item.user.email}
+              </Text>
               {item.user.isEmailVerified && (
                 <Feather name="check-circle" size={12} color="#22C55E" style={{ marginLeft: 4 }} />
               )}
             </View>
-            <Text className="font-rubik text-xs text-slate-500 mt-0.5">
-              {item.user.email}
-            </Text>
-            {item.inviteData.designation && (
-              <Text className="font-rubik text-xs text-slate-600 mt-1">
-                {item.inviteData.designation}
-                {item.inviteData.department && ` • ${item.inviteData.department}`}
-              </Text>
-            )}
           </View>
 
-          {/* Status Badge */}
-          <View className={`px-3 py-1.5 rounded-full ${statusConfig.bgColor} border ${statusConfig.borderColor}`}>
-            <View className="flex-row items-center">
-              <Feather name={statusConfig.icon} size={10} color={statusConfig.textColor.split('-')[1]} />
-              <Text className={`font-rubik-medium text-[10px] tracking-wide ml-1 ${statusConfig.textColor}`}>
-                {statusConfig.text}
-              </Text>
-            </View>
-          </View>
+          <StatusBadge status={item.status} size="small" showIcon={true} />
         </View>
+
+        {/* Designation and Department with Labels */}
+        {(item.inviteData.designation || item.inviteData.department) && (
+          <View className="mt-3 pt-1">
+            {item.inviteData.designation && (
+              <View className="flex-row items-center mb-1.5">
+                <Feather name="briefcase" size={12} color="#94A3B8" />
+                <Text className="font-rubik-medium text-xs text-slate-600 ml-1.5 w-20">
+                  Designation:
+                </Text>
+                <Text className="font-rubik text-xs text-slate-600 flex-1">
+                  {item.inviteData.designation}
+                </Text>
+              </View>
+            )}
+
+            {item.inviteData.department && (
+              <View className="flex-row items-center">
+                <Feather name="grid" size={12} color="#94A3B8" />
+                <Text className="font-rubik-medium text-xs text-slate-600 ml-1.5 w-20">
+                  Department:
+                </Text>
+                <Text className="font-rubik text-xs text-slate-600 flex-1">
+                  {item.inviteData.department}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Divider */}
         <View className="h-px bg-slate-100 my-3" />
 
         {/* Invitation Details */}
-        <View className="flex-row flex-wrap gap-y-2">
-          <View className="flex-row items-center w-1/2">
+        <View className="flex-col gap-y-2">
+          <View className="flex-row items-center">
             <Feather name="calendar" size={12} color="#94A3B8" />
             <Text className="font-rubik text-xs text-slate-600 ml-1.5">
               Sent: {formatShortDate(item.sentAt)}
             </Text>
           </View>
           {item.respondedAt && (
-            <View className="flex-row items-center w-1/2">
+            <View className="flex-row items-center">
               <Feather name="clock" size={12} color="#94A3B8" />
               <Text className="font-rubik text-xs text-slate-600 ml-1.5">
                 Responded: {formatShortDate(item.respondedAt)}
@@ -453,7 +502,7 @@ const SentInvitationsScreen: React.FC = () => {
             </View>
           )}
           {item.inviteData.joiningDate && (
-            <View className="flex-row items-center w-1/2">
+            <View className="flex-row items-center">
               <Feather name="briefcase" size={12} color="#94A3B8" />
               <Text className="font-rubik text-xs text-slate-600 ml-1.5">
                 Joins: {formatShortDate(item.inviteData.joiningDate)}
@@ -481,7 +530,7 @@ const SentInvitationsScreen: React.FC = () => {
                 </>
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center bg-red-50 py-2.5 rounded-lg border border-red-200"
               onPress={() => showConfirmationPopup('cancel', item.approvalId, item.user.email)}
@@ -503,7 +552,6 @@ const SentInvitationsScreen: React.FC = () => {
       </TouchableOpacity>
     );
   };
-
   const renderHeader = () => (
     <View className="pt-4 px-4 pb-2">
       <SearchInput
@@ -517,24 +565,37 @@ const SentInvitationsScreen: React.FC = () => {
         onClear={clearSearch}
       />
       {renderFilterTabs()}
+
+      {/* Add Employee Button - Similar to EmployeeListScreen */}
       {invitations.length > 0 && (
         <View className="flex-row justify-between items-center mt-2 mb-1">
           <Text className="font-rubik text-xs text-slate-400 tracking-wide">
             {pagination.total} invitation{pagination.total !== 1 ? 's' : ''}
           </Text>
+          {canAddEmployee && (
+            <TouchableOpacity
+              onPress={() => setIsAddEmployeeModalVisible(true)}
+              style={{
+                backgroundColor: colors.primary + '12',
+                borderWidth: 1,
+                borderColor: colors.primary + '40',
+              }}
+              className="flex-row items-center px-3 py-1.5 rounded-lg border border-purple-500/20"
+            >
+              <Feather name="user-plus" size={14} color={colors.primary || '#8B5CF6'} />
+              <Text
+                style={{
+                  color: colors.primary,
+                }}
+                className="font-rubik-medium text-xs text-purple-600 ml-1.5">
+                Add Employee
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
   );
-
-  const renderFooter = () => {
-    if (!isLoading || invitations.length === 0) return null;
-    return (
-      <View className="py-4">
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  };
 
   const renderEmpty = () => {
     if (isLoading && invitations.length === 0) return null;
@@ -551,6 +612,13 @@ const SentInvitationsScreen: React.FC = () => {
             ? `No invitations matching your filters`
             : 'Invitations you send to team members will appear here'}
         </Text>
+        {!searchQuery && selectedStatus === 'all' && canAddEmployee && (
+          <Button
+            title="Add Employee"
+            className="mt-4"
+            onPress={() => setIsAddEmployeeModalVisible(true)}
+          />
+        )}
       </View>
     );
   };
@@ -611,7 +679,7 @@ const SentInvitationsScreen: React.FC = () => {
                   <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
                     Invitation Information
                   </Text>
-                  
+
                   <View className="flex-row mb-3">
                     <View className="w-32">
                       <Text className="font-rubik text-xs text-slate-500">Sent Date</Text>
@@ -620,7 +688,7 @@ const SentInvitationsScreen: React.FC = () => {
                       {formatDate(selectedInvitation.sentAt)}
                     </Text>
                   </View>
-                  
+
                   {selectedInvitation.respondedAt && (
                     <View className="flex-row mb-3">
                       <View className="w-32">
@@ -631,7 +699,7 @@ const SentInvitationsScreen: React.FC = () => {
                       </Text>
                     </View>
                   )}
-                  
+
                   {selectedInvitation.inviteData.designation && (
                     <View className="flex-row mb-3">
                       <View className="w-32">
@@ -642,7 +710,7 @@ const SentInvitationsScreen: React.FC = () => {
                       </Text>
                     </View>
                   )}
-                  
+
                   {selectedInvitation.inviteData.department && (
                     <View className="flex-row mb-3">
                       <View className="w-32">
@@ -653,7 +721,7 @@ const SentInvitationsScreen: React.FC = () => {
                       </Text>
                     </View>
                   )}
-                  
+
                   {selectedInvitation.inviteData.joiningDate && (
                     <View className="flex-row">
                       <View className="w-32">
@@ -671,7 +739,7 @@ const SentInvitationsScreen: React.FC = () => {
                   <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
                     Employee Information
                   </Text>
-                  
+
                   <View className="flex-row mb-3">
                     <View className="w-32">
                       <Text className="font-rubik text-xs text-slate-500">Employee ID</Text>
@@ -680,7 +748,7 @@ const SentInvitationsScreen: React.FC = () => {
                       {selectedInvitation.employee.id}
                     </Text>
                   </View>
-                  
+
                   {selectedInvitation.employee.phone && (
                     <View className="flex-row">
                       <View className="w-32">
@@ -710,7 +778,7 @@ const SentInvitationsScreen: React.FC = () => {
                     Resend Invitation
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   className="flex-1 flex-row items-center justify-center bg-red-50 py-3 rounded-xl"
                   onPress={() => {
@@ -751,7 +819,6 @@ const SentInvitationsScreen: React.FC = () => {
           keyExtractor={(item) => item.approvalId}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderFooter}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -772,11 +839,73 @@ const SentInvitationsScreen: React.FC = () => {
 
       {renderDetailsModal()}
 
+      {/* Add Employee Modal */}
+      {canAddEmployee && (
+        <Modal
+          visible={isAddEmployeeModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsAddEmployeeModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            className="flex-1"
+          >
+            <TouchableOpacity
+              className="flex-1 bg-black/45"
+              activeOpacity={1}
+              onPress={() => setIsAddEmployeeModalVisible(false)}
+            >
+              <View className="flex-1 justify-end">
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={(e) => e.stopPropagation()}
+                  className="bg-white rounded-t-3xl shadow-lg"
+                  style={{ maxHeight: '90%' }}
+                >
+                  {/* Modal handle bar */}
+                  <View className="items-center pt-3">
+                    <View className="w-9 h-1 rounded-full bg-gray-200" />
+                  </View>
+
+                  {/* Modal header */}
+                  <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
+                    <View>
+                      <Text className="font-rubik-bold text-xl text-slate-900 tracking-tight">
+                        Add Employee
+                      </Text>
+                      <Text className="font-rubik text-xs text-slate-400 mt-0.5">
+                        Invite a new team member
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setIsAddEmployeeModalVisible(false)}
+                      className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
+                    >
+                      <Feather name="x" size={18} color="#64748B" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Scrollable content area */}
+                  <View className="" style={{ maxHeight: '85%' }}>
+                    <AddEmployeeForm
+                      onSubmit={handleAddEmployee}
+                      onCancel={() => setIsAddEmployeeModalVisible(false)}
+                      isLoading={isAddingEmployee}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </Modal>
+      )}
+
       <ConfirmationPopup
         visible={popupVisible}
         title={popupConfig?.type === 'resend' ? 'Resend Invitation' : 'Cancel Invitation'}
-        message={popupConfig?.type === 'resend' 
-          ? `Are you sure you want to resend the invitation to ${popupConfig?.email}?` 
+        message={popupConfig?.type === 'resend'
+          ? `Are you sure you want to resend the invitation to ${popupConfig?.email}?`
           : `Are you sure you want to cancel the invitation to ${popupConfig?.email}? This action cannot be undone.`}
         confirmText={popupConfig?.type === 'resend' ? 'Resend' : 'Cancel'}
         cancelText="No, Go Back"

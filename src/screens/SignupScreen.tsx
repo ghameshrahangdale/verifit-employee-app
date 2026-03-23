@@ -20,6 +20,7 @@ import Logo from '../components/common/Logo';
 import { useTheme } from '../context/ThemeContext';
 import Icon from 'react-native-vector-icons/Feather';
 import http from '../services/http.api';
+import { Screen } from '../components/layout/Screen';
 
 type SignupScreenNavigationProp = StackNavigationProp<
   AuthStackParamList,
@@ -35,16 +36,16 @@ type UserRole = 'organization' | 'employee';
 
 const SignupScreen: React.FC = () => {
   const { colors } = useTheme();
-  
+
   // Role selection state
   const [selectedRole, setSelectedRole] = useState<UserRole>('organization');
-  
+
   // Companies state for employee registration
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [companyPage, setCompanyPage] = useState(1);
   const [hasMoreCompanies, setHasMoreCompanies] = useState(true);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     firstName: '',
@@ -194,7 +195,7 @@ const SignupScreen: React.FC = () => {
         valid = false;
       }
 
-      
+
     }
 
     if (!isChecked) {
@@ -360,282 +361,284 @@ const SignupScreen: React.FC = () => {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <Screen>
+      <View className="flex-1 bg-gray-50">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
         >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
 
-          <View className="px-6 py-8">
-            {successMessage ? (
-              // Success UI - shown after successful registration
-              <View className="items-center px-6 py-10">
+            <View className="px-6 py-8">
+              {successMessage ? (
+                // Success UI - shown after successful registration
+                <View className="items-center px-6 py-10">
 
-                {/* Icon Badge */}
-                <View className="w-24 h-24 rounded-full bg-purple-100 items-center justify-center mb-6">
-                  <Icon name="check-circle" size={52} color="#9333ea" />
-                </View>
+                  {/* Icon Badge */}
+                  <View className="w-24 h-24 rounded-full bg-purple-100 items-center justify-center mb-6">
+                    <Icon name="check-circle" size={52} color="#9333ea" />
+                  </View>
 
-                {/* Heading */}
-                <Text className="text-2xl font-rubik-bold text-center text-gray-900 mb-2">
-                  Check your inbox
-                </Text>
-                <Text className="text-gray-500 text-center font-rubik text-sm leading-5 mb-6 px-4">
-                  Your account has been created. We've sent a verification link to:
-                </Text>
-
-                {/* Email Display */}
-                <TouchableOpacity
-                  onPress={() => {
-                    // Handle email click - open mail client
-                  }}
-                  className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-3 mb-6 w-full items-center"
-                >
-                  <Text className="text-purple-700 font-rubik-medium text-base">
-                    {registeredEmail}
+                  {/* Heading */}
+                  <Text className="text-2xl font-rubik-bold text-center text-gray-900 mb-2">
+                    Check your inbox
                   </Text>
-                </TouchableOpacity>
-
-                {/* Expiry Warning */}
-                <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 w-full flex-row items-start gap-2">
-                  <Text className="text-amber-500 text-base mt-0.5">⚠️</Text>
-                  <Text className="text-amber-700 font-rubik text-sm leading-5 flex-1">
-                    Verification link expires in <Text className="font-rubik-medium">24 hours</Text>. Please verify your email as soon as possible.
+                  <Text className="text-gray-500 text-center font-rubik text-sm leading-5 mb-6 px-4">
+                    Your account has been created. We've sent a verification link to:
                   </Text>
-                </View>
 
-                {/* Primary CTA */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setSuccessMessage(null);
-                  }}
-                  className="bg-purple-600 rounded-2xl w-full py-4 items-center mb-3 shadow-sm"
-                  activeOpacity={0.85}
-                >
-                  <Text className="text-white font-rubik-bold text-base tracking-wide">
-                    Resend Email
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Secondary CTA */}
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Login')}
-                  className="border border-gray-200 rounded-2xl w-full py-4 items-center mb-8 bg-white"
-                  activeOpacity={0.75}
-                >
-                  <Text className="text-gray-700 font-rubik-medium text-base">
-                    Go to Sign In
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Spam hint */}
-                <Text className="text-gray-400 text-center font-rubik text-xs leading-4 mb-6 px-2">
-                  Can't find the email? Check your spam folder and mark it as "Not Spam".
-                </Text>
-
-                {/* Wrong email */}
-                <View className="flex-row justify-center items-center">
-                  <Text className="text-gray-500 font-rubik text-sm">
-                    Wrong email?{' '}
-                  </Text>
+                  {/* Email Display */}
                   <TouchableOpacity
                     onPress={() => {
-                      // Clear success message to show form again
+                      // Handle email click - open mail client
+                    }}
+                    className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-3 mb-6 w-full items-center"
+                  >
+                    <Text className="text-purple-700 font-rubik-medium text-base">
+                      {registeredEmail}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Expiry Warning */}
+                  <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 w-full flex-row items-start gap-2">
+                    <Text className="text-amber-500 text-base mt-0.5">⚠️</Text>
+                    <Text className="text-amber-700 font-rubik text-sm leading-5 flex-1">
+                      Verification link expires in <Text className="font-rubik-medium">24 hours</Text>. Please verify your email as soon as possible.
+                    </Text>
+                  </View>
+
+                  {/* Primary CTA */}
+                  <TouchableOpacity
+                    onPress={() => {
                       setSuccessMessage(null);
                     }}
-                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    className="bg-purple-600 rounded-2xl w-full py-4 items-center mb-3 shadow-sm"
+                    activeOpacity={0.85}
                   >
-                    <Text className="text-purple-600 font-rubik-medium text-sm underline">
-                      Register again
+                    <Text className="text-white font-rubik-bold text-base tracking-wide">
+                      Resend Email
                     </Text>
                   </TouchableOpacity>
-                </View>
 
-              </View>
-            ) : (
-              <View className="">
-
-                <View className="mb-6 items-start">
-                  <Logo size="md" />
-                </View>
-
-                <Text className="text-2xl font-rubik-bold text-left text-gray-900">
-                  Registration
-                </Text>
-                <Text className="text-gray-500 text-left font-rubik mt-1 mb-6">
-                  Enter your details to create an account!
-                </Text>
-
-                {/* Error Message Display */}
-                {error && (
-                  <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
-                    <Text className="text-red-600 text-center font-rubik">
-                      {error}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Success Message Display */}
-                {successMessage && (
-                  <View className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
-                    <Text className="text-green-600 text-center font-rubik">
-                      {successMessage}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Password Error Display */}
-                {passwordError && (
-                  <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
-                    <Text className="text-red-600 text-center font-rubik">
-                      {passwordError}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Form Fields */}
-                <View className="space-y-4">
-                  {/* Role Selector */}
-                  {renderRoleSelector()}
-
-                  {/* First Name & Last Name Row */}
-                  <View className="flex-col gap-3">
-                    <View className="flex-1">
-                      <Input
-                        label="First Name"
-                        value={formData.firstName}
-                        onChangeText={(value) => handleChange('firstName', value)}
-                        placeholder="Enter first name"
-                        required
-                        error={fieldErrors.firstName}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Input
-                        label="Last Name"
-                        value={formData.lastName}
-                        onChangeText={(value) => handleChange('lastName', value)}
-                        placeholder="Enter last name"
-                        required
-                        error={fieldErrors.lastName}
-                      />
-                    </View>
-                  </View>
-
-                  {/* Email */}
-                  <Input
-                    label="Email"
-                    value={formData.email}
-                    onChangeText={(value) => handleChange('email', value)}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    placeholder="Enter your email"
-                    required
-                    error={fieldErrors.email}
-                  />
-
-                  {/* Password */}
-                  <Input
-                    label="Password"
-                    value={formData.password}
-                    onChangeText={(value) => handleChange('password', value)}
-                    secureTextEntry={!showPassword}
-                    placeholder="Enter your password"
-                    required
-                    error={fieldErrors.password}
-                  />
-
-                  {/* Confirm Password */}
-                  <Input
-                    label="Confirm Password"
-                    value={formData.confirmPassword}
-                    onChangeText={(value) => handleChange('confirmPassword', value)}
-                    secureTextEntry={!showConfirmPassword}
-                    placeholder="Confirm your password"
-                    required
-                    error={fieldErrors.confirmPassword}
-                  />
-
-                  {/* Employee-specific fields */}
-                  {selectedRole === 'employee' && (
-                    <>
-                      {/* Phone */}
-                      <Input
-                        label="Phone Number"
-                        value={formData.phone}
-                        onChangeText={(value) => handleChange('phone', value)}
-                        placeholder="Enter 10-digit phone number"
-                        keyboardType="phone-pad"
-                        required
-                        error={fieldErrors.phone}
-                        maxLength={10}
-                      />
-
-                      
-                    </>
-                  )}
-
-                  {/* Terms Checkbox */}
+                  {/* Secondary CTA */}
                   <TouchableOpacity
-                    onPress={() => setIsChecked(!isChecked)}
-                    className="flex-row items-start space-x-3 mt-2"
+                    onPress={() => navigation.navigate('Login')}
+                    className="border border-gray-200 rounded-2xl w-full py-4 items-center mb-8 bg-white"
+                    activeOpacity={0.75}
                   >
-                    <View className={`w-5 h-5 border-2 rounded mt-1 ${isChecked
-                      ? 'bg-purple-600 border-purple-600'
-                      : 'border-gray-300 bg-white'
-                      }`}>
-                      {isChecked && (
-                        <Text className="text-white text-xs text-center">✓</Text>
-                      )}
-                    </View>
-                    <Text className="flex-1 text-gray-600 font-rubik ml-2 text-sm">
-                      By creating an account means you agree to the{' '}
-                      <Text className="text-gray-900 font-rubik-medium">
-                        Terms and Conditions,
-                      </Text>{' '}
-                      and our{' '}
-                      <Text className="text-gray-900 font-rubik-medium">
-                        Privacy Policy
-                      </Text>
+                    <Text className="text-gray-700 font-rubik-medium text-base">
+                      Go to Sign In
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Submit Button */}
-                  <Button
-                    title={isLoading ? "Creating account..." : selectedRole === 'organization' ? "Register Organization" : "Register as Employee"}
-                    onPress={handleSignup}
-                    loading={isLoading}
-                    fullWidth
-                    className="mt-4"
-                    disabled={isLoading}
-                  />
+                  {/* Spam hint */}
+                  <Text className="text-gray-400 text-center font-rubik text-xs leading-4 mb-6 px-2">
+                    Can't find the email? Check your spam folder and mark it as "Not Spam".
+                  </Text>
 
-                  {/* Login Link */}
-                  <View className="flex-row justify-center mt-4">
-                    <Text className="text-gray-600 font-rubik">
-                      Already have an account?
+                  {/* Wrong email */}
+                  <View className="flex-row justify-center items-center">
+                    <Text className="text-gray-500 font-rubik text-sm">
+                      Wrong email?{' '}
                     </Text>
                     <TouchableOpacity
-                      onPress={() => navigation.navigate('Login')}
+                      onPress={() => {
+                        // Clear success message to show form again
+                        setSuccessMessage(null);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                     >
-                      <Text className=" font-rubik ml-1"
-                        style={{ color: colors.primary }}
-                      >
-                        Sign In
+                      <Text className="text-purple-600 font-rubik-medium text-sm underline">
+                        Register again
                       </Text>
                     </TouchableOpacity>
                   </View>
+
                 </View>
-              </View>)}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+              ) : (
+                <View className="">
+
+                  <View className="mb-6 items-start">
+                    <Logo size="md" />
+                  </View>
+
+                  <Text className="text-2xl font-rubik-bold text-left text-gray-900">
+                    Registration
+                  </Text>
+                  <Text className="text-gray-500 text-left font-rubik mt-1 mb-6">
+                    Enter your details to create an account!
+                  </Text>
+
+                  {/* Error Message Display */}
+                  {error && (
+                    <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                      <Text className="text-red-600 text-center font-rubik">
+                        {error}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Success Message Display */}
+                  {successMessage && (
+                    <View className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                      <Text className="text-green-600 text-center font-rubik">
+                        {successMessage}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Password Error Display */}
+                  {passwordError && (
+                    <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                      <Text className="text-red-600 text-center font-rubik">
+                        {passwordError}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Form Fields */}
+                  <View className="space-y-4">
+                    {/* Role Selector */}
+                    {renderRoleSelector()}
+
+                    {/* First Name & Last Name Row */}
+                    <View className="flex-col gap-3">
+                      <View className="flex-1">
+                        <Input
+                          label="First Name"
+                          value={formData.firstName}
+                          onChangeText={(value) => handleChange('firstName', value)}
+                          placeholder="Enter first name"
+                          required
+                          error={fieldErrors.firstName}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Input
+                          label="Last Name"
+                          value={formData.lastName}
+                          onChangeText={(value) => handleChange('lastName', value)}
+                          placeholder="Enter last name"
+                          required
+                          error={fieldErrors.lastName}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Email */}
+                    <Input
+                      label="Email"
+                      value={formData.email}
+                      onChangeText={(value) => handleChange('email', value)}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholder="Enter your email"
+                      required
+                      error={fieldErrors.email}
+                    />
+
+                    {/* Password */}
+                    <Input
+                      label="Password"
+                      value={formData.password}
+                      onChangeText={(value) => handleChange('password', value)}
+                      secureTextEntry={!showPassword}
+                      placeholder="Enter your password"
+                      required
+                      error={fieldErrors.password}
+                    />
+
+                    {/* Confirm Password */}
+                    <Input
+                      label="Confirm Password"
+                      value={formData.confirmPassword}
+                      onChangeText={(value) => handleChange('confirmPassword', value)}
+                      secureTextEntry={!showConfirmPassword}
+                      placeholder="Confirm your password"
+                      required
+                      error={fieldErrors.confirmPassword}
+                    />
+
+                    {/* Employee-specific fields */}
+                    {selectedRole === 'employee' && (
+                      <>
+                        {/* Phone */}
+                        <Input
+                          label="Phone Number"
+                          value={formData.phone}
+                          onChangeText={(value) => handleChange('phone', value)}
+                          placeholder="Enter 10-digit phone number"
+                          keyboardType="phone-pad"
+                          required
+                          error={fieldErrors.phone}
+                          maxLength={10}
+                        />
+
+
+                      </>
+                    )}
+
+                    {/* Terms Checkbox */}
+                    <TouchableOpacity
+                      onPress={() => setIsChecked(!isChecked)}
+                      className="flex-row items-start space-x-3 mt-2"
+                    >
+                      <View className={`w-5 h-5 border-2 rounded mt-1 ${isChecked
+                        ? 'bg-purple-600 border-purple-600'
+                        : 'border-gray-300 bg-white'
+                        }`}>
+                        {isChecked && (
+                          <Text className="text-white text-xs text-center">✓</Text>
+                        )}
+                      </View>
+                      <Text className="flex-1 text-gray-600 font-rubik ml-2 text-sm">
+                        By creating an account means you agree to the{' '}
+                        <Text className="text-gray-900 font-rubik-medium">
+                          Terms and Conditions,
+                        </Text>{' '}
+                        and our{' '}
+                        <Text className="text-gray-900 font-rubik-medium">
+                          Privacy Policy
+                        </Text>
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Submit Button */}
+                    <Button
+                      title={isLoading ? "Creating account..." : selectedRole === 'organization' ? "Register Organization" : "Register as Employee"}
+                      onPress={handleSignup}
+                      loading={isLoading}
+                      fullWidth
+                      className="mt-4"
+                      disabled={isLoading}
+                    />
+
+                    {/* Login Link */}
+                    <View className="flex-row justify-center mt-4">
+                      <Text className="text-gray-600 font-rubik">
+                        Already have an account?
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate('Login')}
+                      >
+                        <Text className=" font-rubik ml-1"
+                          style={{ color: colors.primary }}
+                        >
+                          Sign In
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>)}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </Screen>
   );
 };
 

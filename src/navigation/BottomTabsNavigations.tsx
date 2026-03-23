@@ -5,6 +5,8 @@ import { useTheme } from '../context/ThemeContext';
 import { TAB_CONFIG } from '../config/tabs.config';
 import { SCREEN_MAP } from '../config/screenMap';
 import { useAuth } from '../context/AuthContext';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+
 
 export type AppTabParamList = {
   Home: undefined;

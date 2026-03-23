@@ -1,22 +1,19 @@
 // App.tsx
 import React from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context'; // MUST be at the root
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider } from 'react-redux';
-import { StatusBar } from 'react-native';
+import { StatusBar, View } from 'react-native';
 import './global.css';
 import { store } from './src/store/store';
 import Navigation from './src/navigation/Navigation';
 import { ThemeProvider } from './src/context/ThemeContext';
-import { AuthProvider } from './src/context/AuthContext'; // Import AuthProvider
+import { AuthProvider } from './src/context/AuthContext';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/components/ui/toast';
 
 const linking = {
-  prefixes: [
-    'verifiit://',
-    'https://verifiit-nextjs.vercel.app',
-  ],
+  prefixes: ['verifiit://', 'https://verifiit-nextjs.vercel.app'],
   config: {
     screens: {
       VerifyEmail: 'verify-email',
@@ -28,12 +25,17 @@ const linking = {
 export default function App() {
   return (
     <Provider store={store}>
+
       <SafeAreaProvider>
         <ThemeProvider>
-          <AuthProvider> {/* Wrap with AuthProvider */}
-             <NavigationContainer linking={linking}>
-              <StatusBar />
+          <AuthProvider>
+
+            <NavigationContainer linking={linking}>
+
+              <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
+
               <Navigation />
+
               <Toast config={toastConfig} />
             </NavigationContainer>
           </AuthProvider>

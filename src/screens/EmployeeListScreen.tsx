@@ -6,9 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
+
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -23,9 +21,6 @@ import SearchInput from '../components/ui/SearchInput';
 import AddEmployeeForm from '../components/AddEmployeeForm';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../navigation/AppStackNavigator';
-
-
-
 
 interface Employee {
   id: string;
@@ -67,9 +62,6 @@ const EmployeeListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
-
-  console.log(employees);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -142,28 +134,7 @@ const EmployeeListScreen: React.FC = () => {
     setSearchQuery('');
   };
 
-  const handleAddEmployee = async (formData: AddEmployeeData) => {
-    try {
-      setIsAddingEmployee(true);
-      await http.post('/api/organization/team', formData);
-      Toast.show({
-        type: 'success',
-        text1: 'Employee Added',
-        text2: `${formData.firstName} ${formData.lastName} has been added`,
-      });
-      setIsModalVisible(false);
-      handleRefresh();
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to Add Employee',
-        text2: error.response?.data?.message || 'Unable to add employee',
-      });
-      throw error;
-    } finally {
-      setIsAddingEmployee(false);
-    }
-  };
+
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -422,33 +393,7 @@ const EmployeeListScreen: React.FC = () => {
           >
             {totalItems} employee{totalItems !== 1 ? 's' : ''}
           </Text>
-          {canAddEmployee && (
-            <TouchableOpacity
-              onPress={() => setIsModalVisible(true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: colors.primary + '12',
-                paddingHorizontal: 12,
-                paddingVertical: 7,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: colors.primary + '40',
-              }}
-            >
-              <Feather name="user-plus" size={14} color={colors.primary} />
-              <Text
-                style={{
-                  fontFamily: 'Rubik-Medium',
-                  fontSize: 13,
-                  color: colors.primary,
-                  marginLeft: 6,
-                }}
-              >
-                Add Employee
-              </Text>
-            </TouchableOpacity>
-          )}
+          
         </View>
       )}
     </View>
@@ -562,68 +507,7 @@ const EmployeeListScreen: React.FC = () => {
       />
 
       
-      {/* ────────────────────────────────────────────────────────────────────── */}
 
-     {canAddEmployee && (
-  <Modal
-    visible={isModalVisible}
-    animationType="slide"
-    transparent={true}
-    onRequestClose={() => setIsModalVisible(false)}
-  >
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/45"
-        activeOpacity={1}
-        onPress={() => setIsModalVisible(false)}
-      >
-        <View className="flex-1 justify-end">
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            className="bg-white rounded-t-3xl shadow-lg"
-            style={{ maxHeight: '90%' }}
-          >
-            {/* Modal handle bar */}
-            <View className="items-center pt-3">
-              <View className="w-9 h-1 rounded-full bg-gray-200" />
-            </View>
-
-            {/* Modal header */}
-            <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
-              <View>
-                <Text className="font-rubik-bold text-xl text-slate-900 tracking-tight">
-                  Add Employee
-                </Text>
-                <Text className="font-rubik text-xs text-slate-400 mt-0.5">
-                  Invite a new team member
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setIsModalVisible(false)}
-                className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
-              >
-                <Feather name="x" size={18} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Scrollable content area */}
-            <View className="" style={{ maxHeight: '85%' }}>
-              <AddEmployeeForm
-                onSubmit={handleAddEmployee}
-                onCancel={() => setIsModalVisible(false)}
-                isLoading={isAddingEmployee}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
-  </Modal>
-)}
     </View>
   );
 };

@@ -172,9 +172,8 @@ const DashboardStats: React.FC = () => {
       setError(null);
       
       const response = await http.get('/api/organization/stats');
-      
  
-        setStats(response.data);
+      setStats(response.data);
    
     } catch (err: any) {
       console.error('Error fetching organization stats:', err);
