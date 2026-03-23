@@ -207,32 +207,15 @@ const EmployeeListScreen: React.FC = () => {
           <View style={{ position: 'relative' }}>
             <View
               style={{
-
                 borderRadius: 50,
                 overflow: 'hidden',
                 backgroundColor: colors.primary + '15',
-                borderWidth: item.isActive ? 2 : 0,
-                borderColor: item.isActive ? '#22C55E' : 'transparent',
+                
               }}
             >
               <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
             </View>
-            {/* Tiny online dot */}
-            {item.isActive && (
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: '#22C55E',
-                  borderWidth: 2,
-                  borderColor: '#FFFFFF',
-                }}
-              />
-            )}
+            
           </View>
 
           {/* Name, Email */}
@@ -578,30 +561,7 @@ const EmployeeListScreen: React.FC = () => {
         }}
       />
 
-      {/* ── Floating Action Button (static, bottom-right) ───────────────────── */}
-      {canAddEmployee && (
-        <TouchableOpacity
-          onPress={() => setIsModalVisible(true)}
-          style={{
-            position: 'absolute',
-            bottom: 28,
-            right: 20,
-            width: 56,
-            height: 56,
-            borderRadius: 18,
-            backgroundColor: colors.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: colors.primary,
-            shadowOpacity: 0.45,
-            shadowRadius: 14,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 8,
-          }}
-        >
-          <Feather name="user-plus" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
+      
       {/* ────────────────────────────────────────────────────────────────────── */}
 
      {canAddEmployee && (

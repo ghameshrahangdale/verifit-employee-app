@@ -63,12 +63,12 @@ const OrganizationOnboardingScreen: React.FC = () => {
     country: '',
     state: '',
     city: '',
-    businessEmail: '',
+    // businessEmail: '',
     companyWebsite: '',
     logoUrl: '',
     udyamNumber: '',
     cinNumber: '',
-    companyType:''
+    companyType: ''
   });
 
   const handlePickLogo = async () => {
@@ -199,13 +199,13 @@ const OrganizationOnboardingScreen: React.FC = () => {
         }
         break;
 
-      case 'businessEmail':
-        if (!value.trim()) {
-          error = 'Business email is required';
-        } else if (!emailRegex.test(value)) {
-          error = 'Please enter valid business email';
-        }
-        break;
+      // case 'businessEmail':
+      //   if (!value.trim()) {
+      //     error = 'Business email is required';
+      //   } else if (!emailRegex.test(value)) {
+      //     error = 'Please enter valid business email';
+      //   }
+      //   break;
 
       case 'udyamNumber':
         if (value && !udyamRegex.test(value.toUpperCase())) {
@@ -279,15 +279,15 @@ const OrganizationOnboardingScreen: React.FC = () => {
         break;
 
       case 3:
-        if (!formData.businessEmail.trim()) {
-          setError("Business email is required");
-          return false;
-        }
+        // if (!formData.businessEmail.trim()) {
+        //   setError("Business email is required");
+        //   return false;
+        // }
         // Email validation
-        if (!formData.businessEmail.includes('@') || !/\S+@\S+\.\S+/.test(formData.businessEmail)) {
-          setError("Please enter a valid business email address");
-          return false;
-        }
+        // if (!formData.businessEmail.includes('@') || !/\S+@\S+\.\S+/.test(formData.businessEmail)) {
+        //   setError("Please enter a valid business email address");
+        //   return false;
+        // }
 
         if (formData.companyWebsite && !urlRegex.test(formData.companyWebsite.trim())) {
           setError("Please enter a valid website URL");
@@ -331,7 +331,7 @@ const OrganizationOnboardingScreen: React.FC = () => {
         country: formData.country.trim(),
         state: formData.state.trim(),
         city: formData.city.trim(),
-        businessEmail: formData.businessEmail.trim(),
+        // businessEmail: formData.businessEmail.trim(),
         companyWebsite: formData.companyWebsite?.trim() || undefined,
         logoUrl: formData.logoUrl || undefined,
         udyamNumber: formData.udyamNumber?.trim() || undefined,
@@ -552,16 +552,11 @@ const OrganizationOnboardingScreen: React.FC = () => {
 
       <Input
         label="Business Email"
-        value={formData.businessEmail}
-        onChangeText={(value) => handleChange('businessEmail', value)}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        placeholder="Enter business email"
-        required
-        error={fieldErrors.businessEmail}
+        value={user?.email || ''}
         disabled
+        placeholder="Business email"
+        onChangeText={() => ''}
       />
-
       <Input
         label="Company Website (Optional)"
         value={formData.companyWebsite}

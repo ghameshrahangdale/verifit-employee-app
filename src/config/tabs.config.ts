@@ -27,14 +27,14 @@ export const TAB_CONFIG = [
     component: 'EmployeeVerification', // You'll need to create this screen
     icon: 'file-text',
     label: 'Requests',
-    roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE],
+    roles: [ROLES.EMPLOYEE],
   },
   {
     name: 'Invitations',
     component: 'PendingInvitationsScreen', // You'll need to create this screen
     icon: 'mail',
     label: 'Invitations',
-    roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE],
+    roles: [ ROLES.EMPLOYEE],
   },
  
   {
@@ -44,11 +44,5 @@ export const TAB_CONFIG = [
     label: 'Profile',
     roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE],
   },
-   {
-    name: 'Settings',
-    component: 'SettingsScreen', // You'll need to create this screen
-    icon: 'settings',
-    label: 'Settings',
-    roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE],
-  },
+   
 ] as const;
