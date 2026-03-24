@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Image,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -19,10 +20,17 @@ import Toast from 'react-native-toast-message';
 import http from '../../services/http.api';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import VerificationRequestForm, { VerificationFormData, DocumentFile } from './VerificationRequestForm';
+import EmploymentRecord from './EmploymentRecord';
 
 interface EmployeeProfile {
   id: string;
   userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dob: string | null;
+  gender: string | null;
   designation: string;
   department: string;
   employmentType: string;
@@ -32,12 +40,14 @@ interface EmployeeProfile {
   aadharNumber: string;
   passportNumber: string;
   uanNumber: string;
+  profileImage: string | null;
   skills: string[];
   qualifications: Qualification[];
   workHistory: WorkHistory[];
   socialProfiles: SocialProfile[];
   createdAt: string;
   updatedAt: string;
+  documents: Document[];
 }
 
 interface Qualification {
@@ -59,6 +69,17 @@ interface WorkHistory {
 interface SocialProfile {
   url: string;
   platform: string;
+}
+
+interface Document {
+  id: string;
+  documentType: string;
+  title: string;
+  fileUrl: string;
+  fileSize: number;
+  contentType: string;
+  verified: boolean;
+  createdAt: string;
 }
 
 const EmployeeDetailsScreen: React.FC = () => {
@@ -98,7 +119,7 @@ const EmployeeDetailsScreen: React.FC = () => {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Present';
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -122,6 +143,7 @@ const EmployeeDetailsScreen: React.FC = () => {
       github: 'github',
       twitter: 'twitter',
       instagram: 'instagram',
+      portfolio: 'globe',
     };
     return map[platform?.toLowerCase()] || 'globe';
   };
@@ -129,12 +151,11 @@ const EmployeeDetailsScreen: React.FC = () => {
   const handleSubmitVerificationRequest = async (data: VerificationFormData, documents: DocumentFile[]) => {
     setIsSubmitting(true);
     try {
-      // Create FormData object
       const formData = new FormData();
 
       const requestData = {
-        employeeId: employeeId, // Using employeeId
-        organizationId: data.organizationId, 
+        employeeId: employeeId,
+        organizationId: data.organizationId,
         designation: data.designation,
         department: data.department,
         employmentType: data.employmentType,
@@ -150,10 +171,8 @@ const EmployeeDetailsScreen: React.FC = () => {
         } : undefined,
       };
 
-      // Append the main data as JSON string
       formData.append('data', JSON.stringify(requestData));
 
-      // Append each document with the required structure
       documents.forEach((doc, index) => {
         formData.append(`documents[${index}][file]`, {
           uri: doc.uri,
@@ -165,9 +184,7 @@ const EmployeeDetailsScreen: React.FC = () => {
         formData.append(`documents[${index}][title]`, doc.title);
       });
 
-      console.log(formData);
-
-      const response = await http.post('/api/verification/employee/create-request', formData, {
+      await http.post('/api/verification/employee/create-request', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -186,7 +203,7 @@ const EmployeeDetailsScreen: React.FC = () => {
         text1: 'Submission Failed',
         text2: error.response?.data?.message || 'Failed to submit verification request',
       });
-      throw error; // Re-throw to let the form handle it
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
@@ -194,7 +211,6 @@ const EmployeeDetailsScreen: React.FC = () => {
 
   // ─── Sub-components ───────────────────────────────────────────────
 
-  /** Section wrapper with label */
   const Section = ({
     label,
     icon,
@@ -205,7 +221,6 @@ const EmployeeDetailsScreen: React.FC = () => {
     children: React.ReactNode;
   }) => (
     <View className="mb-6">
-      {/* Section label row */}
       <View className="flex-row items-center mb-3 px-1">
         <View
           className="w-7 h-7 rounded-lg items-center justify-center mr-2"
@@ -221,7 +236,6 @@ const EmployeeDetailsScreen: React.FC = () => {
     </View>
   );
 
-  /** Card container */
   const Card = ({ children, noPad }: { children: React.ReactNode; noPad?: boolean }) => (
     <View
       className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${noPad ? '' : 'px-4 py-1'}`}
@@ -237,7 +251,6 @@ const EmployeeDetailsScreen: React.FC = () => {
     </View>
   );
 
-  /** Single info row inside a card */
   const InfoRow = ({
     label,
     value,
@@ -255,8 +268,6 @@ const EmployeeDetailsScreen: React.FC = () => {
     </View>
   );
 
-  // ─── Loading ───────────────────────────────────────────────────────
-
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-50">
@@ -267,8 +278,6 @@ const EmployeeDetailsScreen: React.FC = () => {
       </View>
     );
   }
-
-  // ─── Not found ────────────────────────────────────────────────────
 
   if (!profile) {
     return (
@@ -294,8 +303,7 @@ const EmployeeDetailsScreen: React.FC = () => {
   }
 
   const employmentType = getEmploymentTypeBadge(profile.employmentType);
-
-  // ─── Main render ──────────────────────────────────────────────────
+  const fullName = `${profile.firstName} ${profile.lastName}`;
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -319,100 +327,100 @@ const EmployeeDetailsScreen: React.FC = () => {
         >
           <View className="flex-row items-center">
             {/* Avatar */}
-            <View className="rounded-full overflow-hidden ">
-              <Avatar name="Employee" size="xl" />
+            <View className="rounded-full overflow-hidden">
+              {profile.profileImage ? (
+                <Image
+                  source={{ uri: profile.profileImage }}
+                  className="w-16 h-16 rounded-full"
+                />
+              ) : (
+                <Avatar name={fullName} size="xl" />
+              )}
             </View>
 
             {/* Name & meta */}
             <View className="flex-1 ml-4">
-              <Text className="text-lg font-rubik-bold text-gray-900" numberOfLines={1}>
-                {profile.designation}
+              <Text className="text-xl font-rubik-bold text-gray-900" numberOfLines={1}>
+                {fullName}
               </Text>
-              <Text className="text-sm font-rubik text-gray-400 mt-0.5">{profile.department}</Text>
+              <Text className="text-sm font-rubik text-gray-500 mt-0.5">
+                {profile.email}
+              </Text>
+              <Text className="text-sm font-rubik text-gray-500">
+                {profile.phone}
+              </Text>
 
-              {/* Badges */}
-              <View className="flex-row flex-wrap mt-2 gap-2">
-                <View
-                  className="px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: employmentType.bgColor }}
-                >
-                  <Text
-                    className="text-xs font-rubik-medium"
-                    style={{ color: employmentType.color }}
-                  >
-                    {employmentType.label}
-                  </Text>
+              {/* Status Badge */}
+              <View className="flex-row mt-2">
+                <View className="px-2.5 py-1 rounded-full bg-green-100">
+                  <Text className="text-xs font-rubik-medium text-green-700">Active</Text>
                 </View>
-                <View className="px-2.5 py-1 rounded-full bg-gray-100">
-                  <Text className="text-xs font-rubik-medium text-gray-500">
-                    #{profile.userId.slice(0, 8).toUpperCase()}
-                  </Text>
+                <View className="px-2.5 py-1 rounded-full bg-blue-100 ml-2">
+                  <Text className="text-xs font-rubik-medium text-blue-700">Email Verified</Text>
                 </View>
               </View>
             </View>
           </View>
-
-          {/* Joining info strip */}
-          <View className="mt-4 flex-row items-center bg-gray-50 rounded-xl px-4 py-3">
-            <Feather name="calendar" size={14} color="#94A3B8" />
-            <Text className="text-xs font-rubik text-gray-500 ml-2">
-              Joined{' '}
-              <Text className="font-rubik-medium text-gray-700">{formatDate(profile.joiningDate)}</Text>
-            </Text>
-            {profile.relievingDate && (
-              <>
-                <Text className="text-gray-300 mx-2">•</Text>
-                <Feather name="log-out" size={14} color="#94A3B8" />
-                <Text className="text-xs font-rubik text-gray-500 ml-2">
-                  Relieved{' '}
-                  <Text className="font-rubik-medium text-gray-700">
-                    {formatDate(profile.relievingDate)}
-                  </Text>
-                </Text>
-              </>
-            )}
-          </View>
         </View>
 
         <View className="px-4 pt-6">
-          {/* ── Personal IDs ──────────────────────────────────────── */}
-          <Section label="Identity & Compliance" icon="shield">
+          {/* ── Personal Information ──────────────────────────────────────── */}
+          <Section label="Personal Information" icon="user">
             <Card>
-              <InfoRow label="PAN Number" value={profile.panNumber} />
-              <InfoRow label="Aadhar Number" value={profile.aadharNumber} />
-              <InfoRow label="Passport Number" value={profile.passportNumber} />
-              <InfoRow label="UAN Number" value={profile.uanNumber} isLast />
+              <InfoRow label="First Name" value={profile.firstName} />
+              <InfoRow label="Last Name" value={profile.lastName} />
+              <InfoRow label="Phone" value={profile.phone} />
+              <InfoRow label="Date of Birth" value={profile.dob ? formatDate(profile.dob) : 'N/A'} />
+              <InfoRow label="Gender" value={profile.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'N/A'} />
+              <InfoRow label="Address" value="Not provided" isLast />
             </Card>
           </Section>
+
+          {/* ── Employment Details ──────────────────────────────────────── */}
+          <Section label="Employment Details" icon="briefcase">
+            <Card>
+              <InfoRow label="Designation" value={profile.designation} />
+              <InfoRow label="Employment Type" value={employmentType.label} />
+              <InfoRow label="Department" value={profile.department} />
+              <InfoRow label="Joining Date" value={formatDate(profile.joiningDate)} />
+              <InfoRow label="Relieving Date" value={profile.relievingDate ? formatDate(profile.relievingDate) : 'N/A'} isLast />
+            </Card>
+          </Section>
+
+          <EmploymentRecord employeeId={employeeId} />
 
           {/* ── Skills ────────────────────────────────────────────── */}
           {profile.skills && profile.skills.length > 0 && (
             <Section label="Skills" icon="zap">
-              <View className="flex-row flex-wrap gap-2">
-                {profile.skills.map((skill, i) => (
-                  <View
-                    key={i}
-                    className="px-3 py-2 rounded-xl border"
-                    style={{
-                      backgroundColor: `${colors.primary}0D`,
-                      borderColor: `${colors.primary}25`,
-                    }}
-                  >
-                    <Text
-                      className="text-xs font-rubik-medium"
-                      style={{ color: colors.primary }}
-                    >
-                      {skill}
-                    </Text>
+              <Card noPad>
+                <View className="px-4 py-4">
+                  <View className="flex-row flex-wrap gap-2">
+                    {profile.skills.map((skill, i) => (
+                      <View
+                        key={i}
+                        className="px-3 py-2 rounded-xl border"
+                        style={{
+                          backgroundColor: `${colors.primary}0D`,
+                          borderColor: `${colors.primary}25`,
+                        }}
+                      >
+                        <Text
+                          className="text-xs font-rubik-medium"
+                          style={{ color: colors.primary }}
+                        >
+                          {skill}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
+                </View>
+              </Card>
             </Section>
           )}
 
           {/* ── Qualifications ────────────────────────────────────── */}
           {profile.qualifications && profile.qualifications.length > 0 && (
-            <Section label="Education" icon="book-open">
+            <Section label="Qualifications" icon="book-open">
               <Card noPad>
                 {profile.qualifications.map((qual, i) => (
                   <View
@@ -426,10 +434,9 @@ const EmployeeDetailsScreen: React.FC = () => {
                           {qual.institution}
                         </Text>
                         <Text className="text-xs font-rubik text-gray-400 mt-0.5">
-                          Class of {qual.yearOfPassing}
+                          {qual.yearOfPassing}
                         </Text>
                       </View>
-                      {/* Score pill */}
                       <View
                         className="px-2.5 py-1 rounded-full"
                         style={{ backgroundColor: `${colors.primary}15` }}
@@ -450,10 +457,9 @@ const EmployeeDetailsScreen: React.FC = () => {
 
           {/* ── Work History ──────────────────────────────────────── */}
           {profile.workHistory && profile.workHistory.length > 0 && (
-            <Section label="Work History" icon="briefcase">
+            <Section label="Work History" icon="clock">
               {profile.workHistory.map((work, i) => (
                 <View key={i} className="flex-row mb-4">
-                  {/* Timeline line */}
                   <View className="items-center mr-4" style={{ width: 32 }}>
                     <View
                       className="w-8 h-8 rounded-xl items-center justify-center"
@@ -470,7 +476,6 @@ const EmployeeDetailsScreen: React.FC = () => {
                     )}
                   </View>
 
-                  {/* Content card */}
                   <View className="flex-1 bg-white rounded-2xl border border-gray-100 px-4 py-3 mb-1"
                     style={{
                       shadowColor: '#000',
@@ -507,7 +512,17 @@ const EmployeeDetailsScreen: React.FC = () => {
             </Section>
           )}
 
-          {/* ── Social Profiles ───────────────────────────────────── */}
+          {/* ── Identity & Compliance (IDs) ──────────────────────────────────────── */}
+          <Section label="Identity & Compliance" icon="shield">
+            <Card>
+              <InfoRow label="PAN Number" value={profile.panNumber} />
+              <InfoRow label="Aadhar Number" value={profile.aadharNumber} />
+              <InfoRow label="Passport Number" value={profile.passportNumber} />
+              <InfoRow label="UAN Number" value={profile.uanNumber} isLast />
+            </Card>
+          </Section>
+
+          {/* ── Social Profiles (LAST) ───────────────────────────────────── */}
           {profile.socialProfiles && profile.socialProfiles.length > 0 && (
             <Section label="Social Profiles" icon="share-2">
               <Card noPad>
@@ -516,9 +531,8 @@ const EmployeeDetailsScreen: React.FC = () => {
                     key={i}
                     onPress={() => Linking.openURL(social.url)}
                     activeOpacity={0.7}
-                    className={`flex-row items-center px-4 py-3.5 ${
-                      i < profile.socialProfiles.length - 1 ? 'border-b border-gray-50' : ''
-                    }`}
+                    className={`flex-row items-center px-4 py-3.5 ${i < profile.socialProfiles.length - 1 ? 'border-b border-gray-50' : ''
+                      }`}
                   >
                     <View className="w-9 h-9 rounded-xl bg-blue-50 items-center justify-center">
                       <Feather name={getSocialIcon(social.platform)} size={16} color="#0A66C2" />
@@ -568,12 +582,10 @@ const EmployeeDetailsScreen: React.FC = () => {
                 onPress={(e) => e.stopPropagation()}
                 className="bg-white rounded-t-3xl shadow-lg max-h-[90%]"
               >
-                {/* Modal handle bar */}
                 <View className="items-center pt-3">
                   <View className="w-9 h-1 rounded-full bg-gray-200" />
                 </View>
 
-                {/* Modal header */}
                 <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
                   <View>
                     <Text className="font-rubik-bold text-xl text-gray-900">
@@ -591,7 +603,6 @@ const EmployeeDetailsScreen: React.FC = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Form */}
                 <VerificationRequestForm
                   onSubmit={handleSubmitVerificationRequest}
                   onCancel={() => setIsModalVisible(false)}

@@ -106,30 +106,56 @@ const loadStoredAuth = async () => {
 };
 
 const getProfile = async () => {
-  try {
-
-    const response = await http.get('/api/user/profile');
-
-    if (response.data?.user) {
-      const userData = response.data.user;
-
-      setUser(userData);
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-
-      return userData;
+    try {
+      
+      // First get the user data from the main profile endpoint to know the role
+      const response = await http.get('/api/user/profile');
+      
+      if (response.data?.user) {
+        const userData = response.data.user;
+        const userRole = userData.role?.toLowerCase();
+        
+        let fullProfileData = userData;
+        
+        // If user is employee, fetch additional employee details
+        if (userRole === 'employee') {
+          try {
+            const employeeResponse = await http.get('/api/employees/profile');
+            if (employeeResponse.data) {
+              // Merge employee data with user data
+              fullProfileData = {
+                ...userData,
+                ...employeeResponse.data,
+                // Keep user data fields that might override employee data
+                id: userData.id,
+                email: userData.email,
+                role: userData.role,
+              };
+            }
+          } catch (employeeError) {
+            console.error('Error fetching employee profile:', employeeError);
+            // Continue with basic user data if employee details fail
+          }
+        }
+        
+        setUser(fullProfileData);
+        await AsyncStorage.setItem('userData', JSON.stringify(fullProfileData));
+        
+        return fullProfileData;
+      }
+      
+      return null;
+      
+    } catch (error: any) {
+      console.error('Profile fetch error:', error);
+      setError(error.message || 'Failed to fetch profile');
+      return null;
+      
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return null;
-
-  } catch (error: any) {
-    console.error('Profile fetch error:', error);
-    setError(error.message || 'Failed to fetch profile');
-    return null;
-
-  } finally {
-    setIsLoading(false);
-  }
-};
 
 const updateProfile = async ({
   firstName,

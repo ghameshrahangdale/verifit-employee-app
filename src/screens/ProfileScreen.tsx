@@ -19,6 +19,7 @@ import { pick } from '@react-native-documents/picker';
 import EmployeeProfessionalDetails, { PrimaryButton, SecondaryButton } from '../components/employee/EmployeeProfessionalDetails';
 import Icon from 'react-native-vector-icons/Feather';
 import EmployeeDocumentUpload from '../components/employee/EmployeeDocumentUpload';
+import OrganizationMembership from '../components/employee/OrganizationMembership';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,10 +63,12 @@ interface UserData {
   dob?: string;
   gender?: string;
   address?: string;
+  organizationMemberships:any;
 }
 
 interface ProfileResponse {
   user: UserData;
+  
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -313,6 +316,7 @@ const ProfileScreen: React.FC = () => {
   };
 
   const isEmployee = user?.role?.toLowerCase() === 'employee';
+
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (isFetching) {
@@ -685,7 +689,8 @@ const ProfileScreen: React.FC = () => {
         {/* ── Employee Professional Details ─────────────────────────────────── */}
         {isEmployee && (
           <>
-            <EmployeeProfessionalDetails />
+          <EmployeeProfessionalDetails />
+             <OrganizationMembership memberships={profile?.user?.organizationMemberships || []} />
             {/* <EmployeeDocumentUpload /> */}
           </>
         )}
