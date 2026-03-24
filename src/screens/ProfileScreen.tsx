@@ -20,6 +20,7 @@ import EmployeeProfessionalDetails, { PrimaryButton, SecondaryButton } from '../
 import Icon from 'react-native-vector-icons/Feather';
 import EmployeeDocumentUpload from '../components/employee/EmployeeDocumentUpload';
 import OrganizationMembership from '../components/employee/OrganizationMembership';
+import OrganizationDetails from '../components/organization/OrganizationDetails';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,12 +64,12 @@ interface UserData {
   dob?: any;
   gender?: any;
   address?: any;
-  organizationMemberships?:any;
+  organizationMemberships?: any;
 }
 
 interface ProfileResponse {
   user: UserData;
-  
+
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -625,73 +626,18 @@ const ProfileScreen: React.FC = () => {
         {user?.role == "admin" && org && editingSection !== 'personal' && (
           <>
             <SectionHeader title="Organization Details" showEdit={false} />
-
-            <View className="bg-white mx-4 rounded-2xl px-5 py-1 shadow-sm">
-              {/* Org header row */}
-              <View className="flex-row items-center py-4 gap-3.5">
-                {org.logoUrl ? (
-                  <View
-                    className="w-14 h-14 rounded-md border border-gray-200 bg-white overflow-hidden"
-                  >
-                    <Image
-                      source={{ uri: org.logoUrl }}
-                      className="w-full h-full"
-                      resizeMode="contain"
-                    />
-                  </View>
-                ) : (
-                  <View className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 items-center justify-center">
-                    <Text className="font-rubik-bold text-2xl text-indigo-500">
-                      {org.name?.[0]?.toUpperCase() || 'O'}
-                    </Text>
-                  </View>
-                )}
-
-                <View className="flex-1">
-                  <Text className="font-rubik-bold text-base text-gray-900 mb-0.5">
-                    {org.name}
-                  </Text>
-                  <Text className="font-rubik text-xs text-gray-500 capitalize">
-                    {org.companyType} · {org.companySize}
-                  </Text>
-                </View>
-              </View>
-
-              <CardDivider />
-
-              <InfoRow label="Business Email" value={org.businessEmail} />
-              <InfoRow label="Mobile Number" value={org.mobileNumber} />
-              {org.companyWebsite && (
-                <InfoRow label="Website" value={org.companyWebsite} />
-              )}
-              <InfoRow label="Address" value={org.address} isLast />
-            </View>
-
-            {/* ── Location & Registration ──────────────────────────────────── */}
-            <SectionHeader title="Location & Registration" showEdit={false} />
-
-            <View className="bg-white mx-4 rounded-2xl px-5 py-1 shadow-sm">
-              <InfoRow
-                label="City & State"
-                value={[org.city, org.state].filter(Boolean).join(', ')}
-              />
-              <InfoRow label="Country" value={org.country} />
-              <InfoRow label="PAN Number" value={org.panNumber} />
-              {org.cinNumber && <InfoRow label="CIN Number" value={org.cinNumber} />}
-              {org.udyamNumber ? (
-                <InfoRow label="Udyam Number" value={org.udyamNumber} isLast />
-              ) : null}
-            </View>
-
-
+            <OrganizationDetails
+              organization={org}
+              onUpdate={() => fetchUserProfile()}
+            />
           </>
         )}
         {/* ── Employee Professional Details ─────────────────────────────────── */}
         {isEmployee && (
           <>
-          <EmployeeProfessionalDetails />
-             <OrganizationMembership memberships={profile?.user?.organizationMemberships || []} />
-            {/* <EmployeeDocumentUpload /> */}
+            <EmployeeProfessionalDetails />
+            <OrganizationMembership memberships={profile?.user?.organizationMemberships || []} />
+
           </>
         )}
       </ScrollView>
