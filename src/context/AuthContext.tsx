@@ -79,44 +79,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Load stored authentication data
   // In AuthContext.tsx - update the loadStoredAuth function
-const loadStoredAuth = async () => {
-  try {
-    setIsLoading(true);
-    setError(null);
-
-    const storedToken = await AsyncStorage.getItem('authToken');
-
-    if (storedToken) {
-      setToken(storedToken);
-
-      // fetch latest profile from API
-      const profile = await getProfile();
-
-      if (!profile) {
-        await logout();
-      }
-    }
-
-  } catch (error) {
-    console.error('Error loading stored auth:', error);
-    setError('Failed to load authentication data');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const getProfile = async () => {
+  const loadStoredAuth = async () => {
     try {
-      
+      setIsLoading(true);
+      setError(null);
+
+      const storedToken = await AsyncStorage.getItem('authToken');
+
+      if (storedToken) {
+        setToken(storedToken);
+
+        // fetch latest profile from API
+        const profile = await getProfile();
+
+        if (!profile) {
+          await logout();
+        }
+      }
+
+    } catch (error) {
+      console.error('Error loading stored auth:', error);
+      setError('Failed to load authentication data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getProfile = async () => {
+    try {
+
       // First get the user data from the main profile endpoint to know the role
       const response = await http.get('/api/user/profile');
-      
+
       if (response.data?.user) {
         const userData = response.data.user;
         const userRole = userData.role?.toLowerCase();
-        
+
         let fullProfileData = userData;
-        
+
         // If user is employee, fetch additional employee details
         if (userRole === 'employee') {
           try {
@@ -137,115 +137,118 @@ const getProfile = async () => {
             // Continue with basic user data if employee details fail
           }
         }
-        
+
         setUser(fullProfileData);
         await AsyncStorage.setItem('userData', JSON.stringify(fullProfileData));
-        
+
         return fullProfileData;
       }
-      
+
       return null;
-      
+
     } catch (error: any) {
       console.error('Profile fetch error:', error);
       setError(error.message || 'Failed to fetch profile');
       return null;
-      
+
     } finally {
       setIsLoading(false);
     }
   };
 
 
-const updateProfile = async ({
-  firstName,
-  lastName,
-  dob,
-  phone,
-  gender,
-  address,
-  avatarFile,
-}: {
-  firstName: string;
-  lastName: string;
-  dob?: string;
-  phone?: string;
-  gender?: any;
-  address?: any;
-  avatarFile?: any;
-}) => {
-  try {
+  const updateProfile = async ({
+    firstName,
+    lastName,
+    dob,
+    phone,
+    gender,
+    address,
+    avatarFile,
+  }: {
+    firstName: string;
+    lastName: string;
+    dob?: string;
+    phone?: string;
+    gender?: any;
+    address?: any;
+    avatarFile?: any;
+  }) => {
+    try {
 
-    const formData = new FormData();
+      const formData = new FormData();
 
-    formData.append('firstName', firstName);
-    formData.append('lastName', lastName);
-    formData.append('dob', dob || '');
-    formData.append('phone', phone || '');
-    formData.append('gender', gender || '');
-    formData.append('address', address || '');
+      formData.append('firstName', firstName);
+      formData.append('lastName', lastName);
 
-    if (avatarFile) {
-      formData.append('profileImage', {
-        uri: avatarFile.uri,
-        name: avatarFile.name,
-        type: avatarFile.type,
-      } as any);
-    }
+      // Append only if value exists
+      if (dob) formData.append('dob', dob);
+      if (phone) formData.append('phone', phone);
+      if (gender) formData.append('gender', gender);
+      if (address) formData.append('address', address);
 
-    const response = await http.put(
-      '/api/user/profile',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      if (avatarFile) {
+        formData.append('profileImage', {
+          uri: avatarFile.uri,
+          name: avatarFile.name,
+          type: avatarFile.type,
+        } as any);
       }
-    );
+      console.log(formData);
 
-    if (response.data?.user) {
-      const updatedUser = response.data.user;
+      const response = await http.put(
+        '/api/user/profile',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
 
-      setUser(updatedUser);
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+      if (response.data?.user) {
+        const updatedUser = response.data.user;
 
-      return updatedUser;
+        setUser(updatedUser);
+        await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+
+        return updatedUser;
+      }
+
+      return null;
+
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      setError(error.message || 'Failed to update profile');
+      throw error;
+
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return null;
-
-  } catch (error: any) {
-    console.error('Profile update error:', error);
-    setError(error.message || 'Failed to update profile');
-    throw error;
-
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const refreshUser = async () => {
+  const refreshUser = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       // Get current user data from API
       const userData = await AuthService.getCurrentUser();
-      
+
       if (userData) {
         // Update user state
         setUser(userData);
-        
+
         // Update stored user data
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        
+
         console.log('User refreshed:', userData);
         console.log('Organization ID after refresh:', userData.organizationId);
       }
     } catch (error: any) {
       console.error('Error refreshing user:', error);
       setError(error.message || 'Failed to refresh user data');
-      
+
       // If token is invalid, logout
       if (error.message?.includes('token') || error.status === 401) {
         await logout();
@@ -257,42 +260,42 @@ const refreshUser = async () => {
 
   // Login function
   const login = async (email: string, password: string) => {
-  try {
-    setIsLoading(true);
-    setError(null);
+    try {
+      // setIsLoading(true);
+      setError(null);
 
-    const response = await AuthService.login(email, password);
-    console.log(response);
+      const response = await AuthService.login(email, password);
+      console.log(response);
 
-    if (response.token) {
-      setToken(response.token);
+      if (response.token) {
+        setToken(response.token);
 
-      if (response.user) {
-        setUser(response.user);
+        if (response.user) {
+          setUser(response.user);
 
-        // ✅ check organizationId
-        if (!response.user.organizationId) {
-          setIsOnboarding(true);
-        } else {
-          setIsOnboarding(false);
+          // ✅ check organizationId
+          if (!response.user.organizationId) {
+            setIsOnboarding(true);
+          } else {
+            setIsOnboarding(false);
+          }
+
+          await AsyncStorage.setItem('userData', JSON.stringify(response.user));
         }
 
-        await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+        await AsyncStorage.setItem('authToken', response.token);
       }
 
-      await AsyncStorage.setItem('authToken', response.token);
+      return response;
+
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-
-    return response;
-
-  } catch (error: any) {
-    const errorMessage = error.message || 'Login failed. Please try again.';
-    setError(errorMessage);
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // Register function
   const register = async (userData: any) => {
@@ -301,7 +304,7 @@ const refreshUser = async () => {
       setError(null);
 
       await AuthService.register(userData);
-      
+
       // Don't set user/token here as email verification might be required
     } catch (error: any) {
       const errorMessage = error.message || 'Registration failed. Please try again.';
@@ -319,15 +322,15 @@ const refreshUser = async () => {
       setError(null);
 
       await AuthService.logout();
-      
+
       // Clear state
       setUser(null);
       setToken(null);
-      
+
       // Clear storage
       await AsyncStorage.removeItem('authToken');
       await AsyncStorage.removeItem('userData');
-      
+
     } catch (error: any) {
       console.error('Logout error:', error);
       setError(error.message || 'Logout failed');
@@ -363,7 +366,7 @@ const refreshUser = async () => {
         logout,
         updateUser,
         getProfile,        // ✅
-    updateProfile,  
+        updateProfile,
         clearError,
         error,
         refreshUser,

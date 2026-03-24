@@ -21,6 +21,14 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       subtitle: 'View and edit your personal details',
       route: 'MyProfile',
     },
+        {
+      icon: 'briefcase', // or 'layers', 'home', 'building'
+      label: 'Sub Organizations',
+      subtitle: 'Manage your organizations and branches',
+      route: 'subOrganizations',
+      roles: [ROLES.ADMIN],
+    },
+
     {
       icon: 'user',
       label: 'HR Management',

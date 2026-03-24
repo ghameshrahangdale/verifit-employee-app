@@ -20,6 +20,7 @@ import { AuthService } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Screen } from '../components/layout/Screen';
+import Icon from 'react-native-vector-icons/Feather'; // Import Icon
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -28,9 +29,12 @@ const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null); // Add success state
 
   const { colors } = useTheme();
-  const { login, isLoading, error, clearError, getProfile } = useAuth();
+  const { login, error, clearError, getProfile } = useAuth();
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
   useEffect(() => {
@@ -67,13 +71,20 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     if (!validateForm()) return;
-
+    
     try {
+      setIsLoading(true);
+      setErrorMessage('');
+      setSuccessMessage(null); // Clear any previous success message
+      
       const response = await login(email, password);
       console.log('Login response:', response); // Debug log
 
       await getProfile();
 
+      // Show success message
+      setSuccessMessage('Login successful! Welcome back! 👋');
+      
       Toast.show({
         type: 'success',
         text1: 'Login Successful',
@@ -81,7 +92,13 @@ const LoginScreen: React.FC = () => {
         visibilityTime: 3000,
       });
 
+      // Optional: Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+
     } catch (error: any) {
+      setErrorMessage(error.message || 'Failed to login');
       console.log(error);
       Toast.show({
         type: 'error',
@@ -89,15 +106,13 @@ const LoginScreen: React.FC = () => {
         text2: error.message || 'Failed to login',
         visibilityTime: 4000,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-
-
-
   return (
     <Screen>
-
       <View className="flex-1 bg-gray-50">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -111,7 +126,7 @@ const LoginScreen: React.FC = () => {
             <View className="px-6 py-8">
               {/* Card */}
               <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
-
+                
                 {/* Logo */}
                 <View className="mb-6 items-center">
                   <Logo size="lg" />
@@ -125,14 +140,51 @@ const LoginScreen: React.FC = () => {
                   Enter your email and password to sign in!
                 </Text>
 
-                {/* Error Display */}
-                {error ? (
+                {/* Success Message Display - Enhanced Badge */}
+                {successMessage && (
+                  <View className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex-row items-center gap-3">
+                    <View className="w-8 h-8 rounded-full bg-green-100 items-center justify-center">
+                      <Icon name="check-circle" size={20} color="#10b981" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-green-800 font-rubik-medium text-sm">
+                        Success!
+                      </Text>
+                      <Text className="text-green-700 font-rubik text-sm">
+                        {successMessage}
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      onPress={() => setSuccessMessage(null)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Icon name="x" size={18} color="#10b981" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Error Message Display - Enhanced Badge */}
+                {errorMessage && (
+                  <View className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex-row items-center gap-3">
+                  
+                    <View className="flex-1">
+                      
+                      <Text className="text-red-700 font-rubik text-sm">
+                        {errorMessage}
+                      </Text>
+                    </View>
+                    
+                  </View>
+                )}
+
+                {/* Legacy error display - keep for backward compatibility if needed */}
+                {error && !errorMessage && (
                   <View className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
                     <Text className="text-red-600 text-center font-rubik text-sm">
                       {error}
                     </Text>
                   </View>
-                ) : null}
+                )}
 
                 {/* Inputs */}
                 <Input
@@ -142,7 +194,6 @@ const LoginScreen: React.FC = () => {
                   placeholder="Enter your email"
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  // autoComplete="email"
                   error={emailError}
                   required
                 />

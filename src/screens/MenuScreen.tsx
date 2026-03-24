@@ -88,13 +88,7 @@ const MenuScreen: React.FC = () => {
         visibilityTime: 3000,
       });
 
-      // Reset navigation to Auth stack
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: 'Auth' }], // Make sure this matches your auth navigator name
-        })
-      );
+      
 
     } catch (error: any) {
       console.error('Logout error:', error);

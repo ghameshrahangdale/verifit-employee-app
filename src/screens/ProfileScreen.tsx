@@ -58,12 +58,12 @@ interface UserData {
   updatedAt: string;
   profileImage?: string;
   organization?: OrganizationData;
-  // Personal fields
-  phone?: string;
-  dob?: string;
-  gender?: string;
-  address?: string;
-  organizationMemberships:any;
+
+  phone?: any;
+  dob?: any;
+  gender?: any;
+  address?: any;
+  organizationMemberships?:any;
 }
 
 interface ProfileResponse {
@@ -189,10 +189,10 @@ const ProfileScreen: React.FC = () => {
         lastName: profile.user.lastName || '',
         email: profile.user.email || '',
         role: profile.user.role || '',
-        phone: profile.user.phone || '',
-        dob: profile.user.dob || '',
-        gender: profile.user.gender || '',
-        address: profile.user.address || '',
+        phone: profile.user.phone,
+        dob: profile.user.dob,
+        gender: profile.user.gender,
+        address: profile.user.address,
       });
     }
   }, [profile]);

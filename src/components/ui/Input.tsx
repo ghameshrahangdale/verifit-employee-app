@@ -7,8 +7,8 @@ import { Picker } from '@react-native-picker/picker';
 
 interface InputProps {
   label?: string;
-  value: string;
-  onChangeText: (text: string) => void;
+  value: any;
+  onChangeText: (text: any) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
   error?: string;

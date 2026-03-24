@@ -25,6 +25,7 @@ import OutgoingVerificationRequests from '../components/employee/OutgoingVerific
 import PendingInvitationsScreen from '../screens/PendingInvitationsScreen';
 import MyVerificationsRequests from '../screens/MyVerificationsRequests';
 import SentInvitationsScreen from '../screens/SentInvitations';
+import SubOrganizationsScreen from '../screens/SubOrganizationsScreen';
 
 
 export type AppStackParamList = {
@@ -58,6 +59,7 @@ export type AppStackParamList = {
   outgoingRequests:undefined;
   pendingInvitations:undefined;
   myVerificationRequests:undefined;
+  subOrganizations:undefined;
   sentInvitations:undefined;
 };
 
@@ -102,6 +104,7 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="pendingInvitations" component={PendingInvitationsScreen} />
       <Stack.Screen name="myVerificationRequests" component={MyVerificationsRequests} />
       <Stack.Screen name="sentInvitations" component={SentInvitationsScreen} />
+      <Stack.Screen name="subOrganizations" component={SubOrganizationsScreen} />
     </Stack.Navigator>
   );
 };
