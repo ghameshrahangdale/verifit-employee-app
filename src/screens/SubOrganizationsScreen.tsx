@@ -15,14 +15,12 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/ui/Header';
-import Avatar from '../components/ui/Avatar';
 import Toast from 'react-native-toast-message';
 import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 import SearchInput from '../components/ui/SearchInput';
 import ConfirmationPopup from '../components/ui/ConfirmationPopup';
 import Button from '../components/ui/Button';
-import StatusBadge from '../components/ui/StatusBadge';
 import Input from '../components/ui/Input';
 
 interface SubOrganization {
@@ -32,27 +30,17 @@ interface SubOrganization {
   city: string;
   state: string;
   country: string;
-  status: 'active' | 'inactive' | 'pending';
-  adminFirstName: string;
-  adminLastName: string;
+  mobileNumber: string | null;
+  companyWebsite: string | null;
+  address: string | null;
+  companyType: string | null;
+  companySize: string | null;
+  logoUrl: string | null;
+  logoStoragePath: string | null;
+  isOnboardingComplete: boolean;
   createdAt: string;
   updatedAt: string;
-  employeeCount?: number;
-  totalEmployees?: number;
-}
-
-interface Pagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-interface Summary {
-  total: number;
-  active: number;
-  inactive: number;
-  pending: number;
+  parentOrganizationId: string;
 }
 
 interface AddSubOrgData {
@@ -65,43 +53,24 @@ interface AddSubOrgData {
   adminLastName: string;
 }
 
-type FilterStatus = 'all' | 'active' | 'inactive' | 'pending';
-
-interface StatusConfig {
-  text: string;
-  bgColor: string;
-  borderColor: string;
-  textColor: string;
-  icon: string;
-}
-
 const SubOrganizationsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
 
-  // Check if user can add sub-organizations (only admin or super admin)
-  const canAddSubOrg = user?.role === 'admin' || user?.role === 'super_admin';
+  // Check if user can add sub-organizations (only admin)
+  const canAddSubOrg = user?.role === 'admin';
 
   const [subOrganizations, setSubOrganizations] = useState<SubOrganization[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [pagination, setPagination] = useState<Pagination>({
-    total: 0,
-    page: 1,
-    limit: 6,
-    totalPages: 1,
-  });
-
+  const [filteredSubOrganizations, setFilteredSubOrganizations] = useState<SubOrganization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<FilterStatus>('all');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedSubOrg, setSelectedSubOrg] = useState<SubOrganization | null>(null);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupConfig, setPopupConfig] = useState<{
-    type: 'activate' | 'deactivate';
+    type: 'delete';
     subOrgId: string;
     name: string;
   } | null>(null);
@@ -110,78 +79,16 @@ const SubOrganizationsScreen: React.FC = () => {
   const [isAddSubOrgModalVisible, setIsAddSubOrgModalVisible] = useState(false);
   const [isAddingSubOrg, setIsAddingSubOrg] = useState(false);
 
-  // Status configuration
-  const getStatusConfig = (status: string): StatusConfig => {
-    const statusMap: Record<string, StatusConfig> = {
-      active: {
-        text: 'ACTIVE',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200',
-        textColor: 'text-green-700',
-        icon: 'check-circle',
-      },
-      inactive: {
-        text: 'INACTIVE',
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-200',
-        textColor: 'text-red-700',
-        icon: 'x-circle',
-      },
-      pending: {
-        text: 'PENDING',
-        bgColor: 'bg-amber-50',
-        borderColor: 'border-amber-200',
-        textColor: 'text-amber-700',
-        icon: 'clock',
-      },
-    };
-
-    return statusMap[status.toLowerCase()] || statusMap.pending;
-  };
-
-  // Debounce search
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
-
-  // Fetch sub-organizations when filters change
-  useEffect(() => {
-    fetchSubOrganizations();
-  }, [debouncedSearchQuery, selectedStatus, pagination.page]);
-
+  // Fetch sub-organizations
   const fetchSubOrganizations = async () => {
     try {
       setIsLoading(true);
-
-      const params: any = {
-        page: pagination.page,
-        limit: pagination.limit,
-      };
-
-      if (selectedStatus !== 'all') {
-        params.status = selectedStatus;
-      }
-
-      if (debouncedSearchQuery) {
-        params.search = debouncedSearchQuery;
-      }
-
-      const response = await http.get('/api/organization/sub-organizations', { params });
-
-      const { subOrganizations: fetchedSubOrgs, pagination: paginationData, summary: summaryData } = response.data;
-
-      if (pagination.page === 1) {
-        setSubOrganizations(fetchedSubOrgs);
-      } else {
-        setSubOrganizations(prev => [...prev, ...fetchedSubOrgs]);
-      }
-
-      setPagination(paginationData);
-      setSummary(summaryData);
-
+      const response = await http.get('/api/organization/sub-organizations');
+      
+      // The response structure: { success: true, message: string, data: SubOrganization[] }
+      const fetchedSubOrgs = response.data || [];
+      setSubOrganizations(fetchedSubOrgs);
+      setFilteredSubOrganizations(fetchedSubOrgs);
     } catch (error: any) {
       Toast.show({
         type: 'error',
@@ -194,31 +101,36 @@ const SubOrganizationsScreen: React.FC = () => {
     }
   };
 
+  // Filter sub-organizations based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredSubOrganizations(subOrganizations);
+    } else {
+      const filtered = subOrganizations.filter(org => 
+        org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        org.businessEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        org.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        org.country?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredSubOrganizations(filtered);
+    }
+  }, [searchQuery, subOrganizations]);
+
+  useEffect(() => {
+    fetchSubOrganizations();
+  }, []);
+
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    setPagination(prev => ({ ...prev, page: 1 }));
     fetchSubOrganizations();
-  }, [debouncedSearchQuery, selectedStatus]);
-
-  const loadMore = () => {
-    if (!isLoading && pagination.page < pagination.totalPages) {
-      setPagination(prev => ({ ...prev, page: prev.page + 1 }));
-    }
-  };
+  }, []);
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const clearSearch = () => {
     setSearchQuery('');
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleStatusFilter = (status: FilterStatus) => {
-    setSelectedStatus(status);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // Add Sub-Organization Handler
@@ -232,7 +144,7 @@ const SubOrganizationsScreen: React.FC = () => {
         text2: `${formData.name} has been created successfully`,
       });
       setIsAddSubOrgModalVisible(false);
-      handleRefresh(); // Refresh the list
+      fetchSubOrganizations(); // Refresh the list
     } catch (error: any) {
       Toast.show({
         type: 'error',
@@ -245,60 +157,32 @@ const SubOrganizationsScreen: React.FC = () => {
     }
   };
 
-  const showConfirmationPopup = (type: 'activate' | 'deactivate', subOrgId: string, name: string) => {
+  const showConfirmationPopup = (type: 'delete', subOrgId: string, name: string) => {
     setPopupConfig({ type, subOrgId, name });
     setPopupVisible(true);
   };
 
-  const handleActivateSubOrganization = async () => {
+  const handleDeleteSubOrganization = async () => {
     if (!popupConfig) return;
 
     try {
       setProcessingId(popupConfig.subOrgId);
       setPopupVisible(false);
 
-      await http.patch(`/api/organization/sub-organizations/${popupConfig.subOrgId}/activate`);
+      await http.delete(`/api/organization/sub-organizations/${popupConfig.subOrgId}`);
 
       Toast.show({
         type: 'success',
-        text1: 'Sub-Organization Activated',
-        text2: `${popupConfig.name} has been activated successfully`,
+        text1: 'Sub-Organization Deleted',
+        text2: `${popupConfig.name} has been deleted successfully`,
       });
 
-      handleRefresh();
+      fetchSubOrganizations();
     } catch (error: any) {
       Toast.show({
         type: 'error',
-        text1: 'Failed to Activate Sub-Organization',
-        text2: error.response?.data?.message || 'Unable to activate sub-organization',
-      });
-    } finally {
-      setProcessingId(null);
-      setPopupConfig(null);
-    }
-  };
-
-  const handleDeactivateSubOrganization = async () => {
-    if (!popupConfig) return;
-
-    try {
-      setProcessingId(popupConfig.subOrgId);
-      setPopupVisible(false);
-
-      await http.patch(`/api/organization/sub-organizations/${popupConfig.subOrgId}/deactivate`);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Sub-Organization Deactivated',
-        text2: `${popupConfig.name} has been deactivated successfully`,
-      });
-
-      handleRefresh();
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to Deactivate Sub-Organization',
-        text2: error.response?.data?.message || 'Unable to deactivate sub-organization',
+        text1: 'Failed to Delete Sub-Organization',
+        text2: error.response?.data?.message || 'Unable to delete sub-organization',
       });
     } finally {
       setProcessingId(null);
@@ -307,10 +191,8 @@ const SubOrganizationsScreen: React.FC = () => {
   };
 
   const handleConfirmAction = () => {
-    if (popupConfig?.type === 'activate') {
-      handleActivateSubOrganization();
-    } else if (popupConfig?.type === 'deactivate') {
-      handleDeactivateSubOrganization();
+    if (popupConfig?.type === 'delete') {
+      handleDeleteSubOrganization();
     }
   };
 
@@ -330,58 +212,16 @@ const SubOrganizationsScreen: React.FC = () => {
     });
   };
 
-  const getAdminFullName = (adminFirstName: string, adminLastName: string) => {
-    return `${adminFirstName} ${adminLastName}`.trim();
-  };
-
-  const renderFilterTabs = () => {
-    const filters: { label: string; value: FilterStatus }[] = [
-      { label: 'All', value: 'all' },
-      { label: 'Active', value: 'active' },
-      { label: 'Inactive', value: 'inactive' },
-      { label: 'Pending', value: 'pending' },
-    ];
-
-    return (
-      <View className="mt-3 mb-3">
-        <View className="flex-row gap-2">
-          {filters.map((filter) => (
-            <TouchableOpacity
-              key={filter.value}
-              onPress={() => handleStatusFilter(filter.value)}
-              className={`px-4 py-2 rounded-full ${selectedStatus === filter.value
-                ? 'bg-purple-500'
-                : 'bg-slate-100'
-                }`}
-            >
-              <Text
-                className={`font-rubik-medium text-sm ${selectedStatus === filter.value
-                  ? 'text-white'
-                  : 'text-slate-600'
-                  }`}
-              >
-                {filter.label}
-                {filter.value !== 'all' && summary && (
-                  <Text className="ml-1">
-                    ({filter.value === 'active' ? summary.active :
-                      filter.value === 'inactive' ? summary.inactive :
-                        summary.pending})
-                  </Text>
-                )}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    );
+  const formatShortDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   const renderSubOrganizationCard = ({ item }: { item: SubOrganization }) => {
     const isProcessing = processingId === item.id;
-    const statusConfig = getStatusConfig(item.status);
-    const adminFullName = getAdminFullName(item.adminFirstName, item.adminLastName);
-    const isActive = item.status === 'active';
-    const isPending = item.status === 'pending';
 
     return (
       <TouchableOpacity
@@ -396,98 +236,71 @@ const SubOrganizationsScreen: React.FC = () => {
         <View className="flex-row items-start">
           {/* Organization Icon */}
           <View className="w-12 h-12 rounded-xl bg-purple-100 items-center justify-center">
-            <Feather name="building" size={24} color="#8B5CF6" />
+            <Feather name="briefcase" size={24} color="#8B5CF6" />
           </View>
 
           {/* Organization Details */}
           <View className="flex-1 ml-3">
-            <View className="flex-row items-center flex-wrap justify-between">
-              <Text className="font-rubik-bold text-[15px] text-slate-900 tracking-tight flex-1 mr-2">
-                {item.name}
-              </Text>
-              <StatusBadge status={item.status} size="small" showIcon={true} />
-            </View>
+            <Text className="font-rubik-bold text-[15px] text-slate-900 tracking-tight">
+              {item.name}
+            </Text>
             <Text className="font-rubik text-xs text-slate-500 mt-0.5">
               {item.businessEmail}
+            </Text>
+          </View>
+
+          {/* Status Badge - Based on onboarding completion */}
+          <View className={`px-2 py-1 rounded-full ${item.isOnboardingComplete ? 'bg-green-50' : 'bg-amber-50'}`}>
+            <Text className={`font-rubik-medium text-xs ${item.isOnboardingComplete ? 'text-green-700' : 'text-amber-700'}`}>
+              {item.isOnboardingComplete ? 'COMPLETED' : 'PENDING'}
             </Text>
           </View>
         </View>
 
         {/* Location Information */}
-        <View className="mt-3 pt-1">
-          <View className="flex-row items-center mb-1.5">
-            <Feather name="map-pin" size={12} color="#94A3B8" />
-            <Text className="font-rubik text-xs text-slate-600 ml-1.5">
-              {[item.city, item.state, item.country].filter(Boolean).join(', ')}
-            </Text>
-          </View>
-
-          {item.employeeCount !== undefined && (
+        {(item.city || item.state || item.country) && (
+          <View className="mt-3 pt-1">
             <View className="flex-row items-center">
-              <Feather name="users" size={12} color="#94A3B8" />
+              <Feather name="map-pin" size={12} color="#94A3B8" />
               <Text className="font-rubik text-xs text-slate-600 ml-1.5">
-                {item.employeeCount} employee{item.employeeCount !== 1 ? 's' : ''}
+                {[item.city, item.state, item.country].filter(Boolean).join(', ')}
               </Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Divider */}
         <View className="h-px bg-slate-100 my-3" />
 
-        {/* Admin Information */}
+        {/* Additional Info */}
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <Feather name="user" size={12} color="#94A3B8" />
+            <Feather name="calendar" size={12} color="#94A3B8" />
             <Text className="font-rubik text-xs text-slate-600 ml-1.5">
-              Admin: {adminFullName}
+              Created: {formatShortDate(item.createdAt)}
             </Text>
           </View>
-          <Text className="font-rubik text-xs text-slate-400">
-            Created: {formatDate(item.createdAt).split(',')[0]}
-          </Text>
+          
+          {/* Delete Button */}
+          {/* {canAddSubOrg && (
+            <TouchableOpacity
+              className="flex-row items-center px-3 py-1.5 rounded-lg bg-red-50"
+              onPress={() => showConfirmationPopup('delete', item.id, item.name)}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#DC2626" />
+              ) : (
+                <>
+                  <Feather name="trash-2" size={14} color="#DC2626" />
+                  <Text className="font-rubik-medium text-xs text-red-700 ml-1.5">
+                    Delete
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )} */}
         </View>
-
-        {/* Action Buttons - Only for non-pending statuses */}
-        {!isPending && (
-          <View className="flex-row gap-3 mt-4">
-            {!isActive ? (
-              <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center bg-green-50 py-2.5 rounded-lg border border-green-200"
-                onPress={() => showConfirmationPopup('activate', item.id, item.name)}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#22C55E" />
-                ) : (
-                  <>
-                    <Feather name="check-circle" size={14} color="#22C55E" />
-                    <Text className="font-rubik-medium text-sm text-green-700 ml-2">
-                      Activate
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center bg-red-50 py-2.5 rounded-lg border border-red-200"
-                onPress={() => showConfirmationPopup('deactivate', item.id, item.name)}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#DC2626" />
-                ) : (
-                  <>
-                    <Feather name="x-circle" size={14} color="#DC2626" />
-                    <Text className="font-rubik-medium text-sm text-red-700 ml-2">
-                      Deactivate
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -496,21 +309,17 @@ const SubOrganizationsScreen: React.FC = () => {
     <View className="pt-4 px-4 pb-2">
       <SearchInput
         value={searchQuery}
-        placeholder="Search by name or email..."
+        placeholder="Search by name, email, or location..."
         onChangeText={handleSearchChange}
-        onSearch={() => {
-          setPagination(prev => ({ ...prev, page: 1 }));
-          fetchSubOrganizations();
-        }}
+        onSearch={() => {}}
         onClear={clearSearch}
       />
-      {renderFilterTabs()}
 
       {/* Add Sub-Organization Button */}
       {subOrganizations.length > 0 && (
-        <View className="flex-row justify-between items-center mt-2 mb-1">
+        <View className="flex-row justify-between items-center mt-3 mb-1">
           <Text className="font-rubik text-xs text-slate-400 tracking-wide">
-            {pagination.total} sub-organization{pagination.total !== 1 ? 's' : ''}
+            {filteredSubOrganizations.length} sub-organization{filteredSubOrganizations.length !== 1 ? 's' : ''}
           </Text>
           {canAddSubOrg && (
             <TouchableOpacity
@@ -542,17 +351,17 @@ const SubOrganizationsScreen: React.FC = () => {
     return (
       <View className="flex-1 items-center justify-center py-16 px-8">
         <View className="w-20 h-20 rounded-2xl bg-slate-100 items-center justify-center mb-4">
-          <Feather name="building" size={36} color="#CBD5E1" />
+          <Feather name="briefcase" size={36} color="#CBD5E1" />
         </View>
         <Text className="font-rubik-bold text-lg text-slate-900 text-center">
-          {searchQuery || selectedStatus !== 'all' ? 'No sub-organizations found' : 'No sub-organizations created'}
+          {searchQuery ? 'No sub-organizations found' : 'No sub-organizations created'}
         </Text>
         <Text className="font-rubik text-sm text-slate-400 text-center mt-2 leading-5">
-          {searchQuery || selectedStatus !== 'all'
-            ? `No sub-organizations matching your filters`
+          {searchQuery
+            ? `No sub-organizations matching "${searchQuery}"`
             : 'Sub-organizations you create will appear here'}
         </Text>
-        {!searchQuery && selectedStatus === 'all' && canAddSubOrg && (
+        {!searchQuery && canAddSubOrg && (
           <Button
             title="Add Sub-Organization"
             className="mt-4"
@@ -565,9 +374,6 @@ const SubOrganizationsScreen: React.FC = () => {
 
   const renderDetailsModal = () => {
     if (!selectedSubOrg) return null;
-
-    const statusConfig = getStatusConfig(selectedSubOrg.status);
-    const adminFullName = getAdminFullName(selectedSubOrg.adminFirstName, selectedSubOrg.adminLastName);
 
     return (
       <Modal
@@ -603,9 +409,9 @@ const SubOrganizationsScreen: React.FC = () => {
                 <Text className="font-rubik text-sm text-slate-500">
                   {selectedSubOrg.businessEmail}
                 </Text>
-                <View className={`mt-2 px-3 py-1 rounded-full ${statusConfig.bgColor} border ${statusConfig.borderColor}`}>
-                  <Text className={`font-rubik-medium text-xs ${statusConfig.textColor}`}>
-                    {statusConfig.text}
+                <View className={`mt-2 px-3 py-1 rounded-full ${selectedSubOrg.isOnboardingComplete ? 'bg-green-50' : 'bg-amber-50'}`}>
+                  <Text className={`font-rubik-medium text-xs ${selectedSubOrg.isOnboardingComplete ? 'text-green-700' : 'text-amber-700'}`}>
+                    {selectedSubOrg.isOnboardingComplete ? 'ONBOARDING COMPLETED' : 'ONBOARDING PENDING'}
                   </Text>
                 </View>
               </View>
@@ -617,14 +423,71 @@ const SubOrganizationsScreen: React.FC = () => {
                     Organization Information
                   </Text>
 
-                  <View className="flex-row mb-3">
-                    <View className="w-32">
-                      <Text className="font-rubik text-xs text-slate-500">Location</Text>
+                  {(selectedSubOrg.city || selectedSubOrg.state || selectedSubOrg.country) && (
+                    <View className="flex-row mb-3">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Location</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {[selectedSubOrg.city, selectedSubOrg.state, selectedSubOrg.country].filter(Boolean).join(', ')}
+                      </Text>
                     </View>
-                    <Text className="font-rubik text-xs text-slate-900 flex-1">
-                      {[selectedSubOrg.city, selectedSubOrg.state, selectedSubOrg.country].filter(Boolean).join(', ')}
-                    </Text>
-                  </View>
+                  )}
+
+                  {selectedSubOrg.address && (
+                    <View className="flex-row mb-3">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Address</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {selectedSubOrg.address}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedSubOrg.mobileNumber && (
+                    <View className="flex-row mb-3">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Mobile Number</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {selectedSubOrg.mobileNumber}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedSubOrg.companyWebsite && (
+                    <View className="flex-row mb-3">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Website</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {selectedSubOrg.companyWebsite}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedSubOrg.companyType && (
+                    <View className="flex-row mb-3">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Company Type</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {selectedSubOrg.companyType}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedSubOrg.companySize && (
+                    <View className="flex-row mb-3">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Company Size</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {selectedSubOrg.companySize}
+                      </Text>
+                    </View>
+                  )}
 
                   <View className="flex-row mb-3">
                     <View className="w-32">
@@ -645,81 +508,39 @@ const SubOrganizationsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Admin Information */}
+                {/* Parent Organization Info */}
                 <View className="bg-slate-50 rounded-xl p-4">
                   <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
-                    Admin Information
+                    Organization Hierarchy
                   </Text>
-
-                  <View className="flex-row mb-3">
-                    <View className="w-32">
-                      <Text className="font-rubik text-xs text-slate-500">Full Name</Text>
-                    </View>
-                    <Text className="font-rubik text-xs text-slate-900 flex-1">
-                      {adminFullName}
-                    </Text>
-                  </View>
 
                   <View className="flex-row">
                     <View className="w-32">
-                      <Text className="font-rubik text-xs text-slate-500">Email</Text>
+                      <Text className="font-rubik text-xs text-slate-500">Parent Org ID</Text>
                     </View>
-                    <Text className="font-rubik text-xs text-slate-900 flex-1">
-                      {selectedSubOrg.businessEmail}
+                    <Text className="font-rubik text-xs text-slate-900 flex-1 font-mono">
+                      {selectedSubOrg.parentOrganizationId}
                     </Text>
                   </View>
                 </View>
-
-                {/* Statistics */}
-                {selectedSubOrg.totalEmployees !== undefined && (
-                  <View className="bg-slate-50 rounded-xl p-4">
-                    <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
-                      Statistics
-                    </Text>
-
-                    <View className="flex-row">
-                      <View className="w-32">
-                        <Text className="font-rubik text-xs text-slate-500">Total Employees</Text>
-                      </View>
-                      <Text className="font-rubik text-xs text-slate-900 flex-1">
-                        {selectedSubOrg.totalEmployees}
-                      </Text>
-                    </View>
-                  </View>
-                )}
               </View>
             </ScrollView>
 
-            {/* Action Buttons for Modal */}
-            {selectedSubOrg.status !== 'pending' && (
+            {/* Delete Button in Modal */}
+            {canAddSubOrg && (
               <View className="flex-row gap-3 p-5 border-t border-slate-100">
-                {selectedSubOrg.status === 'inactive' ? (
-                  <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center bg-green-50 py-3 rounded-xl"
-                    onPress={() => {
-                      setDetailsModalVisible(false);
-                      showConfirmationPopup('activate', selectedSubOrg.id, selectedSubOrg.name);
-                    }}
-                  >
-                    <Feather name="check-circle" size={18} color="#22C55E" />
-                    <Text className="font-rubik-medium text-base text-green-700 ml-2">
-                      Activate
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    className="flex-1 flex-row items-center justify-center bg-red-50 py-3 rounded-xl"
-                    onPress={() => {
-                      setDetailsModalVisible(false);
-                      showConfirmationPopup('deactivate', selectedSubOrg.id, selectedSubOrg.name);
-                    }}
-                  >
-                    <Feather name="x-circle" size={18} color="#DC2626" />
-                    <Text className="font-rubik-medium text-base text-red-700 ml-2">
-                      Deactivate
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  className="flex-1 flex-row items-center justify-center bg-red-50 py-3 rounded-xl"
+                  onPress={() => {
+                    setDetailsModalVisible(false);
+                    showConfirmationPopup('delete', selectedSubOrg.id, selectedSubOrg.name);
+                  }}
+                >
+                  <Feather name="trash-2" size={18} color="#DC2626" />
+                  <Text className="font-rubik-medium text-base text-red-700 ml-2">
+                    Delete Organization
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -743,7 +564,7 @@ const SubOrganizationsScreen: React.FC = () => {
         <Header title="Sub-Organizations" />
 
         <FlatList
-          data={subOrganizations}
+          data={filteredSubOrganizations}
           renderItem={renderSubOrganizationCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
@@ -756,8 +577,6 @@ const SubOrganizationsScreen: React.FC = () => {
               tintColor={colors.primary}
             />
           }
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             flexGrow: 1,
@@ -832,11 +651,9 @@ const SubOrganizationsScreen: React.FC = () => {
 
       <ConfirmationPopup
         visible={popupVisible}
-        title={popupConfig?.type === 'activate' ? 'Activate Sub-Organization' : 'Deactivate Sub-Organization'}
-        message={popupConfig?.type === 'activate'
-          ? `Are you sure you want to activate ${popupConfig?.name}? This will allow the organization to access all features.`
-          : `Are you sure you want to deactivate ${popupConfig?.name}? This will restrict access to the organization.`}
-        confirmText={popupConfig?.type === 'activate' ? 'Activate' : 'Deactivate'}
+        title="Delete Sub-Organization"
+        message={`Are you sure you want to delete ${popupConfig?.name}? This action cannot be undone.`}
+        confirmText="Delete"
         cancelText="Cancel"
         onConfirm={handleConfirmAction}
         onCancel={handleCancelAction}
@@ -922,11 +739,9 @@ const AddSubOrganizationForm: React.FC<AddSubOrgFormProps> = ({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className=""
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <ScrollView 
-        className=""
         showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
@@ -934,9 +749,7 @@ const AddSubOrganizationForm: React.FC<AddSubOrgFormProps> = ({
         <View className="p-6">
           {/* Info Banner */}
           <View className="bg-purple-50 p-4 rounded-xl mb-6 flex-row items-center">
-            <View className="bg-purple-100 rounded-full p-2 mr-3">
-              <Feather name="building" size={18} color="#8B5CF6" />
-            </View>
+
             <View className="flex-1">
               <Text className="font-rubik-medium text-purple-800 text-sm">
                 Create New Sub-Organization
@@ -1037,7 +850,7 @@ const AddSubOrganizationForm: React.FC<AddSubOrgFormProps> = ({
               disabled={isLoading}
             />
             <Button
-              title="Create Sub-Organization"
+              title="Create"
               className="flex-1"
               loading={isLoading}
               onPress={handleSubmit}

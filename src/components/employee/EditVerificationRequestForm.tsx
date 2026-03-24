@@ -631,7 +631,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
 
   const renderStep1 = () => (
     <View>
-      {renderVerificationTypeSelector()}
+      {/* {renderVerificationTypeSelector()} */}
 
       {/* Conditional rendering based on verification type */}
       {formData.verificationType === 'organization' ? (

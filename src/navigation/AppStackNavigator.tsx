@@ -26,6 +26,7 @@ import PendingInvitationsScreen from '../screens/PendingInvitationsScreen';
 import MyVerificationsRequests from '../screens/MyVerificationsRequests';
 import SentInvitationsScreen from '../screens/SentInvitations';
 import SubOrganizationsScreen from '../screens/SubOrganizationsScreen';
+import BranchList from '../components/BranchList';
 
 
 export type AppStackParamList = {
@@ -43,47 +44,49 @@ export type AppStackParamList = {
   Onboarding: undefined;
   employeeVerificationRequests: undefined;
   teams: undefined;
-    EmployeeDetails: {
+  EmployeeDetails: {
     employeeId: string;
+    BranchList: undefined;
   };
-  ViewVerification:{
-    verificationId:string;
+  ViewVerification: {
+    verificationId: string;
   }
-  VerifyRequestScreen:{
-    verificationId:string;
+  VerifyRequestScreen: {
+    verificationId: string;
   }
-  EditVerification:{
-    verificationId:string;
+  EditVerification: {
+    verificationId: string;
   }
-  incomingRequests:undefined;
-  outgoingRequests:undefined;
-  pendingInvitations:undefined;
-  myVerificationRequests:undefined;
-  subOrganizations:undefined;
-  sentInvitations:undefined;
+  incomingRequests: undefined;
+  outgoingRequests: undefined;
+  pendingInvitations: undefined;
+  myVerificationRequests: undefined;
+  subOrganizations: undefined;
+  sentInvitations: undefined;
+  BranchList: undefined;
 };
 
 
 const Stack = createStackNavigator<AppStackParamList>();
 
 const AppStackNavigator: React.FC = () => {
-  const {  user } = useAuth();
+  const { user } = useAuth();
   const isOnboarding =
-  user?.role === "admin" &&
-  !user?.organization &&
-  !user?.organizationId;
+    user?.role === "admin" &&
+    !user?.organization &&
+    !user?.organizationId;
 
-const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
+  const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
 
   return (
-    <Stack.Navigator 
-    initialRouteName={initialRoute } 
-    screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={initialRoute}
+      screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={BottomTabsNavigations} />
       <Stack.Screen
-          name="Onboarding"
-          component={OrganizationOnboardingScreen}
-        />
+        name="Onboarding"
+        component={OrganizationOnboardingScreen}
+      />
       <Stack.Screen name="AppInfo" component={AppInfoScreen} />
       <Stack.Screen name="MyProfile" component={ProfileScreen} />
       <Stack.Screen name="Support" component={HelpSupportScreen} />
@@ -105,6 +108,7 @@ const initialRoute = isOnboarding ? 'Onboarding' : 'Tabs';
       <Stack.Screen name="myVerificationRequests" component={MyVerificationsRequests} />
       <Stack.Screen name="sentInvitations" component={SentInvitationsScreen} />
       <Stack.Screen name="subOrganizations" component={SubOrganizationsScreen} />
+      <Stack.Screen name="BranchList" component={BranchList} />
     </Stack.Navigator>
   );
 };

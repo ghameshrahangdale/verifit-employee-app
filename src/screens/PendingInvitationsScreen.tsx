@@ -44,6 +44,11 @@ interface StatusConfig {
   textColor: string;
 }
 
+// Per-button loading state: tracks which action ('approve' | 'decline') is loading for each invitation id
+type ProcessingMap = Record<string, 'approve' | 'decline' | null>;
+
+type ActiveTab = 'pending' | 'history';
+
 const PendingInvitationsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -53,12 +58,13 @@ const PendingInvitationsScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processingMap, setProcessingMap] = useState<ProcessingMap>({});
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupConfig, setPopupConfig] = useState<{
     type: 'approve' | 'decline';
     invitationId: string;
   } | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('pending');
 
   // Status configuration function
   const getStatusConfig = (status: string): StatusConfig => {
@@ -146,24 +152,25 @@ const PendingInvitationsScreen: React.FC = () => {
     if (!popupConfig) return;
 
     const { type, invitationId } = popupConfig;
-    
+
     try {
-      setProcessingId(invitationId);
+      // Set only the specific action as loading for this invitation
+      setProcessingMap(prev => ({ ...prev, [invitationId]: type }));
       setPopupVisible(false);
-      
+
       await http.patch('/api/employees/approvals', {
         approvalId: invitationId,
         action: type === 'approve' ? 'approve' : 'reject',
       });
-      
+
       Toast.show({
         type: 'success',
         text1: type === 'approve' ? 'Invitation Approved' : 'Invitation Declined',
-        text2: type === 'approve' 
-          ? 'The employee can now join the organization' 
+        text2: type === 'approve'
+          ? 'The employee can now join the organization'
           : 'The invitation has been declined',
       });
-      
+
       // Remove from list
       setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
     } catch (error: any) {
@@ -173,7 +180,7 @@ const PendingInvitationsScreen: React.FC = () => {
         text2: error.response?.data?.message || `Unable to ${type} invitation`,
       });
     } finally {
-      setProcessingId(null);
+      setProcessingMap(prev => ({ ...prev, [invitationId]: null }));
       setPopupConfig(null);
     }
   };
@@ -192,10 +199,29 @@ const PendingInvitationsScreen: React.FC = () => {
     });
   };
 
+  // Derive filtered lists based on active tab and search query
+  const filteredInvitations = invitations.filter(inv => {
+    const matchesSearch = searchQuery
+      ? inv.organization.name.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+
+    if (activeTab === 'pending') {
+      return inv.status === 'pending' && matchesSearch;
+    } else {
+      return inv.status === 'approved' && matchesSearch;
+    }
+  });
+
+  const pendingCount = invitations.filter(inv => inv.status === 'pending').length;
+  const historyCount = invitations.filter(inv => inv.status === 'approved').length;
+
   const renderInvitationCard = ({ item }: { item: Invitation }) => {
-    const isProcessing = processingId === item.id;
+    const processingAction = processingMap[item.id]; // 'approve' | 'decline' | null | undefined
+    const isApprovingThis = processingAction === 'approve';
+    const isDecliningThis = processingAction === 'decline';
+    const isAnyProcessing = !!processingAction;
     const statusConfig = getStatusConfig(item.status);
-    
+
     return (
       <View className="bg-white rounded-xl mx-4 mb-3 p-4 shadow-sm border border-slate-100">
         {/* Top Row: Avatar + Info */}
@@ -203,10 +229,10 @@ const PendingInvitationsScreen: React.FC = () => {
           {/* Organization Logo */}
           <View className="relative">
             <View className="overflow-hidden bg-primary/5">
-              <Avatar 
-                name={item.organization.name} 
-                imageUrl={item.organization.logoUrl} 
-                size="lg" 
+              <Avatar
+                name={item.organization.name}
+                imageUrl={item.organization.logoUrl}
+                size="lg"
                 rounded='corners'
               />
             </View>
@@ -222,12 +248,14 @@ const PendingInvitationsScreen: React.FC = () => {
             </Text>
           </View>
 
-          {/* Status Badge */}
-          <View className={`px-3 py-1.5 rounded-full ${statusConfig.bgColor} border ${statusConfig.borderColor}`}>
-            <Text className={`font-rubik-medium text-[10px] tracking-wide ${statusConfig.textColor}`}>
-              {statusConfig.text}
-            </Text>
-          </View>
+          {/* Status Badge — only shown in History tab */}
+          {activeTab === 'history' && (
+            <View className={`px-3 py-1.5 rounded-full ${statusConfig.bgColor} border ${statusConfig.borderColor}`}>
+              <Text className={`font-rubik-medium text-[10px] tracking-wide ${statusConfig.textColor}`}>
+                {statusConfig.text}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Divider */}
@@ -265,6 +293,14 @@ const PendingInvitationsScreen: React.FC = () => {
               </Text>
             </View>
           )}
+          {activeTab === 'history' && item.respondedAt && (
+            <View className="flex-row items-center w-1/2">
+              <Feather name="check" size={12} color="#94A3B8" />
+              <Text className="font-rubik text-xs text-slate-600 ml-1.5">
+                Responded: {formatDate(item.respondedAt)}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Action Buttons - Only show for pending status */}
@@ -273,9 +309,9 @@ const PendingInvitationsScreen: React.FC = () => {
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center bg-green-50 py-3 rounded-xl border border-green-200"
               onPress={() => showConfirmationPopup('approve', item.id)}
-              disabled={isProcessing}
+              disabled={isAnyProcessing}
             >
-              {isProcessing ? (
+              {isApprovingThis ? (
                 <ActivityIndicator size="small" color="#16A34A" />
               ) : (
                 <>
@@ -286,13 +322,13 @@ const PendingInvitationsScreen: React.FC = () => {
                 </>
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center bg-red-50 py-3 rounded-xl border border-red-200"
               onPress={() => showConfirmationPopup('decline', item.id)}
-              disabled={isProcessing}
+              disabled={isAnyProcessing}
             >
-              {isProcessing ? (
+              {isDecliningThis ? (
                 <ActivityIndicator size="small" color="#DC2626" />
               ) : (
                 <>
@@ -309,19 +345,90 @@ const PendingInvitationsScreen: React.FC = () => {
     );
   };
 
+  const renderTabs = () => (
+    <View className="flex-row mx-4 mt-3 mb-1 bg-slate-100 rounded-xl p-1">
+      <TouchableOpacity
+        className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
+          activeTab === 'pending' ? 'bg-white shadow-sm' : ''
+        }`}
+        onPress={() => setActiveTab('pending')}
+        activeOpacity={0.7}
+      >
+        <Text
+          className={`font-rubik-medium text-sm ${
+            activeTab === 'pending' ? 'text-slate-900' : 'text-slate-400'
+          }`}
+        >
+          Pending
+        </Text>
+        {pendingCount > 0 && (
+          <View
+            className={`ml-1.5 min-w-[20px] h-5 px-1.5 rounded-full items-center justify-center ${
+              activeTab === 'pending' ? 'bg-amber-100' : 'bg-slate-200'
+            }`}
+          >
+            <Text
+              className={`font-rubik-medium text-[10px] ${
+                activeTab === 'pending' ? 'text-amber-700' : 'text-slate-400'
+              }`}
+            >
+              {pendingCount}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
+          activeTab === 'history' ? 'bg-white shadow-sm' : ''
+        }`}
+        onPress={() => setActiveTab('history')}
+        activeOpacity={0.7}
+      >
+        <Text
+          className={`font-rubik-medium text-sm ${
+            activeTab === 'history' ? 'text-slate-900' : 'text-slate-400'
+          }`}
+        >
+          History
+        </Text>
+        {historyCount > 0 && (
+          <View
+            className={`ml-1.5 min-w-[20px] h-5 px-1.5 rounded-full items-center justify-center ${
+              activeTab === 'history' ? 'bg-green-100' : 'bg-slate-200'
+            }`}
+          >
+            <Text
+              className={`font-rubik-medium text-[10px] ${
+                activeTab === 'history' ? 'text-green-700' : 'text-slate-400'
+              }`}
+            >
+              {historyCount}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderHeader = () => (
-    <View className="px-4 pt-4 pb-2">
-      <SearchInput
-        value={searchQuery}
-        placeholder="Search by organization name..."
-        onChangeText={handleSearchChange}
-        onSearch={() => setDebouncedSearchQuery(searchQuery)}
-        onClear={clearSearch}
-      />
-      {invitations.length > 0 && (
-        <View className="flex-row justify-between items-center mt-4 mb-1">
+    <View className="pt-4 pb-2">
+      <View className="px-4">
+        <SearchInput
+          value={searchQuery}
+          placeholder="Search by organization name..."
+          onChangeText={handleSearchChange}
+          onSearch={() => setDebouncedSearchQuery(searchQuery)}
+          onClear={clearSearch}
+        />
+      </View>
+      {renderTabs()}
+      {filteredInvitations.length > 0 && (
+        <View className="flex-row justify-between items-center mt-3 mb-1 px-4">
           <Text className="font-rubik text-xs text-slate-400 tracking-wide">
-            {invitations.length} pending invitation{invitations.length !== 1 ? 's' : ''}
+            {filteredInvitations.length}{' '}
+            {activeTab === 'pending' ? 'pending' : 'processed'} invitation
+            {filteredInvitations.length !== 1 ? 's' : ''}
           </Text>
         </View>
       )}
@@ -330,18 +437,31 @@ const PendingInvitationsScreen: React.FC = () => {
 
   const renderEmpty = () => {
     if (isLoading) return null;
+
+    const isPendingTab = activeTab === 'pending';
+
     return (
       <View className="flex-1 items-center justify-center py-16 px-8">
         <View className="w-20 h-20 rounded-2xl bg-slate-100 items-center justify-center mb-4">
-          <Feather name="inbox" size={36} color="#CBD5E1" />
+          <Feather
+            name={isPendingTab ? 'inbox' : 'clock'}
+            size={36}
+            color="#CBD5E1"
+          />
         </View>
         <Text className="font-rubik-bold text-lg text-slate-900 text-center">
-          {searchQuery ? 'No invitations found' : 'No pending invitations'}
+          {searchQuery
+            ? 'No invitations found'
+            : isPendingTab
+            ? 'No pending requests'
+            : 'No history yet'}
         </Text>
         <Text className="font-rubik text-sm text-slate-400 text-center mt-2 leading-5">
           {searchQuery
             ? `No invitations matching "${searchQuery}"`
-            : 'All invitations have been processed'}
+            : isPendingTab
+            ? 'There is no pending verification request'
+            : 'Approved invitations will appear here'}
         </Text>
       </View>
     );
@@ -350,7 +470,7 @@ const PendingInvitationsScreen: React.FC = () => {
   if (isLoading && invitations.length === 0) {
     return (
       <View className="flex-1 bg-slate-50">
-        <Header title="Pending Invitations" />
+        <Header title="Invitations" />
         <Loader fullScreen />
       </View>
     );
@@ -359,10 +479,10 @@ const PendingInvitationsScreen: React.FC = () => {
   return (
     <>
       <View className="flex-1 bg-slate-50">
-        <Header title="Pending Invitations" />
+        <Header title="Invitations" />
 
         <FlatList
-          data={invitations}
+          data={filteredInvitations}
           renderItem={renderInvitationCard}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
@@ -386,9 +506,11 @@ const PendingInvitationsScreen: React.FC = () => {
       <ConfirmationPopup
         visible={popupVisible}
         title={popupConfig?.type === 'approve' ? 'Approve Invitation' : 'Decline Invitation'}
-        message={popupConfig?.type === 'approve' 
-          ? 'Are you sure you want to approve this invitation?' 
-          : 'Are you sure you want to decline this invitation?'}
+        message={
+          popupConfig?.type === 'approve'
+            ? 'Are you sure you want to approve this invitation?'
+            : 'Are you sure you want to decline this invitation?'
+        }
         confirmText={popupConfig?.type === 'approve' ? 'Approve' : 'Decline'}
         cancelText="Cancel"
         onConfirm={handleConfirmAction}

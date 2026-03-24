@@ -269,36 +269,6 @@ const SentInvitationsScreen: React.FC = () => {
     setPopupVisible(true);
   };
 
-  const handleResendInvitation = async () => {
-    if (!popupConfig) return;
-
-    try {
-      setProcessingId(popupConfig.invitationId);
-      setPopupVisible(false);
-
-      await http.post('/api/organization/team/invitations/resend', {
-        invitationId: popupConfig.invitationId,
-      });
-
-      Toast.show({
-        type: 'success',
-        text1: 'Invitation Resent',
-        text2: `Invitation has been resent to ${popupConfig.email}`,
-      });
-
-      handleRefresh();
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to Resend Invitation',
-        text2: error.response?.data?.message || 'Unable to resend invitation',
-      });
-    } finally {
-      setProcessingId(null);
-      setPopupConfig(null);
-    }
-  };
-
   const handleCancelInvitation = async () => {
     if (!popupConfig) return;
 
@@ -328,9 +298,7 @@ const SentInvitationsScreen: React.FC = () => {
   };
 
   const handleConfirmAction = () => {
-    if (popupConfig?.type === 'resend') {
-      handleResendInvitation();
-    } else if (popupConfig?.type === 'cancel') {
+    if (popupConfig?.type === 'cancel') {
       handleCancelInvitation();
     }
   };
@@ -514,22 +482,6 @@ const SentInvitationsScreen: React.FC = () => {
         {/* Action Buttons - Only for pending invitations */}
         {isPending && (
           <View className="flex-row gap-3 mt-4">
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center bg-primary/10 py-2.5 rounded-lg border border-primary/20"
-              onPress={() => showConfirmationPopup('resend', item.approvalId, item.user.email)}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <>
-                  <Feather name="send" size={14} color={colors.primary} />
-                  <Text className="font-rubik-medium text-sm text-primary ml-2">
-                    Resend
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
 
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center bg-red-50 py-2.5 rounded-lg border border-red-200"
@@ -651,7 +603,7 @@ const SentInvitationsScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 p-5">
+            <ScrollView className="">
               {/* User Info */}
               <View className="items-center mb-6">
                 <Avatar
@@ -763,36 +715,7 @@ const SentInvitationsScreen: React.FC = () => {
               </View>
             </ScrollView>
 
-            {/* Action Buttons for Modal */}
-            {selectedInvitation.status === 'pending' && (
-              <View className="flex-row gap-3 p-5 border-t border-slate-100">
-                <TouchableOpacity
-                  className="flex-1 flex-row items-center justify-center bg-primary/10 py-3 rounded-xl"
-                  onPress={() => {
-                    setDetailsModalVisible(false);
-                    showConfirmationPopup('resend', selectedInvitation.approvalId, selectedInvitation.user.email);
-                  }}
-                >
-                  <Feather name="send" size={18} color={colors.primary} />
-                  <Text className="font-rubik-medium text-base text-primary ml-2">
-                    Resend Invitation
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className="flex-1 flex-row items-center justify-center bg-red-50 py-3 rounded-xl"
-                  onPress={() => {
-                    setDetailsModalVisible(false);
-                    showConfirmationPopup('cancel', selectedInvitation.approvalId, selectedInvitation.user.email);
-                  }}
-                >
-                  <Feather name="x-circle" size={18} color="#DC2626" />
-                  <Text className="font-rubik-medium text-base text-red-700 ml-2">
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+          
           </View>
         </View>
       </Modal>
@@ -903,11 +826,9 @@ const SentInvitationsScreen: React.FC = () => {
 
       <ConfirmationPopup
         visible={popupVisible}
-        title={popupConfig?.type === 'resend' ? 'Resend Invitation' : 'Cancel Invitation'}
-        message={popupConfig?.type === 'resend'
-          ? `Are you sure you want to resend the invitation to ${popupConfig?.email}?`
-          : `Are you sure you want to cancel the invitation to ${popupConfig?.email}? This action cannot be undone.`}
-        confirmText={popupConfig?.type === 'resend' ? 'Resend' : 'Cancel'}
+        title="Cancel Invitation"
+        message={`Are you sure you want to cancel the invitation to ${popupConfig?.email}? This action cannot be undone.`}
+        confirmText="Cancel"
         cancelText="No, Go Back"
         onConfirm={handleConfirmAction}
         onCancel={handleCancelAction}
