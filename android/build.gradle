@@ -21,3 +21,17 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    repositories {
+        all { ArtifactRepository repo ->
+            if (repo instanceof MavenArtifactRepository) {
+                if (repo.url.toString().contains("jcenter.bintray.com")) {
+                    project.logger.warn "Repository ${repo.url} replaced by mavenCentral()"
+                    remove repo
+                }
+            }
+        }
+        mavenCentral()
+    }
+}

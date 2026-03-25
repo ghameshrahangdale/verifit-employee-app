@@ -4,10 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
   Linking,
-  Platform,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../context/ThemeContext';
@@ -19,8 +16,11 @@ import Loader from '../../components/ui/Loader';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
 import { RefreshControl } from 'react-native-gesture-handler';
-import { formatDate, formatDateTime, getCurrencySymbol, getDocumentTypeLabel, getEmploymentTypeLabel, getSalaryTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
+import { formatDate, formatDateTime, getCurrencySymbol, getEmploymentTypeLabel, getSalaryTypeLabel, getStatusConfig } from '../../utils/verificationHelpers';
 import { VerificationResponse, EmploymentRecord, SalaryRecord, Discrepancy, Document, Candidate, BehaviorReport } from '../../types';
+import { InfoRow } from '../../components/ui/InfoRow';
+import { DocumentCard } from '../../components/ui/DocumentCard';
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
 
 type ViewEmployeeVerificationRouteProp = RouteProp<AppStackParamList, 'ViewVerification'>;
 
@@ -59,6 +59,8 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     discrepancies: true,
     behavior: true,
   });
+  const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   useEffect(() => {
     fetchVerificationDetails();
@@ -94,7 +96,12 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleOpenDocument = async (document: Document) => {
+  const handleViewDocument = (document: Document) => {
+    setPreviewDocument(document);
+    setIsPreviewVisible(true);
+  };
+
+  const handleDownloadDocument = async (document: Document) => {
     try {
       const supported = await Linking.canOpenURL(document.fileUrl);
       if (supported) {
@@ -102,28 +109,17 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
       } else {
         Toast.show({
           type: 'error',
-          text1: 'Cannot Open Document',
-          text2: 'Unable to open this document URL',
+          text1: 'Cannot Download',
+          text2: 'Unable to download this document',
         });
       }
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Failed to open document',
+        text2: 'Failed to download document',
       });
     }
-  };
-
-  const handleDownloadDocument = (document: Document) => {
-    handleOpenDocument(document);
-  };
-
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const formatFieldName = (fieldName: string): string => {
@@ -131,34 +127,6 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
-  };
-
-  const renderStatusBadge = (isConfirmed: boolean | undefined) => {
-    if (isConfirmed === undefined) return null;
-
-    if (!isConfirmed) {
-      return (
-        <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
-          <View className="flex-row items-center">
-            <Feather name="alert-triangle" size={12} color="#DC2626" />
-            <Text className="font-rubik-medium text-xs text-red-700 ml-1">
-              Incorrect
-            </Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
-        <View className="flex-row items-center">
-          <Feather name="check-circle" size={12} color="#059669" />
-          <Text className="font-rubik-medium text-xs text-green-700 ml-1">
-            Correct
-          </Text>
-        </View>
-      </View>
-    );
   };
 
   const renderStars = (rating: number) => {
@@ -218,9 +186,19 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
   return (
     <View className="flex-1 bg-gray-50">
       <Header title="Verification Details" />
+      
+      <DocumentPreviewModal
+        visible={isPreviewVisible}
+        document={previewDocument}
+        onClose={() => {
+          setIsPreviewVisible(false);
+          setPreviewDocument(null);
+        }}
+        // onDownload={handleDownloadDocument}
+      />
 
       <ScrollView
-      className='mb-4'
+        className='mb-4'
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -271,19 +249,17 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
           </View>
 
           <View className="space-y-2">
-            <View className="flex-row items-center">
-              <Feather name="mail" size={14} color="#94A3B8" />
-              <Text className="font-rubik text-sm text-gray-600 ml-3">
-                {details.candidate.email}
-              </Text>
-            </View>
+            <InfoRow
+              label="Email"
+              value={details.candidate.email}
+              icon="mail"
+            />
             {details.candidate.phone && (
-              <View className="flex-row items-center">
-                <Feather name="phone" size={14} color="#94A3B8" />
-                <Text className="font-rubik text-sm text-gray-600 ml-3">
-                  {details.candidate.phone}
-                </Text>
-              </View>
+              <InfoRow
+                label="Phone"
+                value={details.candidate.phone}
+                icon="phone"
+              />
             )}
             {details.candidate.linkedinUrl && (
               <TouchableOpacity
@@ -305,141 +281,68 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
             Employment Details
           </Text>
 
-          <View className="space-y-4">
-            {/* Company Name */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  Company
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.companyNameConfirmed)}
-              </View>
-              <Text className="font-rubik-medium text-base text-gray-900">
-                {details.employmentRecord.companyName}
-              </Text>
-            </View>
+          <View className="gap-4">
+            <InfoRow
+              label="Company Name"
+              value={details.employmentRecord.companyName}
+              confirmed={details.verificationResponse?.companyNameConfirmed}
+            />
 
-            {/* Designation */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  Designation
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.designationConfirmed)}
-              </View>
-              <Text className="font-rubik-medium text-base text-gray-900">
-                {details.employmentRecord.designation}
-              </Text>
-            </View>
+            <InfoRow
+              label="Designation"
+              value={details.employmentRecord.designation}
+              confirmed={details.verificationResponse?.designationConfirmed}
+            />
 
-            {/* Department */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  Department
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.departmentConfirmed)}
-              </View>
-              <Text className="font-rubik-medium text-base text-gray-900">
-                {details.employmentRecord.department}
-              </Text>
-            </View>
+            <InfoRow
+              label="Department"
+              value={details.employmentRecord.department}
+              confirmed={details.verificationResponse?.departmentConfirmed}
+            />
 
-            {/* Employment Type */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  Employment Type
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.employmentTypeConfirmed)}
-              </View>
-              <View className="flex-row items-center">
-                <Feather name="users" size={14} color="#64748B" />
-                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
-                  {getEmploymentTypeLabel(details.employmentRecord.employmentType)}
-                </Text>
-              </View>
-            </View>
+            <InfoRow
+              label="Employment Type"
+              value={getEmploymentTypeLabel(details.employmentRecord.employmentType)}
+              icon="users"
+              confirmed={details.verificationResponse?.employmentTypeConfirmed}
+            />
 
-            {/* Location */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  Location
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.locationConfirmed)}
-              </View>
-              <View className="flex-row items-center">
-                <Feather name="map-pin" size={14} color="#64748B" />
-                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
-                  {details.employmentRecord.location}
-                </Text>
-              </View>
-            </View>
+            <InfoRow
+              label="Location"
+              value={details.employmentRecord.location}
+              icon="map-pin"
+              confirmed={details.verificationResponse?.locationConfirmed}
+            />
 
-            {/* Start Date */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  Start Date
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.startDateConfirmed)}
-              </View>
-              <View className="flex-row items-center">
-                <Feather name="calendar" size={14} color="#64748B" />
-                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
-                  {formatDate(details.employmentRecord.startDate)}
-                </Text>
-              </View>
-            </View>
+            <InfoRow
+              label="Start Date"
+              value={formatDate(details.employmentRecord.startDate)}
+              icon="calendar"
+              confirmed={details.verificationResponse?.startDateConfirmed}
+            />
 
-            {/* End Date */}
-            <View>
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                  End Date
-                </Text>
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.endDateConfirmed)}
-              </View>
-              <View className="flex-row items-center">
-                <Feather name="calendar" size={14} color="#64748B" />
-                <Text className="font-rubik-medium text-sm text-gray-800 ml-2">
-                  {formatDate(details.employmentRecord.endDate)}
-                </Text>
-              </View>
-            </View>
+            <InfoRow
+              label="End Date"
+              value={formatDate(details.employmentRecord.endDate)}
+              icon="calendar"
+              confirmed={details.verificationResponse?.endDateConfirmed}
+            />
 
-
-
-            {/* HR Contact */}
-            {details.employmentRecord.hrEmail &&
-              <View>
-                <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                  HR Contact
-                </Text>
-                <Text className="font-rubik-medium text-sm text-gray-800">
-                  {details.employmentRecord.hrEmail}
-                </Text>
-              </View>
-            }
-
-            {/* Reason for Leaving */}
-            {details.employmentRecord.reasonForLeaving && (
-              <View>
-                <View className="flex-row items-center justify-between mb-1">
-                  <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
-                    Reason for Leaving
-                  </Text>
-                  {details.verificationResponse && renderStatusBadge(details.verificationResponse.reasonForLeavingConfirmed)}
-                </View>
-                <Text className="font-rubik text-sm text-gray-600">
-                  {details.employmentRecord.reasonForLeaving}
-                </Text>
-              </View>
+            {details.employmentRecord.hrEmail && (
+              <InfoRow
+                label="HR Contact"
+                value={details.employmentRecord.hrEmail}
+              />
             )}
 
+            {details.employmentRecord.reasonForLeaving && (
+              <InfoRow
+                label="Reason for Leaving"
+                value={details.employmentRecord.reasonForLeaving}
+                confirmed={details.verificationResponse?.reasonForLeavingConfirmed}
+              />
+            )}
 
-            {/* Verification Comments */}
             {details.verificationResponse?.comments && (
               <View className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
                 <Text className="font-rubik-bold text-xs text-gray-500 mb-1">Verifier Comments</Text>
@@ -462,12 +365,33 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                 </Text>
               </View>
               <View className="flex-row items-center">
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.salaryConfirmed)}
+                {details.verificationResponse && (
+                  <View className="mr-2">
+                    {!details.verificationResponse.salaryConfirmed ? (
+                      <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
+                        <View className="flex-row items-center">
+                          <Feather name="alert-triangle" size={12} color="#DC2626" />
+                          <Text className="font-rubik-medium text-xs text-red-700 ml-1">
+                            Incorrect
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
+                        <View className="flex-row items-center">
+                          <Feather name="check-circle" size={12} color="#059669" />
+                          <Text className="font-rubik-medium text-xs text-green-700 ml-1">
+                            Correct
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
                 <Feather
                   name={expandedSections.salary ? "chevron-up" : "chevron-down"}
                   size={20}
                   color="#64748B"
-                  style={{ marginLeft: 8 }}
                 />
               </View>
             </TouchableOpacity>
@@ -529,87 +453,36 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                   Documents ({details.documents.length})
                 </Text>
               </View>
-           
+              <Feather
+                name={expandedSections.documents ? "chevron-up" : "chevron-down"}
+                size={20}
+                color="#64748B"
+              />
             </TouchableOpacity>
 
             {expandedSections.documents && (
               <View className="mt-4 gap-3">
                 {details.documents.map((doc) => {
-                  // Find confirmation status for this document
                   const documentConfirmation = details.verificationResponse?.documentConfirmations?.find(
                     (conf: { id: string; }) => conf.id === doc.id
                   );
                   const isConfirmed = documentConfirmation?.confirmed;
 
                   return (
-                    <View
+                    <DocumentCard
                       key={doc.id}
-                      className="bg-gray-50 rounded-xl p-4 border border-gray-100"
-                    >
-                      <View className="flex-row items-start">
-                        <View className="mr-3">
-                          <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
-                            <Feather
-                              name={doc.contentType.includes('pdf') ? 'file' : 'image'}
-                              size={20}
-                              color="#6366F1"
-                            />
-                          </View>
-                        </View>
-                        <View className="flex-1">
-                          <View className="flex-row items-center justify-between">
-                            <Text className="font-rubik-medium text-base text-gray-800 flex-1">
-                              {doc.title}
-                            </Text>
-                            <View className="flex-row items-center gap-2">
-                              {/* Individual document confirmation badge */}
-                              {details.verificationResponse && renderStatusBadge(isConfirmed)}
-                              {doc.verified && (
-                                <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200 ml-2">
-                                  <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
-                                </View>
-                              )}
-                            </View>
-                          </View>
-
-                          <Text className="font-rubik text-xs text-gray-500 mt-1">
-                            {getDocumentTypeLabel(doc.documentType)} • {formatFileSize(doc.fileSize)}
-                          </Text>
-
-                          <Text className="font-rubik text-xs text-gray-400 mt-1">
-                            Uploaded {formatDate(doc.uploadedAt)}
-                          </Text>
-
-                          <View className="flex-row mt-3 gap-2">
-                            <TouchableOpacity
-                              onPress={() => handleOpenDocument(doc)}
-                              className="flex-row items-center bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200"
-                            >
-                              <Feather name="eye" size={14} color="#6366F1" />
-                              <Text className="font-rubik-medium text-xs text-indigo-600 ml-1.5">
-                                View
-                              </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              onPress={() => handleDownloadDocument(doc)}
-                              className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg border border-gray-200"
-                            >
-                              <Feather name="download" size={14} color="#64748B" />
-                              <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-                                Download
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
+                      document={doc}
+                      isConfirmed={isConfirmed}
+                      onView={handleViewDocument}
+                      onDownload={handleDownloadDocument}
+                    />
                   );
                 })}
               </View>
             )}
           </View>
         )}
+
         {/* Behavior Report Section */}
         {details.behaviorReport && (
           <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
@@ -621,12 +494,33 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                 Behavior Report
               </Text>
               <View className="flex-row items-center">
-                {details.verificationResponse && renderStatusBadge(details.verificationResponse.behaviorConfirmed)}
+                {details.verificationResponse && (
+                  <View className="mr-2">
+                    {!details.verificationResponse.behaviorConfirmed ? (
+                      <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
+                        <View className="flex-row items-center">
+                          <Feather name="alert-triangle" size={12} color="#DC2626" />
+                          <Text className="font-rubik-medium text-xs text-red-700 ml-1">
+                            Incorrect
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
+                        <View className="flex-row items-center">
+                          <Feather name="check-circle" size={12} color="#059669" />
+                          <Text className="font-rubik-medium text-xs text-green-700 ml-1">
+                            Correct
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
                 <Feather
                   name={expandedSections.behavior ? "chevron-up" : "chevron-down"}
                   size={20}
                   color="#64748B"
-                  style={{ marginLeft: 8 }}
                 />
               </View>
             </TouchableOpacity>
@@ -787,8 +681,6 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
             )}
           </View>
         )}
-
-       
       </ScrollView>
     </View>
   );

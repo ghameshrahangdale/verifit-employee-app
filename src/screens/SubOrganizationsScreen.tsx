@@ -760,10 +760,7 @@ const AddSubOrganizationForm: React.FC<AddSubOrgFormProps> = ({
             </View>
           </View>
 
-          {/* Organization Information */}
-          <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
-            Organization Information
-          </Text>
+        
 
           <Input
             label="Organization Name"
@@ -785,10 +782,6 @@ const AddSubOrganizationForm: React.FC<AddSubOrgFormProps> = ({
             className="mb-4"
           />
 
-          {/* Location Information */}
-          <Text className="font-rubik-semibold text-sm text-slate-700 mb-3 mt-2">
-            Location Information
-          </Text>
 
           <Input
             label="City"
@@ -816,11 +809,6 @@ const AddSubOrganizationForm: React.FC<AddSubOrgFormProps> = ({
             error={formErrors.country}
             className="mb-6"
           />
-
-          {/* Admin Information */}
-          <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
-            Admin Information
-          </Text>
 
           <Input
             label="Admin First Name"

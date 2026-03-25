@@ -651,7 +651,7 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
                 <View className="flex-row items-center">
                   <Feather name="alert-triangle" size={20} color="#EF4444" />
                   <Text className="font-rubik-bold text-base text-gray-800 ml-2">
-                    Discrepancies Found ({discrepancies.length})
+                    Required Changes ({discrepancies.length})
                   </Text>
                 </View>
                 <Feather

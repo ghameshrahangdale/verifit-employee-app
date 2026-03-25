@@ -65,6 +65,7 @@ interface UserData {
   gender?: any;
   address?: any;
   organizationMemberships?: any;
+  employeeDetails?:any;
 }
 
 interface ProfileResponse {
@@ -335,6 +336,7 @@ const ProfileScreen: React.FC = () => {
   }
 
   const org = profile?.user?.organization;
+  console.log(profile)
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -636,7 +638,10 @@ const ProfileScreen: React.FC = () => {
         {isEmployee && (
           <>
             <EmployeeProfessionalDetails />
-            <OrganizationMembership memberships={profile?.user?.organizationMemberships || []} />
+            <>
+             <SectionHeader title="Linked to Organization" showEdit={false} />
+            <OrganizationMembership memberships={profile?.user?.employeeDetails.organizationMemberships || []} />
+            </>
 
           </>
         )}

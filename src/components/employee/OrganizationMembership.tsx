@@ -63,31 +63,6 @@ const OrganizationMembership: React.FC<OrganizationMembershipProps> = ({ members
         Linking.openURL(`mailto:${email}`);
     };
 
-    const Section = ({
-        label,
-        icon,
-        children,
-    }: {
-        label: string;
-        icon: string;
-        children: React.ReactNode;
-    }) => (
-        <View className="mb-6 mt-4 px-4">
-            <View className="flex-row items-center mb-3 px-1">
-                <View
-                    className="w-7 h-7 rounded-lg items-center justify-center mr-2"
-                    style={{ backgroundColor: `${colors.primary}18` }}
-                >
-                    <Feather name={icon} size={14} color={colors.primary} />
-                </View>
-                <Text className="text-xs font-rubik-bold tracking-widest uppercase text-gray-400">
-                    {label}
-                </Text>
-            </View>
-            {children}
-        </View>
-    );
-
     const Card = ({ children, noPad }: { children: React.ReactNode; noPad?: boolean }) => (
         <View
             className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${noPad ? '' : 'px-4 py-1'}`}
@@ -103,43 +78,8 @@ const OrganizationMembership: React.FC<OrganizationMembershipProps> = ({ members
         </View>
     );
 
-    const InfoRow = ({
-        label,
-        value,
-        isLast,
-        isLink = false,
-        onPress,
-    }: {
-        label: string;
-        value: string | null;
-        isLast?: boolean;
-        isLink?: boolean;
-        onPress?: () => void;
-    }) => (
-        <TouchableOpacity
-            onPress={onPress}
-            activeOpacity={isLink ? 0.7 : 1}
-            disabled={!isLink}
-            className={`flex-row justify-between items-center py-3 ${!isLast ? 'border-b border-gray-50' : ''}`}
-        >
-            <Text className="text-sm font-rubik text-gray-400 flex-1">{label}</Text>
-            <View className="flex-row items-center flex-1 justify-end">
-                <Text
-                    className={`text-sm font-rubik-medium text-right ${isLink ? 'text-primary underline' : 'text-gray-800'
-                        }`}
-                    numberOfLines={2}
-                >
-                    {value ?? 'N/A'}
-                </Text>
-                {isLink && (
-                    <Feather name="external-link" size={14} color={colors.primary} style={{ marginLeft: 6 }} />
-                )}
-            </View>
-        </TouchableOpacity>
-    );
-
     return (
-        <Section label="Organization Membership" icon="organization">
+        <View className="px-4">
             {memberships.map((membership, index) => {
                 const statusBadge = getStatusBadge(membership.employmentStatus);
                 const joiningDate = formatDate(membership.joiningDate);
@@ -250,7 +190,7 @@ const OrganizationMembership: React.FC<OrganizationMembershipProps> = ({ members
                     </Card>
                 );
             })}
-        </Section>
+        </View>
     );
 };
 

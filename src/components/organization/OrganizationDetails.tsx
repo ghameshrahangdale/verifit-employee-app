@@ -151,49 +151,53 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
     try {
       setIsLoading(true);
 
-      // Prepare payload
       const payload: any = {
         name: formData.name,
         mobileNumber: formData.mobileNumber,
         businessEmail: formData.businessEmail,
-        companyWebsite: formData.companyWebsite || null,
+        companyWebsite: formData.companyWebsite,
         companyType: formData.companyType,
         companySize: formData.companySize,
         panNumber: formData.panNumber,
-        cinNumber: formData.cinNumber || null,
-        udyamNumber: formData.udyamNumber || null,
+        cinNumber: formData.cinNumber,
+        udyamNumber: formData.udyamNumber,
         address: formData.address,
         city: formData.city,
         state: formData.state,
         country: formData.country,
       };
 
-      // Handle logo upload if present
+      // Always use FormData
+      const formDataObj = new FormData();
+
+      Object.keys(payload).forEach(key => {
+        const value = payload[key];
+
+        // Append only if value exists and is not empty
+        if (value !== null && value !== undefined && value !== '') {
+          formDataObj.append(key, value);
+        }
+      });
+
+      // Append logo only if present
       if (logoFile) {
-        const formDataObj = new FormData();
-        Object.keys(payload).forEach(key => {
-          if (payload[key] !== null && payload[key] !== undefined) {
-            formDataObj.append(key, payload[key]);
-          }
-        });
         formDataObj.append('logo', {
           uri: logoFile.uri,
           name: logoFile.name,
           type: logoFile.type,
         } as any);
+      }
 
-        const response = await http.patch('api/organization/onboard', formDataObj, {
+      const response = await http.patch(
+        'api/organization/onboard',
+        formDataObj,
+        {
           headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        
-        if (response.data && onUpdate) {
-          onUpdate(response.data);
         }
-      } else {
-        const response = await http.patch('api/organization/onboard', payload);
-        if (response.data && onUpdate) {
-          onUpdate(response.data);
-        }
+      );
+
+      if (response.data && onUpdate) {
+        onUpdate(response.data);
       }
 
       Toast.show({
@@ -209,7 +213,9 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
       Toast.show({
         type: 'error',
         text1: 'Update Failed',
-        text2: error?.response?.data?.message || 'Failed to save organization details',
+        text2:
+          error?.response?.data?.message ||
+          'Failed to save organization details',
       });
     } finally {
       setIsLoading(false);
@@ -347,17 +353,14 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
               </Text>
             </View>
 
-            {/* Basic Information */}
-            <Text className="font-rubik-medium text-sm text-gray-700 mb-3">
-              Basic Information
-            </Text>
-
+            
             <Input
               label="Organization Name"
               value={formData.name}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+              disabled={true}
               placeholder="Enter organization name"
               required
+              onChangeText={()=>''}
             />
 
             <Input
@@ -372,11 +375,12 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
             <Input
               label="Business Email"
               value={formData.businessEmail}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, businessEmail: text }))}
+              disabled={true}
               placeholder="contact@company.com"
               keyboardType="email-address"
               autoCapitalize="none"
               required
+              onChangeText={()=>''}
             />
 
             <Input
@@ -408,41 +412,7 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
               required
             />
 
-            {/* Legal Information */}
-            <Text className="font-rubik-medium text-sm text-gray-700 mb-3 mt-4">
-              Legal Information
-            </Text>
-
-            <Input
-              label="PAN Number"
-              value={formData.panNumber}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, panNumber: text.toUpperCase() }))}
-              placeholder="ABCDE1234F"
-              autoCapitalize="characters"
-              maxLength={10}
-              required
-            />
-
-            <Input
-              label="CIN Number"
-              value={formData.cinNumber}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, cinNumber: text.toUpperCase() }))}
-              placeholder="U51909DL2021PTC456787"
-              autoCapitalize="characters"
-            />
-
-            <Input
-              label="Udyam Number"
-              value={formData.udyamNumber}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, udyamNumber: text }))}
-              placeholder="DYAM-DL-07-0098768"
-            />
-
-            {/* Address Information */}
-            <Text className="font-rubik-medium text-sm text-gray-700 mb-3 mt-4">
-              Address Information
-            </Text>
-
+        
             <Input
               label="Address"
               value={formData.address}
@@ -475,6 +445,24 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
               onChangeText={(text) => setFormData(prev => ({ ...prev, country: text }))}
               placeholder="Enter country"
               required
+            />
+
+            <Input
+              label="PAN Number"
+              value={formData.panNumber}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, panNumber: text.toUpperCase() }))}
+              placeholder="ABCDE1234F"
+              autoCapitalize="characters"
+              maxLength={10}
+              required
+            />
+
+            <Input
+              label="CIN Number (Optional)"
+              value={formData.cinNumber}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, cinNumber: text.toUpperCase() }))}
+              placeholder="U51909DL2021PTC456787"
+              autoCapitalize="characters"
             />
 
           </ScrollView>
@@ -534,9 +522,6 @@ const OrganizationDetails: React.FC<OrganizationDetailsProps> = ({
               <InfoRow label="Country" value={organization.country} />
               <InfoRow label="PAN Number" value={organization.panNumber} />
               {organization.cinNumber && <InfoRow label="CIN Number" value={organization.cinNumber} />}
-              {organization.udyamNumber ? (
-                <InfoRow label="Udyam Number" value={organization.udyamNumber} isLast />
-              ) : null}
             </View>
           </View>
         )}

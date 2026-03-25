@@ -6,7 +6,6 @@ import { Alert } from 'react-native';
 import http from '../services/http.api';
 import { UserData } from '../types';
 
-// Define types
 interface User {
   id?: string;
   firstName?: string;
@@ -24,16 +23,12 @@ interface AuthContextData {
   isAuthenticated: boolean;
   token: string | null;
   isOnboarding: boolean;
-
   login: (email: string, password: string) => Promise<any>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
-
   updateUser: (userData: Partial<User>) => void;
-
   refreshUser: () => Promise<void>;
-
-  getProfile: () => Promise<UserData | null>;       // ✅ add
+  getProfile: () => Promise<UserData | null>;
   updateProfile: (data: {
     firstName: string;
     lastName: string;
@@ -42,16 +37,13 @@ interface AuthContextData {
     gender?: any;
     address?: any;
     avatarFile?: any;
-
-  }) => Promise<UserData | null>;                   // ✅ add
-
+  }) => Promise<UserData | null>;
   clearError: () => void;
   error: string | null;
 }
-// Create context
+
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -60,7 +52,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Provider props
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -72,13 +63,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
 
-  // Check for stored auth data on mount
   useEffect(() => {
     loadStoredAuth();
   }, []);
 
-  // Load stored authentication data
-  // In AuthContext.tsx - update the loadStoredAuth function
+  // ==================== Storage Management ====================
   const loadStoredAuth = async () => {
     try {
       setIsLoading(true);
@@ -88,15 +77,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (storedToken) {
         setToken(storedToken);
-
-        // fetch latest profile from API
         const profile = await getProfile();
 
         if (!profile) {
           await logout();
         }
       }
-
     } catch (error) {
       console.error('Error loading stored auth:', error);
       setError('Failed to load authentication data');
@@ -105,57 +91,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // ==================== Profile Operations ====================
   const getProfile = async () => {
     try {
-
-      // First get the user data from the main profile endpoint to know the role
       const response = await http.get('/api/user/profile');
 
       if (response.data?.user) {
         const userData = response.data.user;
-        const userRole = userData.role?.toLowerCase();
-
-        let fullProfileData = userData;
-
-        // If user is employee, fetch additional employee details
-        if (userRole === 'employee') {
-          try {
-            const employeeResponse = await http.get('/api/employees/profile');
-            if (employeeResponse.data) {
-              // Merge employee data with user data
-              fullProfileData = {
-                ...userData,
-                ...employeeResponse.data,
-                // Keep user data fields that might override employee data
-                id: userData.id,
-                email: userData.email,
-                role: userData.role,
-              };
-            }
-          } catch (employeeError) {
-            console.error('Error fetching employee profile:', employeeError);
-            // Continue with basic user data if employee details fail
-          }
-        }
-
-        setUser(fullProfileData);
-        await AsyncStorage.setItem('userData', JSON.stringify(fullProfileData));
-
-        return fullProfileData;
+        setUser(userData);
+        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        return userData;
       }
 
       return null;
-
     } catch (error: any) {
       console.error('Profile fetch error:', error);
       setError(error.message || 'Failed to fetch profile');
       return null;
-
     } finally {
       setIsLoading(false);
     }
   };
-
 
   const updateProfile = async ({
     firstName,
@@ -175,13 +131,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     avatarFile?: any;
   }) => {
     try {
-
       const formData = new FormData();
 
       formData.append('firstName', firstName);
       formData.append('lastName', lastName);
 
-      // Append only if value exists
       if (dob) formData.append('dob', dob);
       if (phone) formData.append('phone', phone);
       if (gender) formData.append('gender', gender);
@@ -194,7 +148,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           type: avatarFile.type,
         } as any);
       }
-      console.log(formData);
 
       const response = await http.put(
         '/api/user/profile',
@@ -208,20 +161,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.data?.user) {
         const updatedUser = response.data.user;
-
         setUser(updatedUser);
         await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-
         return updatedUser;
       }
 
       return null;
-
     } catch (error: any) {
       console.error('Profile update error:', error);
       setError(error.message || 'Failed to update profile');
       throw error;
-
     } finally {
       setIsLoading(false);
     }
@@ -232,24 +181,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
 
-      // Get current user data from API
       const userData = await AuthService.getCurrentUser();
 
       if (userData) {
-        // Update user state
         setUser(userData);
-
-        // Update stored user data
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
-
-        console.log('User refreshed:', userData);
-        console.log('Organization ID after refresh:', userData.organizationId);
       }
     } catch (error: any) {
       console.error('Error refreshing user:', error);
       setError(error.message || 'Failed to refresh user data');
 
-      // If token is invalid, logout
       if (error.message?.includes('token') || error.status === 401) {
         await logout();
       }
@@ -258,14 +199,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Login function
+  // ==================== Authentication Operations ====================
   const login = async (email: string, password: string) => {
     try {
-      // setIsLoading(true);
       setError(null);
 
       const response = await AuthService.login(email, password);
-      console.log(response);
 
       if (response.token) {
         setToken(response.token);
@@ -273,7 +212,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (response.user) {
           setUser(response.user);
 
-          // ✅ check organizationId
           if (!response.user.organizationId) {
             setIsOnboarding(true);
           } else {
@@ -287,7 +225,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       return response;
-
     } catch (error: any) {
       const errorMessage = error.message || 'Login failed. Please try again.';
       setError(errorMessage);
@@ -297,15 +234,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Register function
   const register = async (userData: any) => {
     try {
       setIsLoading(true);
       setError(null);
 
       await AuthService.register(userData);
-
-      // Don't set user/token here as email verification might be required
     } catch (error: any) {
       const errorMessage = error.message || 'Registration failed. Please try again.';
       setError(errorMessage);
@@ -315,7 +249,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       setIsLoading(true);
@@ -323,14 +256,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await AuthService.logout();
 
-      // Clear state
       setUser(null);
       setToken(null);
 
-      // Clear storage
       await AsyncStorage.removeItem('authToken');
       await AsyncStorage.removeItem('userData');
-
     } catch (error: any) {
       console.error('Logout error:', error);
       setError(error.message || 'Logout failed');
@@ -339,7 +269,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update user data
+  // ==================== User Management ====================
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
@@ -348,7 +278,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Clear error
   const clearError = () => {
     setError(null);
   };
@@ -365,7 +294,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         register,
         logout,
         updateUser,
-        getProfile,        // ✅
+        getProfile,
         updateProfile,
         clearError,
         error,
