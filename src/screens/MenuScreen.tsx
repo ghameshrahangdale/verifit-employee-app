@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { getApplicationName } from 'react-native-device-info';
 import { MENU_ITEMS } from '../config/menu.config';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ROLES } from '../constants/roles';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -153,9 +154,21 @@ const MenuScreen: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const visibleMenuItems = MENU_ITEMS.filter(item => {
-    if (!item.roles) return true;
-    return user?.role && item.roles.includes(user.role as any);
-  });
+  if (!item.roles) return true;
+
+  const hasAccess = user?.role && item.roles.includes(user.role as any);
+
+  // 🚫 Hide Sub Organizations if admin has parentOrganizationId
+  if (
+    item.route === 'subOrganizations' &&
+    user?.role === ROLES.ADMIN &&
+    user?.organization?.parentOrganizationId
+  ) {
+    return false;
+  }
+
+  return hasAccess;
+});
 
   const displayUser = {
     displayName: user

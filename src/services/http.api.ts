@@ -2,7 +2,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL
-// const BASE_URL = "http://192.168.1.3:3000/";
+// const BASE_URL = "http://10.143.88.77:3000/";
 const BASE_URL = "https://verifiit-nextjs.vercel.app/";
 
 // Axios instance

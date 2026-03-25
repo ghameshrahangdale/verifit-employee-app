@@ -1,4 +1,5 @@
 import { isAdminOrHR, isEmployee, ROLES, UserRole } from "../constants/roles";
+import { useAuth } from "../context/AuthContext";
 
 export interface MenuItemConfig {
   icon: string;
@@ -12,7 +13,7 @@ export interface MenuItemConfig {
 // Function to get menu items based on user role
 export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
   const emp = !isAdminOrHR(userRole);
-  console.log(emp, "isEMP")
+ 
 
   return [
     {
@@ -27,7 +28,7 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       subtitle: 'Manage your organizations and branches',
       route: 'subOrganizations',
       roles: [ROLES.ADMIN],
-    },
+    }, 
 
     {
       icon: 'user',
