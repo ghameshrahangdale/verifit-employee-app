@@ -30,10 +30,11 @@ const { width: W, height: H } = Dimensions.get('window');
 // ─── Role badge color map ─────────────────────────────────────────────────────
 const ROLE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   admin:    { bg: 'rgba(254,243,199,0.9)', text: '#D97706', dot: '#F59E0B' },
-  manager:  { bg: 'rgba(237,233,254,0.9)', text: '#7C3AED', dot: '#8B5CF6' },
+  hr:  { bg: 'rgba(237,233,254,0.9)', text: '#7C3AED', dot: '#8B5CF6' },
   employee: { bg: 'rgba(236,253,245,0.9)', text: '#059669', dot: '#10B981' },
-  default:  { bg: 'rgba(239,246,255,0.9)', text: '#3B82F6', dot: '#60A5FA' },
 };
+
+
 
 const getRoleColors = (role?: string) =>
   (role && ROLE_COLORS[role.toLowerCase()]) || ROLE_COLORS.default;

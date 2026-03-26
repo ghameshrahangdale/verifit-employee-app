@@ -23,6 +23,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../navigation/AppStackNavigator';
 
 interface Employee {
+  verificationStatus: any;
   id: string;
   organizationId: string;
   firstName: string;
@@ -172,21 +173,19 @@ const EmployeeListScreen: React.FC = () => {
           borderColor: '#F1F5F9',
         }}
       >
-        {/* Top Row: Avatar + Info + Status Badge */}
+        {/* Top Row: Avatar + Info + Verification Status Badge */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          {/* Avatar with active ring */}
+          {/* Avatar */}
           <View style={{ position: 'relative' }}>
             <View
               style={{
                 borderRadius: 50,
                 overflow: 'hidden',
                 backgroundColor: colors.primary + '15',
-                
               }}
             >
               <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
             </View>
-            
           </View>
 
           {/* Name, Email */}
@@ -238,27 +237,27 @@ const EmployeeListScreen: React.FC = () => {
             </Text>
           </View>
 
-          {/* Status Badge (top-right) */}
+          {/* Verification Status Badge (top-right) - Made smaller */}
           <View
             style={{
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 20,
-              backgroundColor: item.isEmailVerified ? '#DCFCE7' : '#FEF3C7',
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 12,
+              backgroundColor: item.verificationStatus ? '#DCFCE7' : '#FEF3C7',
               borderWidth: 1,
-              borderColor: item.isEmailVerified ? '#86EFAC' : '#FCD34D',
+              borderColor: item.verificationStatus ? '#86EFAC' : '#FCD34D',
               alignSelf: 'flex-start',
             }}
           >
             <Text
               style={{
                 fontFamily: 'Rubik-Medium',
-                fontSize: 10,
-                color: item.isEmailVerified ? '#15803D' : '#92400E',
-                letterSpacing: 0.4,
+                fontSize: 9,
+                color: item.verificationStatus ? '#15803D' : '#92400E',
+                letterSpacing: 0.3,
               }}
             >
-              {item.isEmailVerified ? '✓ VERIFIED' : '⏳ PENDING'}
+              {item.verificationStatus ? 'VERIFIED' : 'NOT VERIFIED'}
             </Text>
           </View>
         </View>
@@ -272,61 +271,25 @@ const EmployeeListScreen: React.FC = () => {
           }}
         />
 
-        {/* Bottom Row: Meta info + View button (verified only) */}
+        {/* Bottom Row: Meta info + View button */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Left meta: Active status + Joined date */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            {/* Active pill */}
-            <View
+          {/* Left meta: Joined date with label */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Feather name="calendar" size={11} color="#94A3B8" />
+            <Text
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: item.isActive ? '#F0FDF4' : '#F8FAFC',
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: item.isActive ? '#BBF7D0' : '#E2E8F0',
+                fontFamily: 'Rubik-Regular',
+                fontSize: 11,
+                color: '#64748B',
+                marginLeft: 4,
               }}
             >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: item.isActive ? '#22C55E' : '#CBD5E1',
-                  marginRight: 5,
-                }}
-              />
-              <Text
-                style={{
-                  fontFamily: 'Rubik-Medium',
-                  fontSize: 11,
-                  color: item.isActive ? '#15803D' : '#94A3B8',
-                }}
-              >
-                {item.isActive ? 'Active' : 'Inactive'}
-              </Text>
-            </View>
-
-            {/* Joined date */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Feather name="calendar" size={11} color="#94A3B8" />
-              <Text
-                style={{
-                  fontFamily: 'Rubik-Regular',
-                  fontSize: 11,
-                  color: '#94A3B8',
-                  marginLeft: 4,
-                }}
-              >
-                {formatDate(item.createdAt)}
-              </Text>
-            </View>
+              Joined: {formatDate(item.createdAt)}
+            </Text>
           </View>
 
           {/* View button — only for verified employees */}
-          {item.isEmailVerified && (
+          {item.verificationStatus && (
             <TouchableOpacity
               style={{
                 flexDirection: 'row',
@@ -342,7 +305,6 @@ const EmployeeListScreen: React.FC = () => {
                 elevation: 3,
               }}
               onPress={() => handleViewEmployee(item.id)}
-
             >
               <Text
                 style={{

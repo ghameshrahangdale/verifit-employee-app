@@ -46,7 +46,7 @@ export type AppStackParamList = {
   teams: undefined;
   EmployeeDetails: {
     employeeId: string;
-    BranchList: undefined;
+  
   };
   ViewVerification: {
     verificationId: string;

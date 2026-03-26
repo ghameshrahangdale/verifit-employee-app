@@ -47,17 +47,17 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
     
     {
       icon: 'file-text',
-      label: 'My Verification Requests',
+      label: 'Verification Requests',
       subtitle: 'Create and monitor your verification requests',
       route: 'myVerificationRequests',
-      roles: [ ROLES.HR, ROLES.ADMIN],
+      roles: [ ROLES.EMPLOYEE ],
     },
     {
       icon: 'file-text',
-      label: emp ? 'My Verification Requests' : 'All Verification Requests',
+      label:'My Verification Requests',
       subtitle: 'Create and monitor your verification requests',
       route: 'employeeVerificationRequests',
-      roles: [ROLES.EMPLOYEE, ROLES.HR, ROLES.ADMIN],
+      roles: [ ROLES.HR, ROLES.ADMIN],
     },
     {
       icon: 'inbox', 

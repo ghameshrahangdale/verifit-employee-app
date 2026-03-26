@@ -17,14 +17,12 @@ interface DocumentCardProps {
   };
   isConfirmed?: boolean;
   onView: (document: any) => void;
-  onDownload: (document: any) => void;
 }
 
 export const DocumentCard: React.FC<DocumentCardProps> = ({
   document,
   isConfirmed,
   onView,
-  onDownload,
 }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
@@ -68,8 +66,16 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
     );
   };
 
+  // Determine card background and border based on confirmed status
+  const getCardStyles = () => {
+    if (isConfirmed === false) {
+      return 'bg-red-50 rounded-xl p-4 border border-red-300';
+    }
+    return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
+  };
+
   return (
-    <View className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+    <View className={getCardStyles()}>
       <View className="flex-row items-start">
         <View className="mr-3">
           <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
@@ -80,18 +86,26 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
             />
           </View>
         </View>
+        
         <View className="flex-1">
           <View className="flex-row items-center justify-between">
             <Text className="font-rubik-medium text-base text-gray-800 flex-1">
               {document.title}
             </Text>
-            <View className="flex-row items-center gap-2">
-              {isConfirmed !== undefined && renderStatusBadge()}
+            
+            <View className="flex-row items-center gap-2 ml-2">
+              {isConfirmed === false && renderStatusBadge()}
               {document.verified && (
-                <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200 ml-2">
+                <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200">
                   <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
                 </View>
               )}
+              <TouchableOpacity
+                onPress={() => onView(document)}
+                className="bg-indigo-50 w-8 h-8 rounded-lg items-center justify-center border border-indigo-200"
+              >
+                <Feather name="eye" size={16} color="#6366F1" />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -102,28 +116,6 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
           <Text className="font-rubik text-xs text-gray-400 mt-1">
             Uploaded {formatDate(document.uploadedAt)}
           </Text>
-
-          <View className="flex-row mt-3 gap-2">
-            <TouchableOpacity
-              onPress={() => onView(document)}
-              className="flex-row items-center bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-200"
-            >
-              <Feather name="eye" size={14} color="#6366F1" />
-              <Text className="font-rubik-medium text-xs text-indigo-600 ml-1.5">
-                View
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => onDownload(document)}
-              className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg border border-gray-200"
-            >
-              <Feather name="download" size={14} color="#64748B" />
-              <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-                Download
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     </View>

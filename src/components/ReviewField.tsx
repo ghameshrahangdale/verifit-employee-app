@@ -17,6 +17,7 @@ interface ReviewFieldProps {
   onSubmitActualValue: (fieldKey: string) => void;
   onCancelInput: (fieldKey: string) => void;
   onActualValueChange: (fieldKey: string, value: string) => void;
+  onResetField?: (fieldKey: string) => void;
 }
 
 export const ReviewField: React.FC<ReviewFieldProps> = ({
@@ -31,37 +32,86 @@ export const ReviewField: React.FC<ReviewFieldProps> = ({
   onSubmitActualValue,
   onCancelInput,
   onActualValueChange,
+  onResetField,
 }) => {
   const status = fieldStatus[fieldKey];
   const isActive = activeField === fieldKey;
 
+  const handleResetField = () => {
+    if (onResetField) {
+      onResetField(fieldKey);
+    }
+  };
+
+  // Determine background color based on field status
+  const getFieldBackgroundColor = () => {
+    if (status?.confirmed === true) {
+      return 'bg-green-50';
+    }
+    if (status?.confirmed === false) {
+      return 'bg-red-50';
+    }
+    return 'bg-transparent';
+  };
+
+  // Determine border color based on field status
+  const getFieldBorderColor = () => {
+    if (status?.confirmed === true) {
+      return '';
+    }
+    if (status?.confirmed === false) {
+      return '';
+    }
+    return '';
+  };
+
   return (
-    <View className={`py-3 ${!isLast ? 'border-b border-gray-100' : ''}`}>
+    <View 
+      className={`py-3 px-3 -mx-3 rounded-lg ${getFieldBackgroundColor()} ${getFieldBorderColor()} ${
+        !isLast ? 'mb-1' : ''
+      }`}
+    >
       <View className="flex-row items-start">
         <View className="flex-1">
           <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
             {label}
           </Text>
-          <Text className="font-rubik-medium text-sm text-gray-800">
+          <Text 
+            className={`font-rubik-medium text-sm ${
+              status?.confirmed === true 
+                ? 'text-green-800' 
+                : status?.confirmed === false 
+                ? 'text-red-800' 
+                : 'text-gray-800'
+            }`}
+          >
             {value}
           </Text>
         </View>
 
         <View className="flex-row items-center ml-3">
           {status?.confirmed === true ? (
-            <View className="bg-green-50 px-3 py-1.5 rounded-full border border-green-200 flex-row items-center">
-              <Feather name="check" size={14} color="#040807" />
+            <TouchableOpacity
+              onPress={handleResetField}
+              activeOpacity={0.7}
+              className="bg-green-100 px-3 py-1.5 rounded-full border border-green-300 flex-row items-center"
+            >
+              <Feather name="check" size={14} color="#059669" />
               <Text className="font-rubik-medium text-xs text-green-700 ml-1">
                 Correct
               </Text>
-            </View>
+            </TouchableOpacity>
           ) : status?.confirmed === false ? (
-            <View className="bg-red-50 px-3 py-1.5 rounded-full border border-red-200 flex-row items-center">
-              <Feather name="x" size={14} color="#EF4444" />
+            <TouchableOpacity
+              onPress={handleResetField}
+              activeOpacity={0.7}
+              className="bg-red-100 px-3 py-1.5 rounded-full border border-red-300 flex-row items-center"
+            >
+              <Feather name="x" size={14} color="#DC2626" />
               <Text className="font-rubik-medium text-xs text-red-700 ml-1">
                 Incorrect
               </Text>
-            </View>
+            </TouchableOpacity>
           ) : (
             !status?.showInput && (
               <View className="flex-row gap-2">
@@ -84,11 +134,11 @@ export const ReviewField: React.FC<ReviewFieldProps> = ({
       </View>
 
       {status?.showInput && (
-        <View className="mt-3 bg-gray-50 rounded-xl p-3">
+        <View className="mt-3 bg-white rounded-xl p-3 border border-gray-200">
           <Input
             label='Enter Actual Value'
             value={status.actualValue || ''}
-            onChangeText={(text:any) => onActualValueChange(fieldKey, text)}
+            onChangeText={(text: any) => onActualValueChange(fieldKey, text)}
             placeholder="Enter actual value"
             type="text"
           />

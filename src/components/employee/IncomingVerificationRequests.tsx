@@ -71,6 +71,13 @@ const IncomingVerificationRequests: React.FC = () => {
     visible: false,
     id: null,
   });
+  const [rejectConfirmation, setRejectConfirmation] = useState<{
+    visible: boolean;
+    item: VerificationRequest | null;
+  }>({
+    visible: false,
+    item: null,
+  });
 
   // Status filter options - matching API status values
   const statusFilters = [
@@ -183,6 +190,71 @@ const IncomingVerificationRequests: React.FC = () => {
     navigation.navigate('VerifyRequestScreen', { verificationId: verification.verificationRequestId });
   };
 
+  const handleReject = (verification: VerificationRequest) => {
+    setRejectConfirmation({
+      visible: true,
+      item: verification,
+    });
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectConfirmation.item) return;
+
+    setIsSubmitting(true);
+    try {
+      // Based on the cURL provided, this is the reject endpoint with PATCH method
+      const payload = {
+        employmentConfirmed: false,
+        designationConfirmed: false,
+        salaryConfirmed: false,
+        tenureConfirmed: false,
+        behaviorConfirmed: false,
+        companyNameConfirmed: false,
+        departmentConfirmed: false,
+        employmentTypeConfirmed: false,
+        locationConfirmed: false,
+        startDateConfirmed: false,
+        endDateConfirmed: false,
+        documentsConfirmed: [],
+        reasonForLeavingConfirmed: false,
+        comments: "reject",
+        discrepancies: []
+      };
+
+      const response = await http.patch(
+        `/api/verification/employee/create-request/${rejectConfirmation.item.verificationRequestId}`,
+        payload
+      );
+
+      // Update the verification status in the local state
+      setVerifications(prev =>
+        prev.map(v =>
+          v.verificationRequestId === rejectConfirmation.item?.verificationRequestId
+            ? { ...v, status: 'REJECTED', comments: 'reject' }
+            : v
+        )
+      );
+
+      Toast.show({
+        type: 'success',
+        text1: 'Verification Rejected',
+        text2: 'The verification request has been rejected successfully',
+      });
+
+      // Refresh the list to ensure data consistency
+      handleRefresh();
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Rejection Failed',
+        text2: error.response?.data?.message || 'Failed to reject verification request',
+      });
+    } finally {
+      setIsSubmitting(false);
+      setRejectConfirmation({ visible: false, item: null });
+    }
+  };
+
   const handleDelete = (id: string) => {
     // Find the verification to check its status
     const verification = verifications.find(v => v.verificationRequestId === id);
@@ -247,6 +319,7 @@ const IncomingVerificationRequests: React.FC = () => {
       onEdit={handleEdit}
       onDelete={handleDelete}
       onResubmit={handleResubmit}
+      onReject={handleReject}
     />
   );
 
@@ -379,6 +452,17 @@ const IncomingVerificationRequests: React.FC = () => {
         onCancel={() => setDeleteConfirmation({ visible: false, id: null })}
       />
 
+      {/* Reject Confirmation Popup */}
+      <ConfirmationPopup
+        visible={rejectConfirmation.visible}
+        title="Reject Verification Request"
+        message="Are you sure you want to reject this verification request? This action cannot be undone."
+        confirmText="Reject"
+        cancelText="Cancel"
+        onConfirm={handleConfirmReject}
+        onCancel={() => setRejectConfirmation({ visible: false, item: null })}
+        
+      />
     </View>
   );
 };

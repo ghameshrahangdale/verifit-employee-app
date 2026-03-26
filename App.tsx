@@ -11,6 +11,7 @@ import { ThemeProvider } from './src/context/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/components/ui/toast';
+import { NotificationsProvider } from './src/context/NotificationsContext';
 
 const linking = {
   prefixes: ['verifiit://', 'https://verifiit-nextjs.vercel.app'],
@@ -30,14 +31,17 @@ export default function App() {
         <ThemeProvider>
           <AuthProvider>
 
-            <NavigationContainer linking={linking}>
+           <NotificationsProvider 
+              pollInterval={30000} // Poll every 30 seconds
+              enablePolling={true} // Enable background polling
+            >
+              <NavigationContainer linking={linking}>
+                <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
+                <Navigation />
+                <Toast config={toastConfig} />
+              </NavigationContainer>
+            </NotificationsProvider>
 
-              <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
-
-              <Navigation />
-
-              <Toast config={toastConfig} />
-            </NavigationContainer>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

@@ -17,6 +17,7 @@ interface EmploymentSectionProps {
   onSubmitActualValue: (fieldKey: string) => void;
   onCancelInput: (fieldKey: string) => void;
   onActualValueChange: (fieldKey: string, value: string) => void;
+  onResetField: (fieldKey: string) => void; // New prop
 }
 
 export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
@@ -30,6 +31,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
   onSubmitActualValue,
   onCancelInput,
   onActualValueChange,
+  onResetField, // New prop
 }) => {
   return (
     <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
@@ -60,6 +62,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           <ReviewField
             label="Designation"
@@ -72,6 +75,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           <ReviewField
             label="Department"
@@ -84,6 +88,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           <ReviewField
             label="Employment Type"
@@ -96,6 +101,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           <ReviewField
             label="Start Date"
@@ -108,6 +114,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           <ReviewField
             label="End Date"
@@ -120,6 +127,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           <ReviewField
             label="Location"
@@ -132,6 +140,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
             onSubmitActualValue={onSubmitActualValue}
             onCancelInput={onCancelInput}
             onActualValueChange={onActualValueChange}
+            onResetField={onResetField}
           />
           {employmentRecord.reasonForLeaving && (
             <ReviewField
@@ -145,6 +154,7 @@ export const EmploymentSection: React.FC<EmploymentSectionProps> = ({
               onSubmitActualValue={onSubmitActualValue}
               onCancelInput={onCancelInput}
               onActualValueChange={onActualValueChange}
+              onResetField={onResetField}
             />
           )}
         </View>

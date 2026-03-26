@@ -52,11 +52,11 @@ const VerifyRequestScreen: React.FC = () => {
     comments: '',
     discrepancies: [],
     behaviorReport: {
-      teamworkRating: 5,
-      leadershipRating: 5,
-      communicationRating: 5,
-      integrityRating: 5,
-      performanceRating: 5,
+      teamworkRating: 0,
+      leadershipRating: 0,
+      communicationRating: 0,
+      integrityRating: 0,
+      performanceRating: 0,
       policyViolation: false,
       disciplinaryAction: false,
       rehireRecommendation: true,
@@ -310,134 +310,134 @@ const VerifyRequestScreen: React.FC = () => {
   };
 
   const handleSubmitReview = async () => {
-  try {
-    setIsSubmitting(true);
-    
-    // Check if all fields are reviewed
-    const allFieldsReviewed = Object.values(fieldStatus).every(field => field.confirmed !== null || field.showInput === false);
-    if (!allFieldsReviewed) {
-      Toast.show({ type: 'error', text1: 'Incomplete Review', text2: 'Please review all fields before submitting' });
+    try {
+      setIsSubmitting(true);
+
+      // Check if all fields are reviewed
+      const allFieldsReviewed = Object.values(fieldStatus).every(field => field.confirmed !== null || field.showInput === false);
+      if (!allFieldsReviewed) {
+        Toast.show({ type: 'error', text1: 'Incomplete Review', text2: 'Please review all fields before submitting' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!reviewData.comments) {
+        Toast.show({ type: 'error', text1: 'Comments Required', text2: 'Please add your review comments' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Prepare documents confirmed array
+      const documentsConfirmed = details?.documents.map(doc => ({
+        id: doc.id,
+        confirmed: fieldStatus[`document_${doc.id}`]?.confirmed || false
+      })) || [];
+
+      // Prepare salary confirmation status (overall salary confirmed if any salary field is confirmed)
+      const salaryConfirmed = Object.keys(fieldStatus).some(key =>
+        key.includes('salary_') && fieldStatus[key]?.confirmed === true
+      );
+
+      const payload = {
+        verificationMethod: reviewData.verificationMethod,
+        comments: reviewData.comments,
+
+        // Individual field confirmations
+        companyNameConfirmed: fieldStatus['company_name']?.confirmed || false,
+        designationConfirmed: fieldStatus['designation']?.confirmed || false,
+        departmentConfirmed: fieldStatus['department']?.confirmed || false,
+        employmentTypeConfirmed: fieldStatus['employment_type']?.confirmed || false,
+        locationConfirmed: fieldStatus['location']?.confirmed || false,
+        startDateConfirmed: fieldStatus['start_date']?.confirmed || false,
+        endDateConfirmed: fieldStatus['end_date']?.confirmed || false,
+        reasonForLeavingConfirmed: fieldStatus['reason_for_leaving']?.confirmed || false,
+
+        // Combined confirmations
+        employmentConfirmed: fieldStatus['company_name']?.confirmed &&
+          fieldStatus['start_date']?.confirmed &&
+          fieldStatus['end_date']?.confirmed || false,
+        tenureConfirmed: fieldStatus['start_date']?.confirmed &&
+          fieldStatus['end_date']?.confirmed || false,
+        salaryConfirmed: salaryConfirmed,
+        behaviorConfirmed: true, // Always true as we're not implementing behavior confirmation yet
+
+        // Documents as array of objects
+        documentsConfirmed: documentsConfirmed,
+
+        // Additional data
+        discrepancies: reviewData.discrepancies,
+        behaviorReport: reviewData.behaviorReport,
+      };
+
+      await http.patch(`/api/verification/employee/create-request/${verificationId}`, payload);
+      Toast.show({ type: 'success', text1: 'Review Submitted', text2: 'The verification request has been reviewed successfully' });
+      navigation.goBack();
+    } catch (error: any) {
+      Toast.show({ type: 'error', text1: 'Submission Failed', text2: error.response?.data?.message || 'Unable to submit review' });
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-    
-    if (!reviewData.comments) {
-      Toast.show({ type: 'error', text1: 'Comments Required', text2: 'Please add your review comments' });
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Prepare documents confirmed array
-    const documentsConfirmed = details?.documents.map(doc => ({
-      id: doc.id,
-      confirmed: fieldStatus[`document_${doc.id}`]?.confirmed || false
-    })) || [];
-
-    // Prepare salary confirmation status (overall salary confirmed if any salary field is confirmed)
-    const salaryConfirmed = Object.keys(fieldStatus).some(key => 
-      key.includes('salary_') && fieldStatus[key]?.confirmed === true
-    );
-
-    const payload = {
-      verificationMethod: reviewData.verificationMethod,
-      comments: reviewData.comments,
-      
-      // Individual field confirmations
-      companyNameConfirmed: fieldStatus['company_name']?.confirmed || false,
-      designationConfirmed: fieldStatus['designation']?.confirmed || false,
-      departmentConfirmed: fieldStatus['department']?.confirmed || false,
-      employmentTypeConfirmed: fieldStatus['employment_type']?.confirmed || false,
-      locationConfirmed: fieldStatus['location']?.confirmed || false,
-      startDateConfirmed: fieldStatus['start_date']?.confirmed || false,
-      endDateConfirmed: fieldStatus['end_date']?.confirmed || false,
-      reasonForLeavingConfirmed: fieldStatus['reason_for_leaving']?.confirmed || false,
-      
-      // Combined confirmations
-      employmentConfirmed: fieldStatus['company_name']?.confirmed && 
-                          fieldStatus['start_date']?.confirmed && 
-                          fieldStatus['end_date']?.confirmed || false,
-      tenureConfirmed: fieldStatus['start_date']?.confirmed && 
-                      fieldStatus['end_date']?.confirmed || false,
-      salaryConfirmed: salaryConfirmed,
-      behaviorConfirmed: true, // Always true as we're not implementing behavior confirmation yet
-      
-      // Documents as array of objects
-      documentsConfirmed: documentsConfirmed,
-      
-      // Additional data
-      discrepancies: reviewData.discrepancies,
-      behaviorReport: reviewData.behaviorReport,
-    };
-
-    await http.patch(`/api/verification/employee/create-request/${verificationId}`, payload);
-    Toast.show({ type: 'success', text1: 'Review Submitted', text2: 'The verification request has been reviewed successfully' });
-    navigation.goBack();
-  } catch (error: any) {
-    Toast.show({ type: 'error', text1: 'Submission Failed', text2: error.response?.data?.message || 'Unable to submit review' });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const handleRejectRequest = async () => {
-  Alert.alert(
-    'Reject Verification Request',
-    'Are you sure you want to reject this verification request? This action cannot be undone.',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reject',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setIsSubmitting(true);
-            
-            // Prepare documents confirmed array (all false for rejection)
-            const documentsConfirmed = details?.documents.map(doc => ({
-              id: doc.id,
-              confirmed: false
-            })) || [];
-            
-            const payload = {
-              verificationMethod: reviewData.verificationMethod,
-              status: 'REJECTED',
-              comments: reviewData.comments || 'Request rejected by HR',
-              
-              // All confirmations set to false for rejection
-              companyNameConfirmed: false,
-              designationConfirmed: false,
-              departmentConfirmed: false,
-              employmentTypeConfirmed: false,
-              locationConfirmed: false,
-              startDateConfirmed: false,
-              endDateConfirmed: false,
-              reasonForLeavingConfirmed: false,
-              employmentConfirmed: false,
-              tenureConfirmed: false,
-              salaryConfirmed: false,
-              behaviorConfirmed: false,
-              
-              // Documents as array of objects with all false
-              documentsConfirmed: documentsConfirmed,
-              
-              // Additional data
-              discrepancies: reviewData.discrepancies,
-              behaviorReport: reviewData.behaviorReport,
-            };
-            
-            await http.patch(`/api/verification/employee/create-request/${verificationId}`, payload);
-            Toast.show({ type: 'success', text1: 'Request Rejected', text2: 'The verification request has been rejected successfully' });
-            navigation.goBack();
-          } catch (error: any) {
-            Toast.show({ type: 'error', text1: 'Rejection Failed', text2: error.response?.data?.message || 'Unable to reject request' });
-          } finally {
-            setIsSubmitting(false);
-          }
+    Alert.alert(
+      'Reject Verification Request',
+      'Are you sure you want to reject this verification request? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsSubmitting(true);
+
+              // Prepare documents confirmed array (all false for rejection)
+              const documentsConfirmed = details?.documents.map(doc => ({
+                id: doc.id,
+                confirmed: false
+              })) || [];
+
+              const payload = {
+                verificationMethod: reviewData.verificationMethod,
+                status: 'REJECTED',
+                comments: reviewData.comments || 'Request rejected by HR',
+
+                // All confirmations set to false for rejection
+                companyNameConfirmed: false,
+                designationConfirmed: false,
+                departmentConfirmed: false,
+                employmentTypeConfirmed: false,
+                locationConfirmed: false,
+                startDateConfirmed: false,
+                endDateConfirmed: false,
+                reasonForLeavingConfirmed: false,
+                employmentConfirmed: false,
+                tenureConfirmed: false,
+                salaryConfirmed: false,
+                behaviorConfirmed: false,
+
+                // Documents as array of objects with all false
+                documentsConfirmed: documentsConfirmed,
+
+                // Additional data
+                discrepancies: reviewData.discrepancies,
+                behaviorReport: reviewData.behaviorReport,
+              };
+
+              await http.patch(`/api/verification/employee/create-request/${verificationId}`, payload);
+              Toast.show({ type: 'success', text1: 'Request Rejected', text2: 'The verification request has been rejected successfully' });
+              navigation.goBack();
+            } catch (error: any) {
+              Toast.show({ type: 'error', text1: 'Rejection Failed', text2: error.response?.data?.message || 'Unable to reject request' });
+            } finally {
+              setIsSubmitting(false);
+            }
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
   const formatFieldName = (fieldKey: string): string => {
     return fieldKey
@@ -446,6 +446,33 @@ const VerifyRequestScreen: React.FC = () => {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  const handleResetField = (fieldKey: string) => {
+    // Reset the field status to initial state (null, no input)
+    setFieldStatus(prev => ({
+      ...prev,
+      [fieldKey]: {
+        confirmed: null,
+        showInput: false,
+        actualValue: ''
+      }
+    }));
+
+    // Remove any associated discrepancy from reviewData
+    const fieldName = formatFieldName(fieldKey);
+    setReviewData(prev => ({
+      ...prev,
+      discrepancies: prev.discrepancies.filter(d => d.fieldName !== fieldName)
+    }));
+
+    setActiveField(null);
+
+    Toast.show({
+      type: 'info',
+      text1: 'Field Reset',
+      text2: `${fieldName} can be reviewed again`
+    });
   };
 
   const handleRefresh = () => {
@@ -511,6 +538,7 @@ const VerifyRequestScreen: React.FC = () => {
           onSubmitActualValue={handleSubmitActualValue}
           onCancelInput={handleCancelInput}
           onActualValueChange={handleActualValueChange}
+          onResetField={handleResetField}
         />
 
         <SalarySection

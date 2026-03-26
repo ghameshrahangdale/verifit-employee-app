@@ -121,6 +121,8 @@ export interface SalaryRecord {
 }
 
 export interface Document {
+  confirmed: any;
+  isConfirmed: boolean | undefined;
   id: string;
   title: string;
   documentType: string;

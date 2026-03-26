@@ -96,9 +96,25 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleViewDocument = (document: Document) => {
-    setPreviewDocument(document);
-    setIsPreviewVisible(true);
+  const handleViewDocument = async (document: Document) => {
+    try {
+      const supported = await Linking.canOpenURL(document.fileUrl);
+      if (supported) {
+        await Linking.openURL(document.fileUrl);
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Cannot Download',
+          text2: 'Unable to download this document',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to download document',
+      });
+    }
   };
 
   const handleDownloadDocument = async (document: Document) => {
@@ -361,7 +377,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
             >
               <View className="flex-row items-center">
                 <Text className="font-rubik-bold text-base text-gray-800">
-                  Salary Records ({details.salaryRecords.length})
+                  Salary Record
                 </Text>
               </View>
               <View className="flex-row items-center">
@@ -465,16 +481,15 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
                 {details.documents.map((doc) => {
                   const documentConfirmation = details.verificationResponse?.documentConfirmations?.find(
                     (conf: { id: string; }) => conf.id === doc.id
-                  );
-                  const isConfirmed = documentConfirmation?.confirmed;
+                  ) || details.verificationResponse && doc.confirmed;
+                  
 
                   return (
                     <DocumentCard
                       key={doc.id}
                       document={doc}
-                      isConfirmed={isConfirmed}
+                      isConfirmed={documentConfirmation}
                       onView={handleViewDocument}
-                      onDownload={handleDownloadDocument}
                     />
                   );
                 })}
