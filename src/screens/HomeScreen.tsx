@@ -23,6 +23,7 @@ const HomeScreen: React.FC = () => {
       contentContainerStyle={{
         paddingHorizontal: 20,
         paddingTop: 20,
+        paddingBottom:160,
       }}
       showsVerticalScrollIndicator={false}
     >

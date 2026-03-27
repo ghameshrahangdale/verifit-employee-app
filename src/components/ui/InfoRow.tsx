@@ -22,6 +22,17 @@ export const InfoRow: React.FC<InfoRowProps> = ({
 }) => {
   const isConfirmedStatus = confirmed ?? isConfirmed;
   
+  // Determine background color based on confirmation status
+  const getBackgroundColor = () => {
+    if (isConfirmedStatus === true) {
+      return 'bg-green-50';
+    }
+    if (isConfirmedStatus === false) {
+      return 'bg-red-50';
+    }
+    return 'bg-transparent';
+  };
+  
   const renderStatusBadge = () => {
     if (isConfirmedStatus === undefined) return null;
     
@@ -51,7 +62,7 @@ export const InfoRow: React.FC<InfoRowProps> = ({
   };
   
   return (
-    <View>
+    <View className={`py-3 px-3 -mx-3 rounded-lg ${getBackgroundColor()}`}>
       <View className="flex-row items-center justify-between mb-1">
         <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide">
           {label}
@@ -64,7 +75,13 @@ export const InfoRow: React.FC<InfoRowProps> = ({
         )}
         <View className={icon ? "ml-2 flex-1" : "flex-1"}>
           {renderValue ? renderValue() : (
-            <Text className="font-rubik-medium text-base text-gray-900">
+            <Text className={`font-rubik-medium text-base ${
+              isConfirmedStatus === true 
+                ? 'text-green-800' 
+                : isConfirmedStatus === false 
+                ? 'text-red-800' 
+                : 'text-gray-900'
+            }`}>
               {value}
             </Text>
           )}

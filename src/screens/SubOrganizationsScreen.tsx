@@ -22,8 +22,12 @@ import SearchInput from '../components/ui/SearchInput';
 import ConfirmationPopup from '../components/ui/ConfirmationPopup';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Avatar from '../components/ui/Avatar';
 
 interface SubOrganization {
+  adminFirstName: string;
+  adminLastName: string;
+  adminMobile: React.JSX.Element;
   id: string;
   name: string;
   businessEmail: string;
@@ -221,89 +225,126 @@ const SubOrganizationsScreen: React.FC = () => {
   };
 
   const renderSubOrganizationCard = ({ item }: { item: SubOrganization }) => {
-    const isProcessing = processingId === item.id;
+  const isProcessing = processingId === item.id;
+  
+  // Get admin full name
+  const adminFullName = `${item.adminFirstName || ''} ${item.adminLastName || ''}`.trim();
 
-    return (
-      <TouchableOpacity
-        className="bg-white rounded-xl mx-4 mb-3 p-4 shadow-sm border border-slate-100"
-        onPress={() => {
-          setSelectedSubOrg(item);
-          setDetailsModalVisible(true);
-        }}
-        activeOpacity={0.7}
-      >
-        {/* Top Row: Icon + Info */}
-        <View className="flex-row items-start">
-          {/* Organization Icon */}
-          <View className="w-12 h-12 rounded-xl bg-purple-100 items-center justify-center">
-            <Feather name="briefcase" size={24} color="#8B5CF6" />
-          </View>
+  return (
+    <TouchableOpacity
+      className="bg-white rounded-xl mx-4 mb-3 p-4 shadow-sm border border-slate-100"
+      onPress={() => {
+        setSelectedSubOrg(item);
+        setDetailsModalVisible(true);
+      }}
+      activeOpacity={0.7}
+    >
+      {/* Top Row: Avatar + Info */}
+      <View className="flex-row items-start">
+        {/* Avatar Component */}
+        <Avatar
+          imageUrl={item.logoUrl}
+          size="lg"
+          rounded="corners"
+        />
 
-          {/* Organization Details */}
-          <View className="flex-1 ml-3">
-            <Text className="font-rubik-bold text-[15px] text-slate-900 tracking-tight">
-              {item.name}
-            </Text>
-            <Text className="font-rubik text-xs text-slate-500 mt-0.5">
-              {item.businessEmail}
-            </Text>
-          </View>
-
-          {/* Status Badge - Based on onboarding completion */}
-          <View className={`px-2 py-1 rounded-full ${item.isOnboardingComplete ? 'bg-green-50' : 'bg-amber-50'}`}>
-            <Text className={`font-rubik-medium text-xs ${item.isOnboardingComplete ? 'text-green-700' : 'text-amber-700'}`}>
-              {item.isOnboardingComplete ? 'COMPLETED' : 'PENDING'}
-            </Text>
-          </View>
+        {/* Organization Details */}
+        <View className="flex-1 ml-3">
+          <Text className="font-rubik-bold text-[15px] text-slate-900 tracking-tight">
+            {item.name}
+          </Text>
+          <Text className="font-rubik text-xs text-slate-500 mt-0.5">
+            {item.businessEmail}
+          </Text>
         </View>
 
-        {/* Location Information */}
-        {(item.city || item.state || item.country) && (
-          <View className="mt-3 pt-1">
-            <View className="flex-row items-center">
-              <Feather name="map-pin" size={12} color="#94A3B8" />
+        {/* Status Badge - Based on onboarding completion */}
+        <View className={`px-2 py-1 rounded-full ${item.isOnboardingComplete ? 'bg-green-50' : 'bg-amber-50'}`}>
+          <Text className={`font-rubik-medium text-xs ${item.isOnboardingComplete ? 'text-green-700' : 'text-amber-700'}`}>
+            {item.isOnboardingComplete ? 'COMPLETED' : 'PENDING'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Admin Contact Information */}
+      {adminFullName && (
+        <View className="mt-3 pt-1">
+          <View className="flex-row items-center mb-1.5">
+            <Feather name="user" size={12} color="#94A3B8" />
+            <Text className="font-rubik text-xs text-slate-700 ml-1.5">
+              {adminFullName}
+            </Text>
+          </View>
+          {item.adminMobile && (
+            <View className="flex-row items-center mb-1.5">
+              <Feather name="phone" size={12} color="#94A3B8" />
               <Text className="font-rubik text-xs text-slate-600 ml-1.5">
-                {[item.city, item.state, item.country].filter(Boolean).join(', ')}
+                {item.adminMobile}
               </Text>
             </View>
-          </View>
-        )}
+          )}
+        </View>
+      )}
 
-        {/* Divider */}
-        <View className="h-px bg-slate-100 my-3" />
-
-        {/* Additional Info */}
-        <View className="flex-row items-center justify-between">
+      {/* Location Information */}
+      {(item.city || item.state || item.country) && (
+        <View className="mt-2 pt-1">
           <View className="flex-row items-center">
-            <Feather name="calendar" size={12} color="#94A3B8" />
+            <Feather name="map-pin" size={12} color="#94A3B8" />
             <Text className="font-rubik text-xs text-slate-600 ml-1.5">
-              Created: {formatShortDate(item.createdAt)}
+              {[item.city, item.state, item.country].filter(Boolean).join(', ')}
             </Text>
           </View>
-          
-          {/* Delete Button */}
-          {/* {canAddSubOrg && (
-            <TouchableOpacity
-              className="flex-row items-center px-3 py-1.5 rounded-lg bg-red-50"
-              onPress={() => showConfirmationPopup('delete', item.id, item.name)}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color="#DC2626" />
-              ) : (
-                <>
-                  <Feather name="trash-2" size={14} color="#DC2626" />
-                  <Text className="font-rubik-medium text-xs text-red-700 ml-1.5">
-                    Delete
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )} */}
         </View>
-      </TouchableOpacity>
-    );
-  };
+      )}
+
+      {/* Website Information */}
+      {item.companyWebsite && (
+        <View className="mt-2">
+          <View className="flex-row items-center">
+            <Feather name="globe" size={12} color="#94A3B8" />
+            <Text className="font-rubik text-xs text-slate-600 ml-1.5">
+              {item.companyWebsite}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Divider */}
+      <View className="h-px bg-slate-100 my-3" />
+
+      {/* Additional Info */}
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <Feather name="calendar" size={12} color="#94A3B8" />
+          <Text className="font-rubik text-xs text-slate-600 ml-1.5">
+            Created: {formatShortDate(item.createdAt)}
+          </Text>
+        </View>
+        
+        {/* Delete Button */}
+        {/* {canAddSubOrg && (
+          <TouchableOpacity
+            className="flex-row items-center px-3 py-1.5 rounded-lg bg-red-50"
+            onPress={() => showConfirmationPopup('delete', item.id, item.name)}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <ActivityIndicator size="small" color="#DC2626" />
+            ) : (
+              <>
+                <Feather name="trash-2" size={14} color="#DC2626" />
+                <Text className="font-rubik-medium text-xs text-red-700 ml-1.5">
+                  Delete
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )} */}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
   const renderHeader = () => (
     <View className="pt-4 px-4 pb-2">

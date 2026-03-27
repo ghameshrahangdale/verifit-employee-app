@@ -25,6 +25,7 @@ interface VerificationRequest {
   documentName?: string;
   documentNumber?: string;
   fileSize?: string;
+  organizationId?: string; // Add organizationId to the interface
 }
 
 interface VerificationCardProps {
@@ -48,11 +49,17 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
   onDelete,
   onResubmit,
 }) => {
+  const {user} = useAuth();
   const { colors } = useTheme();
   const statusConfig = getStatusConfig(item.status);
   const canEdit = item.status === 'PENDING' || item.status === 'DISCREPANCIES';
-  const canDelete = item.status !== 'VERIFIED' && item.status !== 'DISCREPANCIES' &&item.status !== 'REJECTED' && isEmployee(userRole);
-  const canReject = item.status === 'PENDING' && !isEmployee(userRole) && onReject;
+  const canDelete = item.status !== 'VERIFIED' && item.status !== 'DISCREPANCIES' && item.status !== 'REJECTED' && isEmployee(userRole);
+  
+  // Check if this verification request belongs to the user's organization
+  const isSameOrganization = item.organizationId && user?.organizationId && item.organizationId === user.organizationId;
+  
+  // Only show reject button for non-employees with PENDING status AND different organization
+  const canReject = item.status === 'PENDING' && !isEmployee(userRole) && onReject && !isSameOrganization;
 
   return (
     <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
@@ -180,8 +187,8 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* Review Button - Only for non-employees with PENDING status */}
-        {item.status === 'PENDING' && !isEmployee(userRole) && onReview && (
+        {/* Review Button - Only for non-employees with PENDING status AND different organization */}
+        {item.status === 'PENDING' && !isEmployee(userRole) && onReview && isSameOrganization && (
           <TouchableOpacity
             className="flex-row items-center bg-green-50 px-3.5 py-2 rounded-xl border border-green-200"
             onPress={() => onReview(item)}
@@ -193,13 +200,13 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Reject Button - Only for non-employees with PENDING status */}
-        {canReject && (
+        {/* Reject Button - Only for non-employees with PENDING status AND different organization */}
+        {item.status === 'PENDING' && !isEmployee(userRole) && onReject && isSameOrganization && (
           <TouchableOpacity
             className="flex-row items-center bg-red-50 px-3.5 py-2 rounded-xl border border-red-200"
             onPress={() => onReject(item)}
           >
-            <Feather name="x-circle" size={14} color="#DC2626" />
+            <Feather name="x-circle" size={14} color="rgb(220, 38, 38)" />
             <Text className="font-rubik-medium text-xs text-red-600 ml-1.5">
               Reject
             </Text>

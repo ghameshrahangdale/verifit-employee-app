@@ -5,8 +5,12 @@ import Feather from 'react-native-vector-icons/Feather';
 import Avatar from '../ui/Avatar';
 import http from '../../services/http.api';
 import Loader from '../ui/Loader';
+import { useAuth } from '../../context/AuthContext';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { AppStackParamList } from '../../navigation/AppStackNavigator';
 
 interface Employee {
+  verificationStatus: any;
   id: string;
   organizationId: string;
   firstName: string;
@@ -22,10 +26,12 @@ interface Employee {
 }
 
 const RecentVerifications: React.FC = () => {
+  const {user} = useAuth();
   const { colors } = useTheme();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigation = useNavigation<NavigationProp<AppStackParamList>>()
 
   const fetchEmployees = async () => {
     try {
@@ -55,6 +61,11 @@ const RecentVerifications: React.FC = () => {
     fetchEmployees();
   }, []);
 
+   const handleViewEmployee = (id: string) => {
+    navigation.navigate('EmployeeDetails', { employeeId: id });
+  };
+
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -82,86 +93,178 @@ const RecentVerifications: React.FC = () => {
         };
   };
 
-  const renderEmployeeCard = ({ item }: { item: Employee }) => {
-    const fullName = `${item.firstName} ${item.lastName}`.trim();
-    const imageUrl = item.profileImage;
-    const statusConfig = getStatusConfig(item.isEmailVerified);
-    const department = item.role === 'hr' ? 'HR' : item.role === 'admin' ? 'Admin' : 'Employee';
-
-    return (
-      <View
-        className="bg-white rounded-2xl mb-3 overflow-hidden"
-        style={{
-          
-          borderColor: '#F1F5F9',
-          borderWidth: 1,
-        }}
-      >
-        <View className="px-4 py-4">
-          {/* Main row */}
-          <View className="flex-row items-center">
-            <Avatar imageUrl={imageUrl} size="lg" name={fullName} />
-
-            <View className="ml-3 flex-1">
+   const renderEmployeeCard = ({ item }: { item: Employee }) => {
+      const fullName = `${item.firstName} ${item.lastName}`.trim();
+      const imageUrl = item.profileImage;
+      const isCurrentUser = item.email === user?.email;
+  
+      return (
+        <View
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 20,
+            marginBottom: 12,
+            padding: 16,
+            shadowColor: '#64748B',
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 3,
+            borderWidth: 1,
+            borderColor: '#F1F5F9',
+          }}
+        >
+          {/* Top Row: Avatar + Info + Verification Status Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            {/* Avatar */}
+            <View style={{ position: 'relative' }}>
+              <View
+                style={{
+                  borderRadius: 50,
+                  overflow: 'hidden',
+                  backgroundColor: colors.primary + '15',
+                }}
+              >
+                <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
+              </View>
+            </View>
+  
+            {/* Name, Email */}
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                <Text
+                  style={{
+                    fontFamily: 'Rubik-Bold',
+                    fontSize: 15,
+                    color: '#0F172A',
+                    letterSpacing: -0.2,
+                  }}
+                >
+                  {fullName}
+                </Text>
+                {isCurrentUser && (
+                  <View
+                    style={{
+                      marginLeft: 6,
+                      paddingHorizontal: 7,
+                      paddingVertical: 2,
+                      backgroundColor: colors.primary + '18',
+                      borderRadius: 20,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: 'Rubik-Medium',
+                        fontSize: 10,
+                        color: colors.primary,
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      YOU
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text
-                className="text-base font-rubik-bold text-gray-900"
+                style={{
+                  fontFamily: 'Rubik-Regular',
+                  fontSize: 12.5,
+                  color: '#64748B',
+                  marginTop: 2,
+                }}
                 numberOfLines={1}
               >
-                {fullName}
-              </Text>
-              <Text className="text-xs text-gray-400 mt-0.5 font-rubik" numberOfLines={1}>
                 {item.email}
               </Text>
             </View>
-
-            {/* Status badge */}
+  
+            {/* Verification Status Badge (top-right) - Made smaller */}
             <View
-              className="flex-row items-center px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: statusConfig.bg }}
+              style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 12,
+                backgroundColor: item.verificationStatus ? '#DCFCE7' : '#FEF3C7',
+                borderWidth: 1,
+                borderColor: item.verificationStatus ? '#86EFAC' : '#FCD34D',
+                alignSelf: 'flex-start',
+              }}
             >
-              <View
-                className="w-1.5 h-1.5 rounded-full mr-1.5"
-                style={{ backgroundColor: statusConfig.dot }}
-              />
               <Text
-                className="text-xs font-rubik-medium"
-                style={{ color: statusConfig.text }}
+                style={{
+                  fontFamily: 'Rubik-Medium',
+                  fontSize: 9,
+                  color: item.verificationStatus ? '#15803D' : '#92400E',
+                  letterSpacing: 0.3,
+                }}
               >
-                {statusConfig.status}
+                {item.verificationStatus ? 'VERIFIED' : 'NOT VERIFIED'}
               </Text>
             </View>
           </View>
-
+  
           {/* Divider */}
-          <View className="h-px bg-gray-100 mt-3 mb-3" />
-
-          {/* Meta row */}
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              <View
-                className="px-2 py-0.5 rounded-md mr-2"
-                style={{ backgroundColor: colors.primary + '10' }}
+          <View
+            style={{
+              height: 1,
+              backgroundColor: '#F1F5F9',
+              marginVertical: 12,
+            }}
+          />
+  
+          {/* Bottom Row: Meta info + View button */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Left meta: Joined date with label */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Feather name="calendar" size={11} color="#94A3B8" />
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Regular',
+                  fontSize: 11,
+                  color: '#64748B',
+                  marginLeft: 4,
+                }}
+              >
+                Joined: {formatDate(item.createdAt)}
+              </Text>
+            </View>
+  
+            {/* View button — only for verified employees */}
+            {item.verificationStatus && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 12,
+                  shadowColor: colors.primary,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                  elevation: 3,
+                }}
+                onPress={() => handleViewEmployee(item.id)}
               >
                 <Text
-                  className="text-xs font-rubik-medium"
-                  style={{ color: colors.primary }}
+                  style={{
+                    fontFamily: 'Rubik-Medium',
+                    fontSize: 12,
+                    color: '#FFFFFF',
+                    marginRight: 4,
+                    letterSpacing: 0.2,
+                  }}
                 >
-                  {department}
+                  View
                 </Text>
-              </View>
-            </View>
-
-            <View className="flex-row items-center">
-              <Feather name="calendar" size={11} color="#9CA3AF" />
-              <Text className="text-xs text-gray-400 font-rubik ml-1">
-                Joined {formatDate(item.createdAt)}
-              </Text>
-            </View>
+                <Feather name="arrow-right" size={12} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
-      </View>
-    );
-  };
+      );
+    };
 
   if (isLoading && employees.length === 0) {
     return (

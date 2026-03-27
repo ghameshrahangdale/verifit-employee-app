@@ -47,6 +47,7 @@ interface NotificationsContextType {
   fetchNotifications: (page?: number, refresh?: boolean) => Promise<void>;
   markAsRead: (notificationId: string, isAlreadyRead?: boolean) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
   refreshNotifications: () => Promise<void>;
   loadMoreNotifications: () => Promise<void>;
 }
@@ -142,12 +143,27 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     }
   }, [pagination.hasNext, pagination.page, isLoading, isRefreshing, fetchNotifications]);
 
+  // Fetch unread count separately (from the unread-count endpoint)
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isMountedRef.current) return;
+
+    try {
+      const response = await http.get('/api/notifications/unread-count');
+      
+      if (isMountedRef.current && response.data?.unreadCount !== undefined) {
+        setUnreadCount(response.data.unreadCount);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  }, []);
+
   // Mark single notification as read
   const markAsRead = useCallback(async (notificationId: string, isAlreadyRead: boolean = false) => {
     if (isAlreadyRead) return;
 
     try {
-      await http.patch(`/api/notifications/${notificationId}/read`);
+      await http.patch(`/api/notifications/${notificationId}`);
       
       if (isMountedRef.current) {
         setNotifications(prev =>
@@ -170,7 +186,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
-      await http.patch('/api/notifications/mark-all-read');
+      await http.patch('/api/notifications');
       
       if (isMountedRef.current) {
         setNotifications(prev =>
@@ -193,18 +209,54 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     }
   }, []);
 
+  // Delete a single notification
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    try {
+      await http.delete(`/api/notifications/${notificationId}`);
+      
+      if (isMountedRef.current) {
+        // Find the notification to check if it was unread before deletion
+        const deletedNotification = notifications.find(n => n.id === notificationId);
+        
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        
+        // Update unread count if the deleted notification was unread
+        if (deletedNotification && !deletedNotification.isRead) {
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+        
+        Toast.show({
+          type: 'success',
+          text1: 'Deleted',
+          text2: 'Notification removed successfully',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Failed',
+        text2: 'Unable to delete notification',
+      });
+    }
+  }, [notifications]);
+
   // Background polling setup
   useEffect(() => {
     isMountedRef.current = true;
 
     // Initial fetch
     fetchNotifications(1, true);
+    
+    // Also fetch unread count separately if needed
+    fetchUnreadCount();
 
     // Set up polling if enabled
     if (enablePolling && pollInterval > 0) {
       pollTimerRef.current = setInterval(() => {
         // Only poll if the app is in foreground (you can add app state detection)
         fetchNotifications(1, true);
+        fetchUnreadCount(); // Also update unread count separately
       }, pollInterval);
     }
 
@@ -216,7 +268,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
         pollTimerRef.current = null;
       }
     };
-  }, [fetchNotifications, enablePolling, pollInterval]);
+  }, [fetchNotifications, fetchUnreadCount, enablePolling, pollInterval]);
 
   const value: NotificationsContextType = {
     notifications,
@@ -227,6 +279,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
     refreshNotifications,
     loadMoreNotifications,
   };

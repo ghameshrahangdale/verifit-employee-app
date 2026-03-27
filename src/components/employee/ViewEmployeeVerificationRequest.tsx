@@ -202,7 +202,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
   return (
     <View className="flex-1 bg-gray-50">
       <Header title="Verification Details" />
-      
+
       <DocumentPreviewModal
         visible={isPreviewVisible}
         document={previewDocument}
@@ -210,7 +210,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
           setIsPreviewVisible(false);
           setPreviewDocument(null);
         }}
-        // onDownload={handleDownloadDocument}
+      // onDownload={handleDownloadDocument}
       />
 
       <ScrollView
@@ -369,94 +369,93 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
         </View>
 
         {/* Salary Records Section */}
-        {details.salaryRecords.length > 0 && (
-          <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
-            <TouchableOpacity
-              onPress={() => toggleSection('salary')}
-              className="flex-row items-center justify-between"
-            >
-              <View className="flex-row items-center">
-                <Text className="font-rubik-bold text-base text-gray-800">
-                  Salary Record
-                </Text>
-              </View>
-              <View className="flex-row items-center">
-                {details.verificationResponse && (
-                  <View className="mr-2">
-                    {!details.verificationResponse.salaryConfirmed ? (
-                      <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
-                        <View className="flex-row items-center">
-                          <Feather name="alert-triangle" size={12} color="#DC2626" />
-                          <Text className="font-rubik-medium text-xs text-red-700 ml-1">
-                            Incorrect
-                          </Text>
-                        </View>
-                      </View>
-                    ) : (
-                      <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
-                        <View className="flex-row items-center">
-                          <Feather name="check-circle" size={12} color="#059669" />
-                          <Text className="font-rubik-medium text-xs text-green-700 ml-1">
-                            Correct
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                )}
-                <Feather
-                  name={expandedSections.salary ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#64748B"
-                />
-              </View>
-            </TouchableOpacity>
+{details.salaryRecords.length > 0 && (
+  <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
+    <TouchableOpacity
+      onPress={() => toggleSection('salary')}
+      className="flex-row items-center justify-between"
+    >
+      <View className="flex-row items-center">
+        <Text className="font-rubik-bold text-base text-gray-800">
+          Salary Record
+        </Text>
+      </View>
+     
+    </TouchableOpacity>
 
-            {expandedSections.salary && (
-              <View className="mt-4 space-y-3">
-                {details.salaryRecords.map((salary, index) => (
-                  <View
-                    key={salary.id}
-                    className="bg-gray-50 rounded-xl p-4 border border-gray-100"
-                  >
-                    <View className="flex-row justify-between items-start mb-2">
-                      <Text className="font-rubik-medium text-sm text-gray-800">
-                        {getSalaryTypeLabel(salary.salaryType)}
-                      </Text>
-                      {salary.verified && (
-                        <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200">
-                          <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <Text className="font-rubik-bold text-lg text-gray-900 mb-2">
-                      {getCurrencySymbol(salary.currency)}{parseFloat(salary.amount).toLocaleString()} / {salary.frequency}
-                    </Text>
-
-                    <View className="flex-row justify-between">
-                      <Text className="font-rubik text-xs text-gray-400">
-                        Effective: {formatDate(salary.effectiveDate)}
-                      </Text>
-                      {salary.bonusAmount && (
-                        <Text className="font-rubik text-xs text-gray-400">
-                          Bonus: {getCurrencySymbol(salary.currency)}{salary.bonusAmount}
+    {expandedSections.salary && (
+      <View className="mt-4 space-y-3">
+        {details.salaryRecords.map((salary, index) => {
+          // Use the verified field from the salary record
+          const isVerified = salary.verified || false;
+          
+          // Get card styles based on verification status
+          const getCardStyles = () => {
+            if (isVerified === true) {
+              return 'bg-green-50 rounded-xl p-4 border border-green-300';
+            }
+            if (isVerified === false) {
+              return 'bg-red-50 rounded-xl p-4 border border-red-300';
+            }
+            return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
+          };
+          
+          return (
+            <View key={salary.id} className={getCardStyles()}>
+              <View className="flex-row justify-between items-start mb-2">
+                <View className="flex-row items-center gap-2">
+                  <Text className="font-rubik-medium text-sm text-gray-800">
+                    {getSalaryTypeLabel(salary.salaryType)}
+                  </Text>
+                  {!isVerified ? (
+                    <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
+                      <View className="flex-row items-center">
+                        <Feather name="alert-triangle" size={12} color="#DC2626" />
+                        <Text className="font-rubik-medium text-xs text-red-700 ml-1">
+                          Incorrect
                         </Text>
-                      )}
+                      </View>
                     </View>
-
-                    {salary.stockOptions && (
-                      <Text className="font-rubik text-xs text-gray-400 mt-1">
-                        Stock Options: {salary.stockOptions}
-                      </Text>
-                    )}
-                  </View>
-                ))}
+                  ) : (
+                    <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
+                      <View className="flex-row items-center">
+                        <Feather name="check-circle" size={12} color="#059669" />
+                        <Text className="font-rubik-medium text-xs text-green-700 ml-1">
+                          Correct
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
               </View>
-            )}
-          </View>
-        )}
 
+              <Text className="font-rubik-bold text-lg text-gray-900 mb-2">
+                {getCurrencySymbol(salary.currency)}{parseFloat(salary.amount).toLocaleString()} / {salary.frequency}
+              </Text>
+
+              <View className="flex-row justify-between">
+                <Text className="font-rubik text-xs text-gray-400">
+                  Effective: {formatDate(salary.effectiveDate)}
+                </Text>
+                {salary.bonusAmount && (
+                  <Text className="font-rubik text-xs text-gray-400">
+                    Bonus: {getCurrencySymbol(salary.currency)}{salary.bonusAmount}
+                  </Text>
+                )}
+              </View>
+
+              {salary.stockOptions && (
+                <Text className="font-rubik text-xs text-gray-400 mt-1">
+                  Stock Options: {salary.stockOptions}
+                </Text>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    )}
+  </View>
+)}
         {/* Documents Section */}
         {details.documents.length > 0 && (
           <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
@@ -479,16 +478,22 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
             {expandedSections.documents && (
               <View className="mt-4 gap-3">
                 {details.documents.map((doc) => {
+                  // Find the confirmation from the verification response
                   const documentConfirmation = details.verificationResponse?.documentConfirmations?.find(
-                    (conf: { id: string; }) => conf.id === doc.id
-                  ) || details.verificationResponse && doc.confirmed;
-                  
+                    (conf:any) => conf.id === doc.id
+                  );
+
+                  // Use the confirmation from verification response if available,
+                  // otherwise fall back to the document's confirmed field
+                  const isConfirmed = documentConfirmation
+                    ? documentConfirmation.confirmed
+                    : (doc.confirmed );
 
                   return (
                     <DocumentCard
                       key={doc.id}
                       document={doc}
-                      isConfirmed={documentConfirmation}
+                      isConfirmed={isConfirmed}
                       onView={handleViewDocument}
                     />
                   );

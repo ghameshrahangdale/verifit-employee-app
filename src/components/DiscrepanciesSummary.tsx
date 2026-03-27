@@ -17,6 +17,7 @@ export const DiscrepanciesSummary: React.FC<DiscrepanciesSummaryProps> = ({
       <Text className="font-rubik-bold text-base text-gray-800 mb-3">
         Discrepancies Found ({discrepancies.length})
       </Text>
+      <View className='flex-col gap-3'>
       {discrepancies.map((disc, index) => (
         <View key={index} className="bg-red-50 rounded-xl p-3 mb-2 last:mb-0 border border-red-200">
           <Text className="font-rubik-bold text-xs text-red-700 mb-1">
@@ -33,7 +34,7 @@ export const DiscrepanciesSummary: React.FC<DiscrepanciesSummaryProps> = ({
             </View>
           </View>
         </View>
-      ))}
+      ))}</View>
     </View>
   );
 };

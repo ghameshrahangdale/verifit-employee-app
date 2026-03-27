@@ -22,13 +22,7 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       subtitle: 'View and edit your personal details',
       route: 'MyProfile',
     },
-        {
-      icon: 'briefcase', // or 'layers', 'home', 'building'
-      label: 'Sub Organizations',
-      subtitle: 'Manage your organizations and branches',
-      route: 'subOrganizations',
-      roles: [ROLES.ADMIN],
-    }, 
+      
 
     {
       icon: 'user',
@@ -39,7 +33,7 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
     },
        {
       icon: 'mail',
-      label: 'Sent Invitations',
+      label: 'Invite an Employee',
       subtitle: 'Track invitations sent to team members',
       route: 'sentInvitations',
       roles: [ROLES.ADMIN, ROLES.HR],
@@ -73,6 +67,20 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       route: 'outgoingRequests',
       roles: [ROLES.ADMIN, ROLES.HR],
     },
+    {
+      icon: 'send', 
+      label: 'All Verification Requests',
+      subtitle: 'View and track verification requests sent',
+      route: 'myVerificationRequests',
+      roles: [ROLES.ADMIN, ROLES.HR],
+    },
+      {
+      icon: 'briefcase', // or 'layers', 'home', 'building'
+      label: 'Sub Organizations',
+      subtitle: 'Manage your organizations and branches',
+      route: 'subOrganizations',
+      roles: [ROLES.ADMIN],
+    }, 
     {
       icon: 'alert-circle', 
       label: 'Invitations',
