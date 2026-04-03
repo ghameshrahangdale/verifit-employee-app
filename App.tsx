@@ -19,6 +19,12 @@ const linking = {
     screens: {
       VerifyEmail: 'verify-email',
       ResetPassword: 'reset-password',
+      Signup: {
+        path: 'signup',
+        parse: {
+          invite: (invite: string) => invite,
+        },
+      },
     },
   },
 };

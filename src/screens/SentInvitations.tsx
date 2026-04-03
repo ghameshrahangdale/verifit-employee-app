@@ -21,10 +21,11 @@ import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 import SearchInput from '../components/ui/SearchInput';
 import ConfirmationPopup from '../components/ui/ConfirmationPopup';
-import AddEmployeeForm from '../components/AddEmployeeForm'; // Import the form
-import Button from '../components/ui/Button'; // Import Button component
+import AddEmployeeForm from '../components/AddEmployeeForm';
+import Button from '../components/ui/Button';
 import StatusBadge from '../components/ui/StatusBadge';
 
+// Updated User interface to match response
 interface User {
   id: string;
   firstName: string;
@@ -35,6 +36,7 @@ interface User {
   profileImage: string | null;
 }
 
+// Updated Employee interface
 interface Employee {
   id: string;
   phone: string | null;
@@ -42,18 +44,26 @@ interface Employee {
   department: string | null;
 }
 
+// Updated InviteData interface with user details
+interface InviteData {
+  email: string;
+  phone: string | null;
+  lastName: string;
+  firstName: string;
+  department: string | null;
+  designation: string | null;
+  joiningDate: string | null;
+}
+
+// Updated Invitation interface
 interface Invitation {
   approvalId: string;
   status: 'pending' | 'approved' | 'rejected' | 'declined';
-  inviteData: {
-    department: string | null;
-    designation: string | null;
-    joiningDate: string | null;
-  };
+  inviteData: InviteData;
   respondedAt: string | null;
   sentAt: string;
-  user: User;
-  employee: Employee;
+  user: User | null;
+  employee: Employee | null;
 }
 
 interface Pagination {
@@ -158,6 +168,46 @@ const SentInvitationsScreen: React.FC = () => {
     return statusMap[status.toLowerCase()] || statusMap.pending;
   };
 
+  // Helper function to get user info from invitation
+  const getUserInfo = (invitation: Invitation) => {
+    if (invitation.user) {
+      // For approved/responded invitations, use user data
+      return {
+        id: invitation.user.id,
+        firstName: invitation.user.firstName,
+        lastName: invitation.user.lastName,
+        email: invitation.user.email,
+        profileImage: invitation.user.profileImage,
+        isEmailVerified: invitation.user.isEmailVerified,
+      };
+    } else {
+      // For pending invitations, use inviteData
+      return {
+        id: null,
+        firstName: invitation.inviteData.firstName,
+        lastName: invitation.inviteData.lastName,
+        email: invitation.inviteData.email,
+        profileImage: null,
+        isEmailVerified: false,
+      };
+    }
+  };
+
+  // Helper function to get employee info from invitation
+  const getEmployeeInfo = (invitation: Invitation) => {
+    if (invitation.employee) {
+      return invitation.employee;
+    } else {
+      // For pending invitations, use inviteData
+      return {
+        id: null,
+        phone: invitation.inviteData.phone,
+        designation: invitation.inviteData.designation,
+        department: invitation.inviteData.department,
+      };
+    }
+  };
+
   // Debounce search
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -190,6 +240,7 @@ const SentInvitationsScreen: React.FC = () => {
 
       const response = await http.get('/api/organization/team/invitations', { params });
 
+      // Updated to match new response structure
       const { invitations: fetchedInvitations, pagination: paginationData, summary: summaryData } = response.data;
 
       if (pagination.page === 1) {
@@ -251,7 +302,7 @@ const SentInvitationsScreen: React.FC = () => {
         text2: `${formData.firstName} ${formData.lastName} has been added`,
       });
       setIsAddEmployeeModalVisible(false);
-      handleRefresh(); // Refresh the invitations list
+      handleRefresh();
     } catch (error: any) {
       Toast.show({
         type: 'error',
@@ -328,8 +379,9 @@ const SentInvitationsScreen: React.FC = () => {
     });
   };
 
-  const getFullName = (user: User) => {
-    return `${user.firstName} ${user.lastName}`.trim();
+  const getFullName = (invitation: Invitation) => {
+    const userInfo = getUserInfo(invitation);
+    return `${userInfo.firstName} ${userInfo.lastName}`.trim();
   };
 
   const renderFilterTabs = () => {
@@ -377,7 +429,9 @@ const SentInvitationsScreen: React.FC = () => {
   const renderInvitationCard = ({ item }: { item: Invitation }) => {
     const isProcessing = processingId === item.approvalId;
     const statusConfig = getStatusConfig(item.status);
-    const fullName = getFullName(item.user);
+    const userInfo = getUserInfo(item);
+    const employeeInfo = getEmployeeInfo(item);
+    const fullName = getFullName(item);
     const isPending = item.status === 'pending';
 
     return (
@@ -395,7 +449,7 @@ const SentInvitationsScreen: React.FC = () => {
           <View className="relative">
             <Avatar
               name={fullName}
-              imageUrl={item.user.profileImage}
+              imageUrl={userInfo.profileImage}
               size="lg"
               rounded="full"
             />
@@ -410,9 +464,9 @@ const SentInvitationsScreen: React.FC = () => {
             </View>
             <View className='flex-row items-center flex-wrap'>
               <Text className="font-rubik text-xs text-slate-500 mt-0.5">
-                {item.user.email}
+                {userInfo.email}
               </Text>
-              {item.user.isEmailVerified && (
+              {userInfo.isEmailVerified && (
                 <Feather name="check-circle" size={12} color="#22C55E" style={{ marginLeft: 4 }} />
               )}
             </View>
@@ -422,28 +476,28 @@ const SentInvitationsScreen: React.FC = () => {
         </View>
 
         {/* Designation and Department with Labels */}
-        {(item.inviteData.designation || item.inviteData.department) && (
+        {(employeeInfo.designation || employeeInfo.department) && (
           <View className="mt-3 pt-1">
-            {item.inviteData.designation && (
+            {employeeInfo.designation && (
               <View className="flex-row items-center mb-1.5">
                 <Feather name="briefcase" size={12} color="#94A3B8" />
                 <Text className="font-rubik-medium text-xs text-slate-600 ml-1.5 w-20">
                   Designation:
                 </Text>
                 <Text className="font-rubik text-xs text-slate-600 flex-1">
-                  {item.inviteData.designation}
+                  {employeeInfo.designation}
                 </Text>
               </View>
             )}
 
-            {item.inviteData.department && (
+            {employeeInfo.department && (
               <View className="flex-row items-center">
                 <Feather name="grid" size={12} color="#94A3B8" />
                 <Text className="font-rubik-medium text-xs text-slate-600 ml-1.5 w-20">
                   Department:
                 </Text>
                 <Text className="font-rubik text-xs text-slate-600 flex-1">
-                  {item.inviteData.department}
+                  {employeeInfo.department}
                 </Text>
               </View>
             )}
@@ -482,10 +536,9 @@ const SentInvitationsScreen: React.FC = () => {
         {/* Action Buttons - Only for pending invitations */}
         {isPending && (
           <View className="flex-row gap-3 mt-4">
-
             <TouchableOpacity
               className="flex-1 flex-row items-center justify-center bg-red-50 py-2.5 rounded-lg border border-red-200"
-              onPress={() => showConfirmationPopup('cancel', item.approvalId, item.user.email)}
+              onPress={() => showConfirmationPopup('cancel', item.approvalId, userInfo.email)}
               disabled={isProcessing}
             >
               {isProcessing ? (
@@ -504,6 +557,7 @@ const SentInvitationsScreen: React.FC = () => {
       </TouchableOpacity>
     );
   };
+
   const renderHeader = () => (
     <View className="pt-4 px-4 pb-2">
       <SearchInput
@@ -518,7 +572,7 @@ const SentInvitationsScreen: React.FC = () => {
       />
       {renderFilterTabs()}
 
-      {/* Add Employee Button - Similar to EmployeeListScreen */}
+      {/* Add Employee Button */}
       {invitations.length > 0 && (
         <View className="flex-row justify-between items-center mt-2 mb-1">
           <Text className="font-rubik text-xs text-slate-400 tracking-wide">
@@ -579,7 +633,9 @@ const SentInvitationsScreen: React.FC = () => {
     if (!selectedInvitation) return null;
 
     const statusConfig = getStatusConfig(selectedInvitation.status);
-    const fullName = getFullName(selectedInvitation.user);
+    const userInfo = getUserInfo(selectedInvitation);
+    const employeeInfo = getEmployeeInfo(selectedInvitation);
+    const fullName = getFullName(selectedInvitation);
 
     return (
       <Modal
@@ -608,7 +664,7 @@ const SentInvitationsScreen: React.FC = () => {
               <View className="items-center mb-6">
                 <Avatar
                   name={fullName}
-                  imageUrl={selectedInvitation.user.profileImage}
+                  imageUrl={userInfo.profileImage}
                   size="xl"
                   rounded="full"
                 />
@@ -616,7 +672,7 @@ const SentInvitationsScreen: React.FC = () => {
                   {fullName}
                 </Text>
                 <Text className="font-rubik text-sm text-slate-500">
-                  {selectedInvitation.user.email}
+                  {userInfo.email}
                 </Text>
                 <View className={`mt-2 px-3 py-1 rounded-full ${statusConfig.bgColor} border ${statusConfig.borderColor}`}>
                   <Text className={`font-rubik-medium text-xs ${statusConfig.textColor}`}>
@@ -626,7 +682,7 @@ const SentInvitationsScreen: React.FC = () => {
               </View>
 
               {/* Invitation Details */}
-              <View className="space-y-4">
+              <View className="space-y-4 px-5">
                 <View className="bg-slate-50 rounded-xl p-4">
                   <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
                     Invitation Information
@@ -652,24 +708,24 @@ const SentInvitationsScreen: React.FC = () => {
                     </View>
                   )}
 
-                  {selectedInvitation.inviteData.designation && (
+                  {employeeInfo.designation && (
                     <View className="flex-row mb-3">
                       <View className="w-32">
                         <Text className="font-rubik text-xs text-slate-500">Designation</Text>
                       </View>
                       <Text className="font-rubik text-xs text-slate-900 flex-1">
-                        {selectedInvitation.inviteData.designation}
+                        {employeeInfo.designation}
                       </Text>
                     </View>
                   )}
 
-                  {selectedInvitation.inviteData.department && (
+                  {employeeInfo.department && (
                     <View className="flex-row mb-3">
                       <View className="w-32">
                         <Text className="font-rubik text-xs text-slate-500">Department</Text>
                       </View>
                       <Text className="font-rubik text-xs text-slate-900 flex-1">
-                        {selectedInvitation.inviteData.department}
+                        {employeeInfo.department}
                       </Text>
                     </View>
                   )}
@@ -686,36 +742,43 @@ const SentInvitationsScreen: React.FC = () => {
                   )}
                 </View>
 
-                {/* Employee Details */}
-                <View className="bg-slate-50 rounded-xl p-4">
-                  <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
-                    Employee Information
-                  </Text>
-
-                  <View className="flex-row mb-3">
-                    <View className="w-32">
-                      <Text className="font-rubik text-xs text-slate-500">Employee ID</Text>
-                    </View>
-                    <Text className="font-rubik text-xs text-slate-900 flex-1">
-                      {selectedInvitation.employee.id}
+                {/* Phone Information */}
+                {employeeInfo.phone && (
+                  <View className="bg-slate-50 rounded-xl p-4">
+                    <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
+                      Contact Information
                     </Text>
-                  </View>
 
-                  {selectedInvitation.employee.phone && (
                     <View className="flex-row">
                       <View className="w-32">
                         <Text className="font-rubik text-xs text-slate-500">Phone</Text>
                       </View>
                       <Text className="font-rubik text-xs text-slate-900 flex-1">
-                        {selectedInvitation.employee.phone}
+                        {employeeInfo.phone}
                       </Text>
                     </View>
-                  )}
-                </View>
+                  </View>
+                )}
+
+                {/* Employee Details - Only show for approved invitations */}
+                {selectedInvitation.employee && selectedInvitation.employee.id && (
+                  <View className="bg-slate-50 rounded-xl p-4">
+                    <Text className="font-rubik-semibold text-sm text-slate-700 mb-3">
+                      Employee Information
+                    </Text>
+
+                    <View className="flex-row">
+                      <View className="w-32">
+                        <Text className="font-rubik text-xs text-slate-500">Employee ID</Text>
+                      </View>
+                      <Text className="font-rubik text-xs text-slate-900 flex-1">
+                        {selectedInvitation.employee.id}
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
             </ScrollView>
-
-          
           </View>
         </View>
       </Modal>

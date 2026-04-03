@@ -112,7 +112,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
       className=""
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <ScrollView 
+      <ScrollView
         className=""
         showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 24 }}
@@ -120,16 +120,13 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
       >
         <View className="p-6">
           {/* Info Banner */}
-          <View className="bg-blue-50 p-4 rounded-xl mb-6 flex-row items-center">
-            <View className="bg-blue-100 rounded-full p-2 mr-3">
-              <Text className="text-blue-600 text-lg">👤</Text>
-            </View>
+          <View className="bg-purple-100 p-4 rounded-xl mb-6 flex-row items-start">
+
+
             <View className="flex-1">
-              <Text className="font-rubik-medium text-blue-800 text-sm">
-                Add new employee to your organization
-              </Text>
-              <Text className="font-rubik text-blue-600 text-xs mt-1">
-                The employee will receive login credentials via email
+              <Text className="font-rubik text-purple-800 text-sm leading-5">
+                The employee will receive a verification email and must accept the
+                invitation from their profile.
               </Text>
             </View>
           </View>

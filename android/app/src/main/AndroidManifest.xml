@@ -41,6 +41,10 @@
                 android:scheme="https"
                 android:host="verifiit-nextjs.vercel.app"
                 android:pathPrefix="/reset-password" />
+            <data
+                android:scheme="https"
+                android:host="verifiit-nextjs.vercel.app"
+                android:pathPrefix="/signup" />
         </intent-filter>
         
       </activity>
