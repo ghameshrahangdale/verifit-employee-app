@@ -151,7 +151,7 @@ const TabButton: React.FC<TabButtonProps> = ({
 };
 
 // ─── Custom floating tab bar ──────────────────────────────────────────────────
-const FloatingTabBar: React.FC<BottomTabBarProps & { activeColor: string; visibleTabs: typeof TAB_CONFIG }> = ({
+const FloatingTabBar: React.FC<BottomTabBarProps & { activeColor: string; visibleTabs: (typeof TAB_CONFIG)[number][] }> = ({
   state,
   descriptors,
   navigation,

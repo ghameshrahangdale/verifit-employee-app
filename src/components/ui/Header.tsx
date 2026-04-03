@@ -1,50 +1,55 @@
+// components/common/Header.tsx
+
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../context/ThemeContext';
 import Avatar from './Avatar';
+import NotificationButton from './NotificationButton';
 
 interface HeaderProps {
   title: string;
   showBack?: boolean;
+  showNotification?: boolean;
   avatarName?: string;
   avatarEmail?: string;
   avatarImageUrl?: string;
   avatarSize?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | number;
   style?: StyleProp<ViewStyle>;
+  onNotificationPress?: () => void;
+  showNotificationBadge?: boolean;
+  notificationBadgeCount?: number;
 }
 
 const Header: React.FC<HeaderProps> = ({
   title,
   showBack = true,
+  showNotification = true,
   avatarName,
   avatarEmail,
   avatarImageUrl,
   avatarSize = 'md',
   style,
+  onNotificationPress,
+  showNotificationBadge = true,
+  notificationBadgeCount,
 }) => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
-
-  /**
-   * ⚠️ TODO:
-   * Currently using static USER config.
-   * Replace this with Redux auth user once auth flow is fully integrated.
-   */
-
+  
   const USER = {
     displayName: 'Ghamesh Rahangdale',
     email: 'ghamesh@example.com',
     photoURL: 'https://i.pravatar.cc/150?img=12',
   };
-
+  
   const handleAvatarPress = () => {
     navigation.navigate('Tabs', {
       screen: 'Account',
     });
   };
-
+  
   return (
     <View
       style={[
@@ -71,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({
             <Feather name="arrow-left" size={20} color={colors.primary} />
           </TouchableOpacity>
         )}
-
+        
         <Text
           style={{
             marginLeft: showBack ? 12 : 0,
@@ -83,14 +88,29 @@ const Header: React.FC<HeaderProps> = ({
           {title}
         </Text>
       </View>
-
-      {/* Right Avatar Section */}
-      <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
-        <Avatar
-          
-          size={avatarSize as any}
-        />
-      </TouchableOpacity>
+      
+      {/* Right Section */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        {/* Notification Button */}
+        {showNotification && (
+          <NotificationButton
+            onNotificationPress={onNotificationPress}
+            showNotificationBadge={showNotificationBadge}
+            notificationBadgeCount={notificationBadgeCount}
+            size={36}
+            iconSize={16}
+            showAnimatedBadge={false} // Optional: disable animation for simpler header
+          />
+        )}
+        
+        {/* Avatar */}
+        <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.7}>
+          <Avatar
+           
+            size={avatarSize as any}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

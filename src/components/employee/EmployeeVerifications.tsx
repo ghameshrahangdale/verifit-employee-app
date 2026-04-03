@@ -367,7 +367,7 @@ const EmployeeVerification: React.FC = () => {
     <View className="px-4 pt-4 pb-2">
       <SearchInput
         value={searchQuery}
-        placeholder="Search by company, designation, or HR email..."
+        placeholder="Search by company, designation, or HR"
         onChangeText={handleSearchChange}
         onSearch={() => setDebouncedSearchQuery(searchQuery)}
         onClear={clearSearch}

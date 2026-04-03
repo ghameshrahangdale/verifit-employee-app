@@ -29,6 +29,8 @@ interface InputProps {
 
   rightButtonIcon?: string;
   onRightButtonPress?: () => void;
+  
+  isIssue?: boolean; // New prop for issue state
 }
 
 const Input: React.FC<InputProps> = ({
@@ -52,6 +54,7 @@ const Input: React.FC<InputProps> = ({
   onRightButtonPress,
   autoCorrect = false,
   hint,
+  isIssue = false, // Default to false
 }) => {
   const { colors } = useTheme();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -77,13 +80,43 @@ const Input: React.FC<InputProps> = ({
 
   const inputHeight = multiline && numberOfLines ? numberOfLines * 24 : undefined;
 
+  // Determine border and background colors based on error and isIssue states
+  const getBorderColor = () => {
+    if (error || isIssue) return 'border-red-600';
+    return 'border-gray-300';
+  };
+
+  const getBackgroundColor = () => {
+    if (isIssue && !disabled) return 'bg-red-50';
+    if (disabled) return 'bg-gray-100';
+    return '';
+  };
+
+  const getTextColor = () => {
+    if (isIssue && !disabled) return 'text-red-500';
+    if (disabled) return 'text-gray-500';
+    return colors.text;
+  };
+
   return (
     <View className={`mb-4 ${className}`}>
       {label && (
-        <Text className="mb-2 font-rubik-medium text-gray-700">
-          {label}
-          {required && <Text className="text-red-500"> *</Text>}
-        </Text>
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className={`font-rubik-medium ${isIssue ? 'text-red-500' : 'text-gray-700'}`}>
+            {label}
+            {required && <Text className="text-red-500"> *</Text>}
+          </Text>
+          
+          {/* Correction Badge */}
+          {isIssue && !error && (
+            <View className="flex-row items-center bg-red-100 px-2 py-1 rounded-full">
+              <MaterialCommunityIcons name="alert-circle" size={14} color="#EF4444" />
+              <Text className="text-red-600 text-xs font-rubik-medium ml-1">
+                Needs correction
+              </Text>
+            </View>
+          )}
+        </View>
       )}
 
       <View className="flex-row items-center">
@@ -98,8 +131,7 @@ const Input: React.FC<InputProps> = ({
               {/* SELECT INPUT */}
               {type === 'select' ? (
                 <View
-                  className={`border font-rubik rounded-lg px-2 ${error ? 'border-red-500' : 'border-gray-300'
-                    } ${disabled ? 'bg-gray-100' : ''}`}
+                  className={`border font-rubik rounded-lg px-2 ${getBorderColor()} ${getBackgroundColor()}`}
                   style={{
                     height: 48,
                     justifyContent: 'center',
@@ -113,7 +145,7 @@ const Input: React.FC<InputProps> = ({
                       color: disabled
                         ? '#9CA3AF'
                         : value
-                          ? colors.text   // ✅ selected value color
+                          ? (isIssue ? '#EF4444' : colors.text)   // ✅ selected value color
                           : '#9CA3AF',       // placeholder color
                       fontFamily: 'Rubik-Regular'
                     }}
@@ -129,7 +161,7 @@ const Input: React.FC<InputProps> = ({
                         label={opt.label}
                         value={opt.value}
                         style={{
-                          color: value === opt.value ? colors.primary : '#000',
+                          color: value === opt.value ? (isIssue ? '#EF4444' : colors.primary) : '#000',
                           fontSize: 14,
                           fontFamily: 'Rubik-Regular'
                         }}
@@ -140,8 +172,7 @@ const Input: React.FC<InputProps> = ({
               ) : (
                 /* TEXT / DATE INPUT */
                 <TextInput
-                  className={`border rounded-lg px-4 pr-12 text-base font-rubik ${error ? 'border-red-500' : 'border-gray-300'
-                    } ${disabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                  className={`border rounded-lg px-4 pr-12 text-base font-rubik ${getBorderColor()} ${getBackgroundColor()}`}
                   value={value}
                   onChangeText={onChangeText}
                   placeholder={placeholder}
@@ -151,7 +182,7 @@ const Input: React.FC<InputProps> = ({
                   autoCapitalize={autoCapitalize}
                   autoCorrect={autoCorrect}
                   style={{
-                    color: disabled ? '#9CA3AF' : colors.text,
+                    color: getTextColor(),
                     height: inputHeight ? inputHeight : undefined,
                     textAlignVertical: multiline ? 'top' : 'center',
                   }}
@@ -207,12 +238,14 @@ const Input: React.FC<InputProps> = ({
         )}
       </View>
 
+      {/* Error message - takes priority over hint */}
       {error && (
         <Text className="mt-1 text-red-500 text-sm font-rubik">{error}</Text>
       )}
 
+      {/* Hint message - shows when no error, and applies red styling if isIssue is true */}
       {!error && hint && (
-        <Text className="mt-1 text-gray-400 text-sm font-rubik">
+        <Text className={`mt-1 text-sm font-rubik ${isIssue ? 'text-red-500' : 'text-gray-400'}`}>
           {hint}
         </Text>
       )}

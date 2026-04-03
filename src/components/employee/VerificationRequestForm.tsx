@@ -51,6 +51,7 @@ export interface VerificationFormData {
   confirmedFields?: any;
   salary?: SalaryRecord;
   verificationType: 'organization' | 'hr';
+  verificationResponse?:any,
 }
 
 export interface DocumentUpdate {

@@ -50,9 +50,11 @@ export interface VerificationFormData {
   reasonForLeaving?: string;
   salary?: SalaryRecord;
   verificationType: 'organization' | 'hr'; // New field for radio selection
+  verificationResponse?: any,
 }
 
 export interface DocumentFile {
+  id?:string,
   uri: string;
   name: string;
   type: string;
@@ -130,6 +132,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   shouldDisableField = () => false,
   verificationStatus
 }) => {
+  const verificationResponse = initialData?.verificationResponse;
   const { colors } = useTheme();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -152,6 +155,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
       reasonForLeaving: '',
       salary: undefined,
       verificationType: 'organization', // Default to organization
+
     }
   );
 
@@ -461,12 +465,12 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
     if (verificationStatus === 'COMPLETED') {
       return true;
     }
-    
+
     // If in discrepancies status, disable confirmed fields
     if (verificationStatus === 'DISCREPANCIES') {
       return shouldDisableField(fieldName);
     }
-    
+
     return false;
   };
 
@@ -678,7 +682,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             error={errors.companyName}
             required
             disabled={isFieldDisabled('companyName')}
-            
+
 
           />
 
@@ -696,7 +700,9 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             placeholder="e.g. Software Engineer"
             error={errors.designation}
             required
-             disabled={isFieldDisabled('designation')}
+            disabled={isFieldDisabled('designation')}
+          isIssue={!isFieldDisabled('designation')}
+
           />
         </View>
 
@@ -708,7 +714,8 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             placeholder="e.g. Engineering"
             error={errors.department}
             required
-             disabled={isFieldDisabled('department')}
+            disabled={isFieldDisabled('department')}
+            isIssue={!isFieldDisabled('department')}
           />
         </View>
       </View>
@@ -723,10 +730,12 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         type="select"
         options={employmentTypeOptions}
         disabled={isFieldDisabled('employmentType')}
+        isIssue={!isFieldDisabled('employmentType')}
+
       />
 
       {/* Dates Row */}
-      <View className="flex-row gap-3">
+      <View className="">
         <View className="flex-1">
           <Input
             label="Start Date"
@@ -737,7 +746,10 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             required
             type='date'
             disabled={isFieldDisabled('startDate')}
+        isIssue={!isFieldDisabled('startDate')}
+
           />
+          
         </View>
 
         <View className="flex-1">
@@ -749,6 +761,8 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
             error={errors.endDate}
             type='date'
             disabled={isFieldDisabled('endDate')}
+        isIssue={!isFieldDisabled('endDate')}
+
           />
         </View>
       </View>
@@ -762,6 +776,9 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         error={errors.location}
         required
         disabled={isFieldDisabled('location')}
+        isIssue={!isFieldDisabled('location')}
+
+
       />
 
       {/* Reason for Leaving (Optional) */}
@@ -772,90 +789,107 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         placeholder="Please provide reason for leaving (if applicable)"
         multiline
         numberOfLines={3}
-         disabled={isFieldDisabled('reasonForLeaving')}
+        disabled={isFieldDisabled('reasonForLeaving')}
+        isIssue={!isFieldDisabled('reasonForLeaving')}
+
+
       />
     </View>
   );
 
-  const renderStep2 = () => (
-    <View>
-      <View className="mt-4">
-        <Text className="font-rubik-medium text-base text-gray-800 mb-4">
+ const renderStep2 = () => {
+  
+  const isVerified = salaryForm?.verified;
+  const needsCorrection = !isVerified;
+
+  return (
+    <View className={`rounded-lg p-4 ${needsCorrection ? 'bg-red-50 border border-red-200' : ''}`}>
+      {/* Section Header with Badge */}
+      <View className="flex-row items-center justify-between mb-4">
+        <Text className="font-rubik-medium text-base text-gray-800">
           Salary Information
         </Text>
-
-        {/* Salary Type */}
-        <Input
-          label="Salary Type"
-          value={salaryForm.salaryType}
-          onChangeText={(text) =>
-            updateSalary({ salaryType: text as SalaryRecord['salaryType'] })
-          }
-          placeholder="Select salary type"
-          required
-          type="select"
-          options={salaryTypeOptions}
-           disabled={isFieldDisabled('salary')}
-        />
-
-        {/* Amount */}
-        <Input
-          label="Amount"
-          value={salaryForm.amount ? salaryForm.amount.toString() : ''}
-          onChangeText={(text) => {
-            const amount = parseFloat(text) || 0;
-            updateSalary({ amount });
-          }}
-          placeholder="0.00"
-          keyboardType="numeric"
-          required
-            disabled={isFieldDisabled('salary')}
-        />
-
-        {/* Currency */}
-        <Input
-          label="Currency"
-          value={salaryForm.currency}
-          onChangeText={(text) =>
-            updateSalary({ currency: text })
-          }
-          placeholder="Select currency"
-          required
-          type="select"
-          options={currencyOptions}
-             disabled={isFieldDisabled('salary')}
-          
-        />
-
-        {/* Frequency */}
-        <Input
-          label="Frequency"
-          value={salaryForm.frequency}
-          onChangeText={(text) =>
-            updateSalary({ frequency: text as SalaryRecord['frequency'] })
-          }
-          placeholder="Select frequency"
-          required
-          type="select"
-          options={frequencyOptions}
-             disabled={isFieldDisabled('salary')}
-        />
-
-        {/* Effective Date */}
-        <Input
-          label="Effective Date"
-          value={salaryForm.effectiveDate}
-          onChangeText={(text) =>
-            updateSalary({ effectiveDate: text })
-          }
-          placeholder="YYYY-MM-DD"
-          required
-          type="date"
-             disabled={isFieldDisabled('salary')}
-        />
+        
+        {needsCorrection && (
+          <View className="flex-row items-center bg-red-100 px-3 py-1.5 rounded-full">
+            <Text className="text-red-600 text-xs font-rubik-medium ml-1.5">
+              Needs Correction
+            </Text>
+          </View>
+        )}
       </View>
+
+      {/* Salary Type */}
+      <Input
+        label="Salary Type"
+        value={salaryForm.salaryType}
+        onChangeText={(text) =>
+          updateSalary({ salaryType: text as SalaryRecord['salaryType'] })
+        }
+        placeholder="Select salary type"
+        required
+        type="select"
+        options={salaryTypeOptions}
+        disabled={isFieldDisabled('salary')}
+      />
+
+      {/* Amount */}
+      <Input
+        label="Amount"
+        value={salaryForm.amount ? salaryForm.amount.toString() : ''}
+        onChangeText={(text) => {
+          const amount = parseFloat(text) || 0;
+          updateSalary({ amount });
+        }}
+        placeholder="0.00"
+        keyboardType="numeric"
+        required
+        disabled={isFieldDisabled('salary')}
+      />
+
+      {/* Currency */}
+      <Input
+        label="Currency"
+        value={salaryForm.currency}
+        onChangeText={(text) =>
+          updateSalary({ currency: text })
+        }
+        placeholder="Select currency"
+        required
+        type="select"
+        options={currencyOptions}
+        disabled={isFieldDisabled('salary')}
+      />
+
+      {/* Frequency */}
+      <Input
+        label="Frequency"
+        value={salaryForm.frequency}
+        onChangeText={(text) =>
+          updateSalary({ frequency: text as SalaryRecord['frequency'] })
+        }
+        placeholder="Select frequency"
+        required
+        type="select"
+        options={frequencyOptions}
+        disabled={isFieldDisabled('salary')}
+      />
+
+      {/* Effective Date */}
+      <Input
+        label="Effective Date"
+        value={salaryForm.effectiveDate}
+        onChangeText={(text) =>
+          updateSalary({ effectiveDate: text })
+        }
+        placeholder="YYYY-MM-DD"
+        required
+        type="date"
+        disabled={isFieldDisabled('salary')}
+      />
     </View>
   );
+};
 
   const renderStep3 = () => (
     <View>
@@ -963,41 +997,79 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           // Display Added Documents
           documents.length > 0 && (
             <View className="mb-4">
-              {documents.map((doc, index) => (
-                <View
-                  key={index}
-                  className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1 flex-row">
-                      <View className="mr-3">
-                        <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
-                          <Feather name="file-text" size={20} color="#6366F1" />
+              {documents.map((doc, index) => {
+                // Get document confirmation status from verificationResponse
+                const documentConfirmation = verificationResponse?.documentConfirmations?.find(
+                  (conf:any) => conf.id === doc.id
+                );
+                const isConfirmed = documentConfirmation?.confirmed || false;
+                
+                return (
+                  <View
+                    key={index}
+                    className={`rounded-xl p-4 mb-3 border ${
+                      isConfirmed
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-red-50 border-red-200'
+                    }`}
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-1 flex-row">
+                        <View className="mr-3">
+                          <View className={`w-10 h-10 rounded-lg items-center justify-center ${
+                            isConfirmed ? 'bg-green-100' : 'bg-red-100'
+                          }`}>
+                            <Feather 
+                              name="file-text" 
+                              size={20} 
+                              color={isConfirmed ? '#10B981' : '#EF4444'} 
+                            />
+                          </View>
+                        </View>
+                        <View className="flex-1">
+                          <View className="flex-row items-center justify-between mb-1">
+                            <Text className="font-rubik-medium text-base text-gray-800 flex-1">
+                              {doc.title}
+                            </Text>
+                            <View className={`ml-2 px-2 py-1 rounded-full ${
+                              isConfirmed 
+                                ? 'bg-green-200' 
+                                : 'bg-red-200'
+                            }`}>
+                              <View className="flex-row items-center">
+                                <Feather 
+                                  name={isConfirmed ? "check-circle" : "x-circle"} 
+                                  size={12} 
+                                  color={isConfirmed ? '#059669' : '#DC2626'} 
+                                />
+                                <Text className={`font-rubik-medium text-xs ml-1 ${
+                                  isConfirmed ? 'text-green-700' : 'text-red-700'
+                                }`}>
+                                  {isConfirmed ? 'Correct' : 'Need Correction'}
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                          <Text className="font-rubik text-sm text-gray-600 mb-1">
+                            {getDocumentTypeLabel(doc.documentType as DocumentType)}
+                          </Text>
+                          <Text className="font-rubik text-xs text-gray-400">
+                            {doc.name}
+                          </Text>
                         </View>
                       </View>
-                      <View className="flex-1">
-                        <Text className="font-rubik-medium text-base text-gray-800 mb-1">
-                          {doc.title}
-                        </Text>
-                        <Text className="font-rubik text-sm text-gray-600 mb-1">
-                          {getDocumentTypeLabel(doc.documentType as DocumentType)}
-                        </Text>
-                        <Text className="font-rubik text-xs text-gray-400">
-                          {doc.name}
-                        </Text>
-                      </View>
-                    </View>
 
-                    <TouchableOpacity
-                      onPress={() => handleRemoveDocument(index)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      className="ml-2"
-                    >
-                      <Feather name="trash-2" size={18} color="#EF4444" />
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveDocument(index)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        className="ml-2"
+                      >
+                        <Feather name="trash-2" size={18} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )
         )}

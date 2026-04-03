@@ -8,6 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../../context/ThemeContext';
@@ -113,7 +115,7 @@ interface VerificationRequestDetails {
     isCompleted: boolean;
     timeToComplete: number | null;
   };
-  verificationStatus:string;
+  verificationStatus: string;
   employmentRecord: EmploymentRecord;
   candidate: Candidate;
   salaryRecords: SalaryRecord[];
@@ -260,6 +262,7 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
         reasonForLeavingConfirmed: verificationResponse.reasonForLeavingConfirmed,
         salaryConfirmed: verificationResponse.salaryConfirmed,
       } : undefined,
+        verificationResponse: verificationResponse || null
     };
   };
 
@@ -527,196 +530,207 @@ const EditVerificationRequest: React.FC<EditVerificationRequestProps> = ({
     <View className="flex-1 bg-gray-50">
       <Header title="Edit Verification" />
       
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="bg-white"
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+          contentContainerStyle={{ 
+            paddingBottom: Platform.OS === 'ios' ? 40 : 80,
+            flexGrow: 1 
+          }}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Candidate Information Card */}
-          <View className="bg-white rounded-2xl mx-4 mt-4 mb-4 p-5 shadow-sm border border-gray-100">
-            <View className="flex-row items-center mb-4">
-              <View className="w-12 h-12 rounded-full bg-primary-50 items-center justify-center">
-                <Feather name="user" size={24} color={colors.primary} />
-              </View>
-              <View className="ml-3">
-                <Text className="font-rubik-bold text-lg text-gray-800">
-                  {candidate.name}
-                </Text>
-              
-              </View>
-              <View className="ml-auto">
-                <View 
-                  className="px-3 py-1 rounded-full"
-                  style={{ backgroundColor: getStatusColor(status) + '20' }}
-                >
-                  <Text 
-                    className="font-rubik-medium text-xs"
-                    style={{ color: getStatusColor(status) }}
-                  >
-                    {status}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View className="border-t border-gray-100 pt-4">
-              <View className="flex-row mb-3">
-                <View className="flex-1">
-                  <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                    Email
-                  </Text>
-                  <Text className="font-rubik-medium text-sm text-gray-700">
-                    {candidate.email}
-                  </Text>
-                </View>
-                {candidate.phone && (
-                  <View className="flex-1">
-                    <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                      Phone
-                    </Text>
-                    <Text className="font-rubik-medium text-sm text-gray-700">
-                      {candidate.phone}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View className="flex-1">
+              {/* Candidate Information Card */}
+              <View className="bg-white rounded-2xl mx-4 mt-4 mb-4 p-5 shadow-sm border border-gray-100">
+                <View className="flex-row items-center mb-4">
+                  <View className="w-12 h-12 rounded-full bg-primary-50 items-center justify-center">
+                    <Feather name="user" size={24} color={colors.primary} />
+                  </View>
+                  <View className="ml-3">
+                    <Text className="font-rubik-bold text-lg text-gray-800">
+                      {candidate.name}
                     </Text>
                   </View>
-                )}
-              </View>
-
-              <View className="flex-row">
-                {candidate.designation && (
-                  <View className="flex-1">
-                    <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                      Current Designation
-                    </Text>
-                    <Text className="font-rubik-medium text-sm text-gray-700">
-                      {candidate.designation}
-                    </Text>
-                  </View>
-                )}
-                {candidate.department && (
-                  <View className="flex-1">
-                    <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
-                      Current Department
-                    </Text>
-                    <Text className="font-rubik-medium text-sm text-gray-700">
-                      {candidate.department}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {!canEdit && (
-              <View className="mt-4 bg-amber-50 rounded-xl p-3 border border-amber-200">
-                <View className="flex-row items-center">
-                  <Feather name="info" size={16} color="#F59E0B" />
-                  <Text className="font-rubik text-sm text-amber-700 ml-2">
-                    {status === 'COMPLETED' 
-                      ? 'This verification is completed and cannot be edited.'
-                      : 'This verification has discrepancies. Only fields with discrepancies can be edited.'}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* Form */}
-          <EditVerificationRequestForm
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isLoading={submitting || externalLoading}
-            initialData={formInitialData}
-            initialDocuments={initialDocuments}
-            isEdit={true}
-            shouldDisableField={shouldDisableField}
-            verificationStatus={status}
-          />
-
-          {/* Discrepancies Section - Display after form if available */}
-          {discrepancies.length > 0 && (
-            <View className="bg-white rounded-2xl mx-4 mb-4 p-5 shadow-sm border border-gray-100">
-              <TouchableOpacity
-                onPress={toggleDiscrepancies}
-                className="flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center">
-                  <Feather name="alert-triangle" size={20} color="#EF4444" />
-                  <Text className="font-rubik-bold text-base text-gray-800 ml-2">
-                    Required Changes ({discrepancies.length})
-                  </Text>
-                </View>
-                <Feather
-                  name={expandedDiscrepancies ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#64748B"
-                />
-              </TouchableOpacity>
-
-              {expandedDiscrepancies && (
-                <View className="mt-4 gap-3">
-                  {discrepancies.map((discrepancy) => (
-                    <View
-                      key={discrepancy.id}
-                      className="bg-red-50 rounded-xl p-4 border border-red-200"
+                  <View className="ml-auto">
+                    <View 
+                      className="px-3 py-1 rounded-full"
+                      style={{ backgroundColor: getStatusColor(status) + '20' }}
                     >
-                      <View className="flex-row items-start mb-3">
-                        <Feather name="alert-triangle" size={16} color="#EF4444" />
-                        <Text className="font-rubik-bold text-sm text-red-700 ml-2">
-                          {formatFieldName(discrepancy.fieldName)}
+                      <Text 
+                        className="font-rubik-medium text-xs"
+                        style={{ color: getStatusColor(status) }}
+                      >
+                        {status}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View className="border-t border-gray-100 pt-4">
+                  <View className="flex-row mb-3">
+                    <View className="flex-1">
+                      <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                        Email
+                      </Text>
+                      <Text className="font-rubik-medium text-sm text-gray-700">
+                        {candidate.email}
+                      </Text>
+                    </View>
+                    {candidate.phone && (
+                      <View className="flex-1">
+                        <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                          Phone
+                        </Text>
+                        <Text className="font-rubik-medium text-sm text-gray-700">
+                          {candidate.phone}
                         </Text>
                       </View>
+                    )}
+                  </View>
 
-                      <View className="space-y-2">
-                        <View>
-                          <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
-                            Employee Claimed
-                          </Text>
-                          <Text className="font-rubik-medium text-sm text-red-700 bg-white/50 p-2 rounded-lg">
-                            {discrepancy.employeeClaimedValue}
-                          </Text>
-                        </View>
+                  <View className="flex-row">
+                    {candidate.designation && (
+                      <View className="flex-1">
+                        <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                          Current Designation
+                        </Text>
+                        <Text className="font-rubik-medium text-sm text-gray-700">
+                          {candidate.designation}
+                        </Text>
+                      </View>
+                    )}
+                    {candidate.department && (
+                      <View className="flex-1">
+                        <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-1">
+                          Current Department
+                        </Text>
+                        <Text className="font-rubik-medium text-sm text-gray-700">
+                          {candidate.department}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
 
-                        <View>
-                          <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
-                            Actual Value
-                          </Text>
-                          <Text className="font-rubik-medium text-sm text-red-700 bg-white/50 p-2 rounded-lg">
-                            {discrepancy.actualValue}
-                          </Text>
-                        </View>
+                {!canEdit && (
+                  <View className="mt-4 bg-amber-50 rounded-xl p-3 border border-amber-200">
+                    <View className="flex-row items-center">
+                      <Feather name="info" size={16} color="#F59E0B" />
+                      <Text className="font-rubik text-sm text-amber-700 ml-2">
+                        {status === 'COMPLETED' 
+                          ? 'This verification is completed and cannot be edited.'
+                          : 'This verification has discrepancies. Only fields with discrepancies can be edited.'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
 
-                        {discrepancy.remarks && (
-                          <View className="mt-2">
-                            <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
-                              Remarks
-                            </Text>
-                            <Text className="font-rubik text-sm text-red-600">
-                              {discrepancy.remarks}
+              {/* Form */}
+              <View className="mb-4">
+                <EditVerificationRequestForm
+                  onSubmit={handleSubmit}
+                  onCancel={handleCancel}
+                  isLoading={submitting || externalLoading}
+                  initialData={formInitialData}
+                  initialDocuments={initialDocuments}
+                  isEdit={true}
+                  shouldDisableField={shouldDisableField}
+                  verificationStatus={status}
+                />
+              </View>
+
+              {/* Discrepancies Section - Display after form if available */}
+              {discrepancies.length > 0 && (
+                <View className="bg-white rounded-2xl mx-4 mb-4 p-5 shadow-sm border border-gray-100">
+                  <TouchableOpacity
+                    onPress={toggleDiscrepancies}
+                    className="flex-row items-center justify-between"
+                  >
+                    <View className="flex-row items-center">
+                      <Feather name="alert-triangle" size={20} color="#EF4444" />
+                      <Text className="font-rubik-bold text-base text-gray-800 ml-2">
+                        Required Changes ({discrepancies.length})
+                      </Text>
+                    </View>
+                    <Feather
+                      name={expandedDiscrepancies ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color="#64748B"
+                    />
+                  </TouchableOpacity>
+
+                  {expandedDiscrepancies && (
+                    <View className="mt-4 gap-3">
+                      {discrepancies.map((discrepancy) => (
+                        <View
+                          key={discrepancy.id}
+                          className="bg-red-50 rounded-xl p-4 border border-red-200"
+                        >
+                          <View className="flex-row items-start mb-3">
+                            <Feather name="alert-triangle" size={16} color="#EF4444" />
+                            <Text className="font-rubik-bold text-sm text-red-700 ml-2">
+                              {formatFieldName(discrepancy.fieldName)}
                             </Text>
                           </View>
-                        )}
 
-                        <Text className="font-rubik text-xs text-red-400 mt-2">
-                          Reported on {new Date(discrepancy.createdAt).toLocaleDateString()}
-                        </Text>
-                      </View>
+                          <View className="space-y-2">
+                            <View>
+                              <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
+                                Employee Claimed
+                              </Text>
+                              <Text className="font-rubik-medium text-sm text-red-700 bg-white/50 p-2 rounded-lg">
+                                {discrepancy.employeeClaimedValue}
+                              </Text>
+                            </View>
+
+                            <View>
+                              <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
+                                Actual Value
+                              </Text>
+                              <Text className="font-rubik-medium text-sm text-red-700 bg-white/50 p-2 rounded-lg">
+                                {discrepancy.actualValue}
+                              </Text>
+                            </View>
+
+                            {discrepancy.remarks && (
+                              <View className="mt-2">
+                                <Text className="font-rubik text-xs text-red-500 uppercase tracking-wide mb-1">
+                                  Remarks
+                                </Text>
+                                <Text className="font-rubik text-sm text-red-600">
+                                  {discrepancy.remarks}
+                                </Text>
+                              </View>
+                            )}
+
+                            <Text className="font-rubik text-xs text-red-400 mt-2">
+                              Reported on {new Date(discrepancy.createdAt).toLocaleDateString()}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
-                  ))}
+                  )}
                 </View>
               )}
             </View>
-          )}
-        </KeyboardAvoidingView>
-      </ScrollView>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };

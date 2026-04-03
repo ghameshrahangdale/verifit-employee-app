@@ -65,7 +65,8 @@ interface UserData {
   gender?: any;
   address?: any;
   organizationMemberships?: any;
-  employeeDetails?:any;
+  employeeDetails?: any;
+  verificationStatus?: boolean;
 }
 
 interface ProfileResponse {
@@ -408,9 +409,12 @@ const ProfileScreen: React.FC = () => {
                 bg="#EEF2FF"
               />
             )}
-            {profile?.user?.isEmailVerified && (
-              <Badge label="✓ Verified" color="#059669" bg="#ECFDF5" />
-            )}
+            {/* Verification Status Badge */}
+            <Badge
+              label={profile?.user?.verificationStatus ? "✓ Verified" : "✗ Not Verified"}
+              color={profile?.user?.verificationStatus ? "#059669" : "#DC2626"}
+              bg={profile?.user?.verificationStatus ? "#ECFDF5" : "#FEF2F2"}
+            />
           </View>
         </View>
 
@@ -638,9 +642,13 @@ const ProfileScreen: React.FC = () => {
         {isEmployee && (
           <>
             <EmployeeProfessionalDetails />
+            <SectionHeader title="My Uploaded Documents" showEdit={false} />
+            <EmployeeDocumentUpload />
+
             <>
-             <SectionHeader title="Linked to Organization" showEdit={false} />
-            <OrganizationMembership memberships={profile?.user?.employeeDetails.organizationMemberships || []} />
+              <SectionHeader title="Linked to Organization" showEdit={false} />
+              <OrganizationMembership memberships={profile?.user?.employeeDetails?.organizationMemberships || []} />
+
             </>
 
           </>

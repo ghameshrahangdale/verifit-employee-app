@@ -65,14 +65,8 @@ const OrganizationMembership: React.FC<OrganizationMembershipProps> = ({ members
 
     const Card = ({ children, noPad }: { children: React.ReactNode; noPad?: boolean }) => (
         <View
-            className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${noPad ? '' : 'px-4 py-1'}`}
-            style={{
-                shadowColor: '#000',
-                shadowOpacity: 0.04,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
-            }}
+            className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${noPad ? '' : 'px-4 py-1'}`}
+            
         >
             {children}
         </View>
@@ -116,17 +110,7 @@ const OrganizationMembership: React.FC<OrganizationMembershipProps> = ({ members
                                     </Text>
                                 </View>
 
-                                <View
-                                    className="px-3 py-1.5 rounded-full"
-                                    style={{ backgroundColor: statusBadge.bgColor }}
-                                >
-                                    <Text
-                                        className="text-xs font-rubik-bold"
-                                        style={{ color: statusBadge.color }}
-                                    >
-                                        {statusBadge.label}
-                                    </Text>
-                                </View>
+                         
                             </View>
                         </View>
 
