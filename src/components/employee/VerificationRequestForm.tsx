@@ -399,41 +399,42 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   };
 
   const handleAddDocument = () => {
-    if (!documentForm.title.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: 'Title Required',
-        text2: 'Please enter a document title',
-      });
-      return;
-    }
-
-    if (!selectedFile) {
-      Toast.show({
-        type: 'error',
-        text1: 'File Required',
-        text2: 'Please select a file to upload',
-      });
-      return;
-    }
-
-    const newDocument: DocumentFile = {
-      uri: selectedFile.uri,
-      name: selectedFile.name,
-      type: selectedFile.type,
-      documentType: documentForm.documentType,
-      title: documentForm.title.trim(),
-    };
-
-    setDocuments(prev => [...prev, newDocument]);
-
-    setDocumentForm({
-      documentType: DocumentType.RESUME,
-      title: '',
+  if (!documentForm.title.trim()) {
+    Toast.show({
+      type: 'error',
+      text1: 'Title Required',
+      text2: 'Please enter a document title',
     });
-    setSelectedFile(null);
-    setShowDocumentForm(false);
+    return;
+  }
+
+  if (!selectedFile) {
+    Toast.show({
+      type: 'error',
+      text1: 'File Required',
+      text2: 'Please select a file to upload',
+    });
+    return;
+  }
+
+  const newDocument: DocumentFile = {
+    uri: selectedFile.uri,
+    name: selectedFile.name,
+    type: selectedFile.type,
+    documentType: documentForm.documentType,
+    title: documentForm.title.trim(),
   };
+
+  setDocuments(prev => [...prev, newDocument]);
+
+  setDocumentForm({
+    documentType: DocumentType.RESUME,
+    title: '',
+  });
+  setSelectedFile(null);
+  setShowDocumentForm(false);
+};
+
 
   const handleRemoveDocument = (index: number) => {
     setDocuments(prev => prev.filter((_, i) => i !== index));
@@ -621,269 +622,164 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
     </View>
   );
 
-  const renderRequiredDocuments = () => {
-    // Get existing required documents from the documents array
-    const getDocumentForType = (type: DocumentType) => {
-      return documents.find(doc => doc.documentType === type);
-    };
-
-    return (
-      <View className="mb-6">
-        <View className="flex-row items-center justify-between mb-3">
-          <Text className="font-rubik-medium text-base text-gray-800">
-            Required Documents
-          </Text>
-          <View className="flex-row items-center">
-            <Feather name="alert-circle" size={14} color="#EF4444" />
-            <Text className="font-rubik text-xs text-red-500 ml-1">
-              Required
-            </Text>
-          </View>
-        </View>
-
-        {REQUIRED_DOCUMENTS.map((reqDoc, index) => {
-          const existingDoc = getDocumentForType(reqDoc.type);
-          
-          return (
-            <View
-              key={reqDoc.type}
-              className="mb-3 border border-gray-200 rounded-xl overflow-hidden"
-              style={{
-                backgroundColor: existingDoc ? `${colors.primary}08` : '#FFFFFF',
-              }}
-            >
-              <View className="p-4">
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center flex-1">
-                    <View
-                      className="w-8 h-8 rounded-lg items-center justify-center mr-3"
-                      style={{
-                        backgroundColor: existingDoc ? `${colors.primary}20` : '#F3F4F6',
-                      }}
-                    >
-                      <Feather
-                        name={existingDoc ? "check-circle" : "file-text"}
-                        size={16}
-                        color={existingDoc ? colors.primary : "#9CA3AF"}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="font-rubik-medium text-sm text-gray-800">
-                        {reqDoc.label}
-                      </Text>
-                      {existingDoc && (
-                        <Text className="font-rubik text-xs text-green-600 mt-0.5">
-                          Uploaded: {existingDoc.title}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  
-                  {!existingDoc ? (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setDocumentForm({
-                          documentType: reqDoc.type,
-                          title: '',
-                        });
-                        setShowDocumentForm(true);
-                      }}
-                      className="px-3 py-1.5 rounded-lg border border-indigo-200"
-                      style={{
-                        backgroundColor: `${colors.primary}10`,
-                      }}
-                    >
-                      <Text
-                        className="font-rubik-medium text-xs"
-                        style={{ color: colors.primary }}
-                      >
-                        Upload
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => {
-                        const docIndex = documents.findIndex(d => d.documentType === reqDoc.type);
-                        if (docIndex !== -1) {
-                          handleRemoveDocument(docIndex);
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-lg border border-red-200"
-                      style={{
-                        backgroundColor: '#FEF2F2',
-                      }}
-                    >
-                      <Text className="font-rubik-medium text-xs text-red-600">
-                        Remove
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
+ 
 
   const renderSupportingDocuments = () => (
-    <View>
-      <View className="flex-row items-center justify-between mb-4">
-        <Text className="font-rubik-medium text-base text-gray-800">
-          Supporting Documents
-        </Text>
-        {!showDocumentForm && (
-          <TouchableOpacity
-            onPress={() => setShowDocumentForm(true)}
-            className="p-2 rounded-full"
-            style={{
-              backgroundColor: `${colors.primary}0D`,
-              borderColor: `${colors.primary}25`,
-            }}
-            activeOpacity={0.7}
-          >
-            <Feather name="plus" size={18} color={colors.primary} />
-          </TouchableOpacity>
-        )}
-      </View>
+  <View>
+    <View className="flex-row items-center justify-between mb-4">
+      <Text className="font-rubik-medium text-base text-gray-800">
+        Documents
+      </Text>
+      {!showDocumentForm && (
+        <TouchableOpacity
+          onPress={() => setShowDocumentForm(true)}
+          className="p-2 rounded-full"
+          style={{
+            backgroundColor: `${colors.primary}0D`,
+            borderColor: `${colors.primary}25`,
+          }}
+          activeOpacity={0.7}
+        >
+          <Feather name="plus" size={18} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+    </View>
 
-      {showDocumentForm ? (
-        <View className="bg-gray-50 rounded-xl p-4 mb-4">
-          <Text className="font-rubik-medium text-sm text-gray-700 mb-3">
-            Add Document
+    {showDocumentForm ? (
+      <View className="bg-gray-50 rounded-xl p-4 mb-4">
+        <Text className="font-rubik-medium text-sm text-gray-700 mb-3">
+          Add Document
+        </Text>
+
+        <Input
+          label="Document Type"
+          value={documentForm.documentType}
+          onChangeText={(text) => setDocumentForm(prev => ({ ...prev, documentType: text as DocumentType }))}
+          placeholder="Select document type"
+          required
+          type="select"
+          options={documentTypeOptions}
+        />
+
+        <Input
+          label="Document Title"
+          value={documentForm.title}
+          onChangeText={(text) => setDocumentForm(prev => ({ ...prev, title: text }))}
+          placeholder="e.g., Updated Resume 2026"
+          required
+        />
+
+        <View className="mb-6">
+          <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-2">
+            File
           </Text>
 
-          <Input
-            label="Document Type"
-            value={documentForm.documentType}
-            onChangeText={(text) => setDocumentForm(prev => ({ ...prev, documentType: text as DocumentType }))}
-            placeholder="Select document type"
-            required
-            type="select"
-            options={documentTypeOptions}
-          />
-
-          <Input
-            label="Document Title"
-            value={documentForm.title}
-            onChangeText={(text) => setDocumentForm(prev => ({ ...prev, title: text }))}
-            placeholder="e.g., Updated Resume 2026"
-          />
-
-          <View className="mb-6">
-            <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-2">
-              File
-            </Text>
-
-            {selectedFile ? (
-              <View className="bg-indigo-50 rounded-xl p-4 border border-indigo-100 flex-row items-center justify-between">
-                <View className="flex-row items-center flex-1">
-                  <Feather name="file" size={20} color="#6366F1" />
-                  <Text className="font-rubik text-sm text-gray-700 ml-2 flex-1" numberOfLines={1}>
-                    {selectedFile.name}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setSelectedFile(null)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Feather name="x" size={18} color="#EF4444" />
-                </TouchableOpacity>
+          {selectedFile ? (
+            <View className="bg-indigo-50 rounded-xl p-4 border border-indigo-100 flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                <Feather name="file" size={20} color="#6366F1" />
+                <Text className="font-rubik text-sm text-gray-700 ml-2 flex-1" numberOfLines={1}>
+                  {selectedFile.name}
+                </Text>
               </View>
-            ) : (
               <TouchableOpacity
-                onPress={handlePickFile}
-                className="border border-gray-200 border-dashed rounded-xl p-6 items-center"
+                onPress={() => setSelectedFile(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Feather name="upload-cloud" size={32} color="#9CA3AF" />
-                <Text className="font-rubik-medium text-sm text-gray-600 mt-2">
-                  Tap to select file
-                </Text>
-                <Text className="font-rubik text-xs text-gray-400 mt-1">
-                  PDF, JPEG, PNG, DOC (Max 10MB)
-                </Text>
+                <Feather name="x" size={18} color="#EF4444" />
               </TouchableOpacity>
-            )}
-          </View>
-
-          <View className="flex-row gap-3 mt-2">
-            <Button
-              title="Cancel"
-              variant="outline"
-              className="flex-1"
-              onPress={resetDocumentForm}
-              disabled={isUploading}
-            />
-            <Button
-              title="Add Document"
-              className="flex-1"
-              onPress={handleAddDocument}
-            />
-          </View>
-        </View>
-      ) : (
-        <>
-          {documents.filter(doc => !REQUIRED_DOCUMENTS.some(req => req.type === doc.documentType)).length > 0 && (
-            <View className="mb-4">
-              {documents
-                .filter(doc => !REQUIRED_DOCUMENTS.some(req => req.type === doc.documentType))
-                .map((doc, index) => (
-                  <View
-                    key={index}
-                    className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
-                  >
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-1 flex-row">
-                        <View className="mr-3">
-                          <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
-                            <Feather name="file-text" size={20} color="#6366F1" />
-                          </View>
-                        </View>
-                        <View className="flex-1">
-                          <Text className="font-rubik-medium text-base text-gray-800 mb-1">
-                            {doc.title}
-                          </Text>
-                          <Text className="font-rubik text-sm text-gray-600 mb-1">
-                            {getDocumentTypeLabel(doc.documentType as DocumentType)}
-                          </Text>
-                          <Text className="font-rubik text-xs text-gray-400">
-                            {doc.name}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => handleRemoveDocument(index)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        className="ml-2"
-                      >
-                        <Feather name="trash-2" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
             </View>
-          )}
-
-          {documents.filter(doc => !REQUIRED_DOCUMENTS.some(req => req.type === doc.documentType)).length === 0 && (
+          ) : (
             <TouchableOpacity
-              onPress={() => setShowDocumentForm(true)}
+              onPress={handlePickFile}
               className="border border-gray-200 border-dashed rounded-xl p-6 items-center"
             >
               <Feather name="upload-cloud" size={32} color="#9CA3AF" />
               <Text className="font-rubik-medium text-sm text-gray-600 mt-2">
-                Add Supporting Documents
+                Tap to select file
               </Text>
               <Text className="font-rubik text-xs text-gray-400 mt-1">
-                Upload experience letters, relieving letters, education certificates, etc.
+                PDF, JPEG, PNG, DOC (Max 10MB)
               </Text>
             </TouchableOpacity>
           )}
-        </>
-      )}
-    </View>
-  );
+        </View>
+
+        <View className="flex-row gap-3 mt-2">
+          <Button
+            title="Cancel"
+            variant="outline"
+            className="flex-1"
+            onPress={resetDocumentForm}
+            disabled={isUploading}
+          />
+          <Button
+            title="Add Document"
+            className="flex-1"
+            onPress={handleAddDocument}
+          />
+        </View>
+      </View>
+    ) : (
+      <>
+        {documents.length > 0 && (
+          <View className="mb-4">
+            {documents.map((doc, index) => (
+              <View
+                key={index}
+                className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
+              >
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1 flex-row">
+                    <View className="mr-3">
+                      <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
+                        <Feather name="file-text" size={20} color="#6366F1" />
+                      </View>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="font-rubik-medium text-base text-gray-800 mb-1">
+                        {doc.title}
+                      </Text>
+                      <Text className="font-rubik text-sm text-gray-600 mb-1">
+                        {getDocumentTypeLabel(doc.documentType as DocumentType)}
+                      </Text>
+                      <Text className="font-rubik text-xs text-gray-400">
+                        {doc.name}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => handleRemoveDocument(index)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    className="ml-2"
+                  >
+                    <Feather name="trash-2" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {documents.length === 0 && (
+          <TouchableOpacity
+            onPress={() => setShowDocumentForm(true)}
+            className="border border-gray-200 border-dashed rounded-xl p-6 items-center"
+          >
+            <Feather name="upload-cloud" size={32} color="#9CA3AF" />
+            <Text className="font-rubik-medium text-sm text-gray-600 mt-2">
+              Add Documents
+            </Text>
+            <Text className="font-rubik text-xs text-gray-400 mt-1">
+              Upload experience letters, relieving letters, education certificates, etc.
+            </Text>
+          </TouchableOpacity>
+        )}
+      </>
+    )}
+  </View>
+);
 
   const renderStep1 = () => (
     <View>
@@ -1083,11 +979,6 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
 
   const renderStep3 = () => (
     <View>
-      {/* Required Documents Section */}
-      {renderRequiredDocuments()}
-      
-     
-      
       {/* Supporting Documents Section */}
       {renderSupportingDocuments()}
     </View>

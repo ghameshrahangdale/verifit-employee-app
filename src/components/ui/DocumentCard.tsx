@@ -16,12 +16,14 @@ interface DocumentCardProps {
     verified?: boolean;
   };
   isConfirmed?: boolean;
+  showVerificationStatus?: boolean; // Add this prop
   onView: (document: any) => void;
 }
 
 export const DocumentCard: React.FC<DocumentCardProps> = ({
   document,
   isConfirmed,
+  showVerificationStatus = false, // Default to false
   onView,
 }) => {
   const formatFileSize = (bytes: number): string => {
@@ -66,16 +68,20 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
     );
   };
 
-  // Determine card background and border based on confirmed status
+  // Determine card background and border based on confirmed status (only when showing verification status)
   const getCardStyles = () => {
-  if (isConfirmed === true) {
-    return 'bg-green-50 rounded-xl p-4 border border-green-300';
-  }
-  if (isConfirmed === false) {
-    return 'bg-red-50 rounded-xl p-4 border border-red-300';
-  }
-  return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
-};
+    if (!showVerificationStatus) {
+      return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
+    }
+    if (isConfirmed === true) {
+      return 'bg-green-50 rounded-xl p-4 border border-green-300';
+    }
+    if (isConfirmed === false) {
+      return 'bg-red-50 rounded-xl p-4 border border-red-300';
+    }
+    return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
+  };
+
   return (
     <View className={getCardStyles()}>
       <View className="flex-row items-start">
@@ -96,19 +102,20 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
             </Text>
             
             <View className="flex-row items-center gap-2 ml-2">
-  {isConfirmed !== undefined && renderStatusBadge()}  {/* Render for both true and false */}
-  {document.verified && (
-    <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200">
-      <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
-    </View>
-  )}
-  <TouchableOpacity
-    onPress={() => onView(document)}
-    className="bg-indigo-50 w-8 h-8 rounded-lg items-center justify-center border border-indigo-200"
-  >
-    <Feather name="eye" size={16} color="#6366F1" />
-  </TouchableOpacity>
-</View>
+              {/* Only show verification badge when showVerificationStatus is true */}
+              {showVerificationStatus && isConfirmed !== undefined && renderStatusBadge()}
+              {document.verified && (
+                <View className="bg-green-50 px-2 py-1 rounded-full border border-green-200">
+                  <Text className="font-rubik-medium text-xs text-green-700">Verified</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                onPress={() => onView(document)}
+                className="bg-indigo-50 w-8 h-8 rounded-lg items-center justify-center border border-indigo-200"
+              >
+                <Feather name="eye" size={16} color="#6366F1" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <Text className="font-rubik text-xs text-gray-500 mt-1">

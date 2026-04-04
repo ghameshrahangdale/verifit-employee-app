@@ -799,7 +799,7 @@ const EditVerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
 
  const renderStep2 = () => {
   
-  const isVerified = salaryForm?.verified;
+   const isVerified =  verificationResponse?.salaryConfirmed === true;
   const needsCorrection = !isVerified;
 
   return (

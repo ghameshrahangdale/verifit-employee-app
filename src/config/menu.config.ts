@@ -81,6 +81,13 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       route: 'subOrganizations',
       roles: [ROLES.ADMIN],
     }, 
+     {
+      icon: 'clipboard',
+      label: 'Question Templates',
+      subtitle: 'Create and manage verification question templates',
+      route: 'questionTemplates',
+      roles: [ROLES.ADMIN, ROLES.HR],
+    },
     {
       icon: 'alert-circle', 
       label: 'Invitations',
@@ -88,6 +95,7 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       route: 'pendingInvitations',
       roles: [ROLES.EMPLOYEE],
     },
+
 
     {
       icon: 'settings',

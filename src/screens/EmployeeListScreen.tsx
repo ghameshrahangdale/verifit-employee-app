@@ -288,8 +288,7 @@ const EmployeeListScreen: React.FC = () => {
             </Text>
           </View>
 
-          {/* View button — only for verified employees */}
-          {item.verificationStatus && (
+        
             <TouchableOpacity
               style={{
                 flexDirection: 'row',
@@ -319,7 +318,7 @@ const EmployeeListScreen: React.FC = () => {
               </Text>
               <Feather name="arrow-right" size={12} color="#FFFFFF" />
             </TouchableOpacity>
-          )}
+        
         </View>
       </View>
     );

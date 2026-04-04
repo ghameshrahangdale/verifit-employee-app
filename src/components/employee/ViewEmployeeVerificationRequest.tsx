@@ -117,26 +117,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     }
   };
 
-  const handleDownloadDocument = async (document: Document) => {
-    try {
-      const supported = await Linking.canOpenURL(document.fileUrl);
-      if (supported) {
-        await Linking.openURL(document.fileUrl);
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Cannot Download',
-          text2: 'Unable to download this document',
-        });
-      }
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to download document',
-      });
-    }
-  };
+  
 
   const formatFieldName = (fieldName: string): string => {
     return fieldName
@@ -369,6 +350,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
         </View>
 
         {/* Salary Records Section */}
+{/* Salary Records Section */}
 {details.salaryRecords.length > 0 && (
   <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
     <TouchableOpacity
@@ -386,45 +368,56 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
     {expandedSections.salary && (
       <View className="mt-4 space-y-3">
         {details.salaryRecords.map((salary, index) => {
-          // Use the verified field from the salary record
-          const isVerified = salary.verified || false;
+          // Check if ANY discrepancies exist
+          const hasAnyDiscrepancy = details.discrepancies && details.discrepancies.length > 0;
           
-          // Get card styles based on verification status
+          // Show verification status ONLY if there are discrepancies AND not in pending status
+          const showVerificationStatus = hasAnyDiscrepancy && 
+            details.verificationRequest.status !== 'PENDING';
+          
+          // Determine if salary is verified based on discrepancies
+          // If there's any discrepancy, mark as incorrect; otherwise, correct
+          const isVerified = !hasAnyDiscrepancy;
+          
+          // Get card styles based on verification status (only show if not pending)
           const getCardStyles = () => {
-            if (isVerified === true) {
-              return 'bg-green-50 rounded-xl p-4 border border-green-300';
+            if (!showVerificationStatus) {
+              return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
             }
-            if (isVerified === false) {
+            if (!isVerified) {
               return 'bg-red-50 rounded-xl p-4 border border-red-300';
             }
-            return 'bg-gray-50 rounded-xl p-4 border border-gray-100';
+            return 'bg-green-50 rounded-xl p-4 border border-green-300';
           };
           
           return (
-            <View key={salary.id} className={getCardStyles()}>
+            <View key={salary.id || index} className={getCardStyles()}>
               <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-row items-center gap-2">
                   <Text className="font-rubik-medium text-sm text-gray-800">
                     {getSalaryTypeLabel(salary.salaryType)}
                   </Text>
-                  {!isVerified ? (
-                    <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
-                      <View className="flex-row items-center">
-                        <Feather name="alert-triangle" size={12} color="#DC2626" />
-                        <Text className="font-rubik-medium text-xs text-red-700 ml-1">
-                          Incorrect
-                        </Text>
+                  {/* Only show verification badges when there are discrepancies and not pending */}
+                  {showVerificationStatus && (
+                    !isVerified ? (
+                      <View className="bg-red-100 px-2 py-1 rounded-full border border-red-300">
+                        <View className="flex-row items-center">
+                          <Feather name="alert-triangle" size={12} color="#DC2626" />
+                          <Text className="font-rubik-medium text-xs text-red-700 ml-1">
+                            Incorrect
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  ) : (
-                    <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
-                      <View className="flex-row items-center">
-                        <Feather name="check-circle" size={12} color="#059669" />
-                        <Text className="font-rubik-medium text-xs text-green-700 ml-1">
-                          Correct
-                        </Text>
+                    ) : (
+                      <View className="bg-green-100 px-2 py-1 rounded-full border border-green-300">
+                        <View className="flex-row items-center">
+                          <Feather name="check-circle" size={12} color="#059669" />
+                          <Text className="font-rubik-medium text-xs text-green-700 ml-1">
+                            Correct
+                          </Text>
+                        </View>
                       </View>
-                    </View>
+                    )
                   )}
                 </View>
               </View>
@@ -457,51 +450,61 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
   </View>
 )}
         {/* Documents Section */}
-        {details.documents.length > 0 && (
-          <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
-            <TouchableOpacity
-              onPress={() => toggleSection('documents')}
-              className="flex-row items-center justify-between"
-            >
-              <View className="flex-row items-center">
-                <Text className="font-rubik-bold text-base text-gray-800">
-                  Documents ({details.documents.length})
-                </Text>
-              </View>
-              <Feather
-                name={expandedSections.documents ? "chevron-up" : "chevron-down"}
-                size={20}
-                color="#64748B"
-              />
-            </TouchableOpacity>
+{details.documents.length > 0 && (
+  <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
+    <TouchableOpacity
+      onPress={() => toggleSection('documents')}
+      className="flex-row items-center justify-between"
+    >
+      <View className="flex-row items-center">
+        <Text className="font-rubik-bold text-base text-gray-800">
+          Documents ({details.documents.length})
+        </Text>
+      </View>
+      <Feather
+        name={expandedSections.documents ? "chevron-up" : "chevron-down"}
+        size={20}
+        color="#64748B"
+      />
+    </TouchableOpacity>
 
-            {expandedSections.documents && (
-              <View className="mt-4 gap-3">
-                {details.documents.map((doc) => {
-                  // Find the confirmation from the verification response
-                  const documentConfirmation = details.verificationResponse?.documentConfirmations?.find(
-                    (conf:any) => conf.id === doc.id
-                  );
+    {expandedSections.documents && (
+      <View className="mt-4 gap-3">
+        {details.documents.map((doc) => {
+          // Check if ANY discrepancies exist
+          const hasAnyDiscrepancy = details.discrepancies && details.discrepancies.length > 0;
+          
+          // Show verification status ONLY if there are discrepancies AND not in pending status
+          const showVerificationStatus = hasAnyDiscrepancy && 
+            details.verificationRequest.status !== 'PENDING';
+          
+          // Determine if document is confirmed based on discrepancies
+          // If there's any discrepancy, mark as not confirmed; otherwise, confirmed
+          let isConfirmed = false;
+          
+          if (showVerificationStatus) {
+            // Only check confirmation when showing verification status
+            const documentConfirmation = details.verificationResponse?.documentConfirmations?.find(
+              (conf: any) => conf.id === doc.id
+            );
+            isConfirmed = documentConfirmation ? documentConfirmation.confirmed : false;
+          }
+          // If not showing verification status, isConfirmed will be false and DocumentCard should not show badges
 
-                  // Use the confirmation from verification response if available,
-                  // otherwise fall back to the document's confirmed field
-                  const isConfirmed = documentConfirmation
-                    ? documentConfirmation.confirmed
-                    : (doc.confirmed );
-
-                  return (
-                    <DocumentCard
-                      key={doc.id}
-                      document={doc}
-                      isConfirmed={isConfirmed}
-                      onView={handleViewDocument}
-                    />
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        )}
+          return (
+            <DocumentCard
+              key={doc.id}
+              document={doc}
+              isConfirmed={isConfirmed}
+              showVerificationStatus={showVerificationStatus}
+              onView={handleViewDocument}
+            />
+          );
+        })}
+      </View>
+    )}
+  </View>
+)}
 
         {/* Behavior Report Section */}
         {details.behaviorReport && (

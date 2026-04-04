@@ -28,6 +28,7 @@ import SentInvitationsScreen from '../screens/SentInvitations';
 import SubOrganizationsScreen from '../screens/SubOrganizationsScreen';
 import BranchList from '../components/BranchList';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import QuestionTemplatesScreen from '../screens/questions/QuestionTemplatesScreen';
 
 
 export type AppStackParamList = {
@@ -66,6 +67,7 @@ export type AppStackParamList = {
   sentInvitations: undefined;
   BranchList: undefined;
   Notifications: undefined;
+  questionTemplates: undefined;
 };
 
 
@@ -112,6 +114,7 @@ const AppStackNavigator: React.FC = () => {
       <Stack.Screen name="subOrganizations" component={SubOrganizationsScreen} />
       <Stack.Screen name="BranchList" component={BranchList} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="questionTemplates" component={QuestionTemplatesScreen} />
     </Stack.Navigator>
   );
 };

@@ -21,6 +21,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import EmployeeDocumentUpload from '../components/employee/EmployeeDocumentUpload';
 import OrganizationMembership from '../components/employee/OrganizationMembership';
 import OrganizationDetails from '../components/organization/OrganizationDetails';
+import EmployeeWorkHistory from '../components/employee/EmployeeWorkHistory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -644,6 +645,10 @@ const ProfileScreen: React.FC = () => {
             <EmployeeProfessionalDetails />
             <SectionHeader title="My Uploaded Documents" showEdit={false} />
             <EmployeeDocumentUpload />
+            <SectionHeader title="Work History" showEdit={false} />
+
+            <EmployeeWorkHistory />
+
 
             <>
               <SectionHeader title="Linked to Organization" showEdit={false} />
