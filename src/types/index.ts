@@ -179,6 +179,7 @@ export interface VerificationRequestDetails {
   salaryRecords: SalaryRecord[];
   discrepancies: any[];
   documents: Document[];
+  questions?:any;
 }
 
 export interface BehaviorReport {

@@ -14,6 +14,7 @@ import Input from '../ui/Input';
 import { pick } from '@react-native-documents/picker';
 import axios from 'axios';
 import http from '../../services/http.api';
+import QuestionTemplateSelector from './QuestionTemplateSelector';
 
 interface VerificationRequestFormProps {
   onSubmit: (data: VerificationFormData, documents: DocumentFile[]) => Promise<void>;
@@ -30,7 +31,6 @@ export interface SalaryRecord {
   amount: number;
   currency: string;
   frequency: 'monthly' | 'annually' | 'quarterly';
-  effectiveDate: string;
   verified?: boolean;
   bonusAmount?: any;
   stockOptions?: any;
@@ -51,7 +51,8 @@ export interface VerificationFormData {
   confirmedFields?: any;
   salary?: SalaryRecord;
   verificationType: 'organization' | 'hr';
-  verificationResponse?:any,
+  verificationResponse?: any,
+  templateId?: string;
 }
 
 export interface DocumentUpdate {
@@ -184,12 +185,21 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
     amount: 0,
     currency: 'USD',
     frequency: 'monthly',
-    effectiveDate: '',
   });
 
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof VerificationFormData, string>>>({});
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(
+    initialData?.templateId || undefined
+  );
+
+  const handleTemplateSelect = (templateId: string | undefined) => {
+    setSelectedTemplateId(templateId);
+    setFormData(prev => ({ ...prev, templateId }));
+  };
+
+
 
   // Fetch companies on mount
   useEffect(() => {
@@ -204,7 +214,6 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         amount: initialData.salary.amount,
         currency: initialData.salary.currency,
         frequency: initialData.salary.frequency,
-        effectiveDate: initialData.salary.effectiveDate || '',
       });
     }
   }, [initialData]);
@@ -296,9 +305,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         if (!salary.amount || salary.amount <= 0) {
           newErrors.salary = 'Valid salary amount is required';
         }
-        if (!salary.effectiveDate) {
-          newErrors.salary = 'Effective date is required';
-        }
+        
       }
     }
 
@@ -323,38 +330,37 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   };
 
   const handleSubmit = async () => {
-    let companyName = '';
-    if (formData.verificationType === 'organization' && formData.organizationId) {
-      const selectedCompany = companies.find(c => c.id === formData.organizationId);
-      companyName = selectedCompany?.name || '';
-    } else if (formData.verificationType === 'hr') {
-      companyName = formData.companyName || '';
-    }
+  let companyName = '';
+  if (formData.verificationType === 'organization' && formData.organizationId) {
+    const selectedCompany = companies.find(c => c.id === formData.organizationId);
+    companyName = selectedCompany?.name || '';
+  } else if (formData.verificationType === 'hr') {
+    companyName = formData.companyName || '';
+  }
 
-    const finalData = {
-      ...formData,
-      companyName,
-      ...(formData.verificationType === 'organization' && {
-        organizationId: formData.organizationId,
-      }),
-      ...(formData.verificationType === 'hr' && {
-        hrEmail: formData.hrEmail,
-      }),
-      salary: formData.salary || undefined,
-    };
-
-
-    try {
-      await onSubmit(finalData, documents);
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Submission Failed',
-        text2: error.response?.data?.message || 'Failed to submit verification request',
-      });
-    }
+  const finalData = {
+    ...formData,
+    companyName,
+    templateId: selectedTemplateId, // Include template ID
+    ...(formData.verificationType === 'organization' && {
+      organizationId: formData.organizationId,
+    }),
+    ...(formData.verificationType === 'hr' && {
+      hrEmail: formData.hrEmail,
+    }),
+    salary: formData.salary || undefined,
   };
 
+  try {
+    await onSubmit(finalData, documents);
+  } catch (error: any) {
+    Toast.show({
+      type: 'error',
+      text1: 'Submission Failed',
+      text2: error.response?.data?.message || 'Failed to submit verification request',
+    });
+  }
+};
   const updateField = (field: keyof VerificationFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -399,41 +405,41 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   };
 
   const handleAddDocument = () => {
-  if (!documentForm.title.trim()) {
-    Toast.show({
-      type: 'error',
-      text1: 'Title Required',
-      text2: 'Please enter a document title',
-    });
-    return;
-  }
+    if (!documentForm.title.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Title Required',
+        text2: 'Please enter a document title',
+      });
+      return;
+    }
 
-  if (!selectedFile) {
-    Toast.show({
-      type: 'error',
-      text1: 'File Required',
-      text2: 'Please select a file to upload',
-    });
-    return;
-  }
+    if (!selectedFile) {
+      Toast.show({
+        type: 'error',
+        text1: 'File Required',
+        text2: 'Please select a file to upload',
+      });
+      return;
+    }
 
-  const newDocument: DocumentFile = {
-    uri: selectedFile.uri,
-    name: selectedFile.name,
-    type: selectedFile.type,
-    documentType: documentForm.documentType,
-    title: documentForm.title.trim(),
+    const newDocument: DocumentFile = {
+      uri: selectedFile.uri,
+      name: selectedFile.name,
+      type: selectedFile.type,
+      documentType: documentForm.documentType,
+      title: documentForm.title.trim(),
+    };
+
+    setDocuments(prev => [...prev, newDocument]);
+
+    setDocumentForm({
+      documentType: DocumentType.RESUME,
+      title: '',
+    });
+    setSelectedFile(null);
+    setShowDocumentForm(false);
   };
-
-  setDocuments(prev => [...prev, newDocument]);
-
-  setDocumentForm({
-    documentType: DocumentType.RESUME,
-    title: '',
-  });
-  setSelectedFile(null);
-  setShowDocumentForm(false);
-};
 
 
   const handleRemoveDocument = (index: number) => {
@@ -622,164 +628,164 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
     </View>
   );
 
- 
+
 
   const renderSupportingDocuments = () => (
-  <View>
-    <View className="flex-row items-center justify-between mb-4">
-      <Text className="font-rubik-medium text-base text-gray-800">
-        Documents
-      </Text>
-      {!showDocumentForm && (
-        <TouchableOpacity
-          onPress={() => setShowDocumentForm(true)}
-          className="p-2 rounded-full"
-          style={{
-            backgroundColor: `${colors.primary}0D`,
-            borderColor: `${colors.primary}25`,
-          }}
-          activeOpacity={0.7}
-        >
-          <Feather name="plus" size={18} color={colors.primary} />
-        </TouchableOpacity>
-      )}
-    </View>
-
-    {showDocumentForm ? (
-      <View className="bg-gray-50 rounded-xl p-4 mb-4">
-        <Text className="font-rubik-medium text-sm text-gray-700 mb-3">
-          Add Document
+    <View>
+      <View className="flex-row items-center justify-between mb-4">
+        <Text className="font-rubik-medium text-base text-gray-800">
+          Documents
         </Text>
+        {!showDocumentForm && (
+          <TouchableOpacity
+            onPress={() => setShowDocumentForm(true)}
+            className="p-2 rounded-full"
+            style={{
+              backgroundColor: `${colors.primary}0D`,
+              borderColor: `${colors.primary}25`,
+            }}
+            activeOpacity={0.7}
+          >
+            <Feather name="plus" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-        <Input
-          label="Document Type"
-          value={documentForm.documentType}
-          onChangeText={(text) => setDocumentForm(prev => ({ ...prev, documentType: text as DocumentType }))}
-          placeholder="Select document type"
-          required
-          type="select"
-          options={documentTypeOptions}
-        />
-
-        <Input
-          label="Document Title"
-          value={documentForm.title}
-          onChangeText={(text) => setDocumentForm(prev => ({ ...prev, title: text }))}
-          placeholder="e.g., Updated Resume 2026"
-          required
-        />
-
-        <View className="mb-6">
-          <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-2">
-            File
+      {showDocumentForm ? (
+        <View className="bg-gray-50 rounded-xl p-4 mb-4">
+          <Text className="font-rubik-medium text-sm text-gray-700 mb-3">
+            Add Document
           </Text>
 
-          {selectedFile ? (
-            <View className="bg-indigo-50 rounded-xl p-4 border border-indigo-100 flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <Feather name="file" size={20} color="#6366F1" />
-                <Text className="font-rubik text-sm text-gray-700 ml-2 flex-1" numberOfLines={1}>
-                  {selectedFile.name}
-                </Text>
+          <Input
+            label="Document Type"
+            value={documentForm.documentType}
+            onChangeText={(text) => setDocumentForm(prev => ({ ...prev, documentType: text as DocumentType }))}
+            placeholder="Select document type"
+            required
+            type="select"
+            options={documentTypeOptions}
+          />
+
+          <Input
+            label="Document Title"
+            value={documentForm.title}
+            onChangeText={(text) => setDocumentForm(prev => ({ ...prev, title: text }))}
+            placeholder="e.g., Updated Resume 2026"
+            required
+          />
+
+          <View className="mb-6">
+            <Text className="font-rubik text-xs text-gray-400 uppercase tracking-wide mb-2">
+              File
+            </Text>
+
+            {selectedFile ? (
+              <View className="bg-indigo-50 rounded-xl p-4 border border-indigo-100 flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+                  <Feather name="file" size={20} color="#6366F1" />
+                  <Text className="font-rubik text-sm text-gray-700 ml-2 flex-1" numberOfLines={1}>
+                    {selectedFile.name}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setSelectedFile(null)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Feather name="x" size={18} color="#EF4444" />
+                </TouchableOpacity>
               </View>
+            ) : (
               <TouchableOpacity
-                onPress={() => setSelectedFile(null)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={handlePickFile}
+                className="border border-gray-200 border-dashed rounded-xl p-6 items-center"
               >
-                <Feather name="x" size={18} color="#EF4444" />
+                <Feather name="upload-cloud" size={32} color="#9CA3AF" />
+                <Text className="font-rubik-medium text-sm text-gray-600 mt-2">
+                  Tap to select file
+                </Text>
+                <Text className="font-rubik text-xs text-gray-400 mt-1">
+                  PDF, JPEG, PNG, DOC (Max 10MB)
+                </Text>
               </TouchableOpacity>
+            )}
+          </View>
+
+          <View className="flex-row gap-3 mt-2">
+            <Button
+              title="Cancel"
+              variant="outline"
+              className="flex-1"
+              onPress={resetDocumentForm}
+              disabled={isUploading}
+            />
+            <Button
+              title="Add Document"
+              className="flex-1"
+              onPress={handleAddDocument}
+            />
+          </View>
+        </View>
+      ) : (
+        <>
+          {documents.length > 0 && (
+            <View className="mb-4">
+              {documents.map((doc, index) => (
+                <View
+                  key={index}
+                  className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
+                >
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1 flex-row">
+                      <View className="mr-3">
+                        <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
+                          <Feather name="file-text" size={20} color="#6366F1" />
+                        </View>
+                      </View>
+                      <View className="flex-1">
+                        <Text className="font-rubik-medium text-base text-gray-800 mb-1">
+                          {doc.title}
+                        </Text>
+                        <Text className="font-rubik text-sm text-gray-600 mb-1">
+                          {getDocumentTypeLabel(doc.documentType as DocumentType)}
+                        </Text>
+                        <Text className="font-rubik text-xs text-gray-400">
+                          {doc.name}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => handleRemoveDocument(index)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      className="ml-2"
+                    >
+                      <Feather name="trash-2" size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
             </View>
-          ) : (
+          )}
+
+          {documents.length === 0 && (
             <TouchableOpacity
-              onPress={handlePickFile}
+              onPress={() => setShowDocumentForm(true)}
               className="border border-gray-200 border-dashed rounded-xl p-6 items-center"
             >
               <Feather name="upload-cloud" size={32} color="#9CA3AF" />
               <Text className="font-rubik-medium text-sm text-gray-600 mt-2">
-                Tap to select file
+                Add Documents
               </Text>
               <Text className="font-rubik text-xs text-gray-400 mt-1">
-                PDF, JPEG, PNG, DOC (Max 10MB)
+                Upload experience letters, relieving letters, education certificates, etc.
               </Text>
             </TouchableOpacity>
           )}
-        </View>
-
-        <View className="flex-row gap-3 mt-2">
-          <Button
-            title="Cancel"
-            variant="outline"
-            className="flex-1"
-            onPress={resetDocumentForm}
-            disabled={isUploading}
-          />
-          <Button
-            title="Add Document"
-            className="flex-1"
-            onPress={handleAddDocument}
-          />
-        </View>
-      </View>
-    ) : (
-      <>
-        {documents.length > 0 && (
-          <View className="mb-4">
-            {documents.map((doc, index) => (
-              <View
-                key={index}
-                className="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-100"
-              >
-                <View className="flex-row justify-between items-start">
-                  <View className="flex-1 flex-row">
-                    <View className="mr-3">
-                      <View className="w-10 h-10 bg-indigo-100 rounded-lg items-center justify-center">
-                        <Feather name="file-text" size={20} color="#6366F1" />
-                      </View>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="font-rubik-medium text-base text-gray-800 mb-1">
-                        {doc.title}
-                      </Text>
-                      <Text className="font-rubik text-sm text-gray-600 mb-1">
-                        {getDocumentTypeLabel(doc.documentType as DocumentType)}
-                      </Text>
-                      <Text className="font-rubik text-xs text-gray-400">
-                        {doc.name}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={() => handleRemoveDocument(index)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    className="ml-2"
-                  >
-                    <Feather name="trash-2" size={18} color="#EF4444" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {documents.length === 0 && (
-          <TouchableOpacity
-            onPress={() => setShowDocumentForm(true)}
-            className="border border-gray-200 border-dashed rounded-xl p-6 items-center"
-          >
-            <Feather name="upload-cloud" size={32} color="#9CA3AF" />
-            <Text className="font-rubik-medium text-sm text-gray-600 mt-2">
-              Add Documents
-            </Text>
-            <Text className="font-rubik text-xs text-gray-400 mt-1">
-              Upload experience letters, relieving letters, education certificates, etc.
-            </Text>
-          </TouchableOpacity>
-        )}
-      </>
-    )}
-  </View>
-);
+        </>
+      )}
+    </View>
+  );
 
   const renderStep1 = () => (
     <View>
@@ -963,16 +969,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           options={frequencyOptions}
         />
 
-        <Input
-          label="Effective Date"
-          value={salaryForm.effectiveDate}
-          onChangeText={(text) =>
-            updateSalary({ effectiveDate: text })
-          }
-          placeholder="YYYY-MM-DD"
-          required
-          type="date"
-        />
+     
       </View>
     </View>
   );
@@ -981,6 +978,13 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
     <View>
       {/* Supporting Documents Section */}
       {renderSupportingDocuments()}
+
+      <View className="mt-6">
+        <QuestionTemplateSelector
+          organizationId={formData.organizationId}
+          onTemplateSelect={handleTemplateSelect}
+        />
+      </View>
     </View>
   );
 

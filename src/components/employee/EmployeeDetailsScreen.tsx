@@ -149,65 +149,66 @@ const EmployeeDetailsScreen: React.FC = () => {
   };
 
   const handleSubmitVerificationRequest = async (data: VerificationFormData, documents: DocumentFile[]) => {
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData();
+  setIsSubmitting(true);
+  try {
+    const formData = new FormData();
 
-      const requestData = {
-        employeeId: employeeId,
-        organizationId: data.organizationId,
-        designation: data.designation,
-        department: data.department,
-        employmentType: data.employmentType,
-        startDate: data.startDate,
-        endDate: data.endDate || undefined,
-        location: data.location,
-        reasonForLeaving: data.reasonForLeaving || undefined,
-        salary: data.salary ? {
-          salaryType: data.salary.salaryType,
-          amount: data.salary.amount,
-          currency: data.salary.currency,
-          frequency: data.salary.frequency,
-        } : undefined,
-      };
+    const requestData = {
+      employeeId: employeeId,
+      organizationId: data.organizationId,
+      designation: data.designation,
+      department: data.department,
+      employmentType: data.employmentType,
+      startDate: data.startDate,
+      endDate: data.endDate || undefined,
+      location: data.location,
+      reasonForLeaving: data.reasonForLeaving || undefined,
+      templateId: data.templateId || undefined, // Add this line
+      salary: data.salary ? {
+        salaryType: data.salary.salaryType,
+        amount: data.salary.amount,
+        currency: data.salary.currency,
+        frequency: data.salary.frequency,
+      } : undefined,
+    };
 
-      formData.append('data', JSON.stringify(requestData));
+    formData.append('data', JSON.stringify(requestData));
 
-      documents.forEach((doc, index) => {
-        formData.append(`documents[${index}][file]`, {
-          uri: doc.uri,
-          name: doc.name,
-          type: doc.type,
-        } as any);
+    documents.forEach((doc, index) => {
+      formData.append(`documents[${index}][file]`, {
+        uri: doc.uri,
+        name: doc.name,
+        type: doc.type,
+      } as any);
 
-        formData.append(`documents[${index}][type]`, doc.documentType);
-        formData.append(`documents[${index}][title]`, doc.title);
-      });
+      formData.append(`documents[${index}][type]`, doc.documentType);
+      formData.append(`documents[${index}][title]`, doc.title);
+    });
 
-      await http.post('/api/verification/employee/create-request', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+    await http.post('/api/verification/employee/create-request', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Verification request submitted successfully',
-      });
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Verification request submitted successfully',
+    });
 
-      setIsModalVisible(false);
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Submission Failed',
-        text2: error.response?.data?.message || 'Failed to submit verification request',
-      });
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    setIsModalVisible(false);
+  } catch (error: any) {
+    Toast.show({
+      type: 'error',
+      text1: 'Submission Failed',
+      text2: error.response?.data?.message || 'Failed to submit verification request',
+    });
+    throw error;
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // ─── Sub-components ───────────────────────────────────────────────
 

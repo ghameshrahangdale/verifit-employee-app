@@ -21,6 +21,7 @@ import { VerificationResponse, EmploymentRecord, SalaryRecord, Discrepancy, Docu
 import { InfoRow } from '../../components/ui/InfoRow';
 import { DocumentCard } from '../../components/ui/DocumentCard';
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal';
+import VerificationQuestions from './VerificationQuestions';
 
 type ViewEmployeeVerificationRouteProp = RouteProp<AppStackParamList, 'ViewVerification'>;
 
@@ -42,6 +43,7 @@ interface VerificationRequestDetails {
   documents: Document[];
   verificationResponse?: VerificationResponse;
   behaviorReport?: BehaviorReport | null;
+  questions?: any;
 }
 
 const ViewEmployeeVerificationRequest: React.FC = () => {
@@ -61,6 +63,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
   });
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchVerificationDetails();
@@ -350,7 +353,7 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
         </View>
 
         {/* Salary Records Section */}
-{/* Salary Records Section */}
+
 {details.salaryRecords.length > 0 && (
   <View className="bg-white rounded-2xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
     <TouchableOpacity
@@ -447,6 +450,17 @@ const ViewEmployeeVerificationRequest: React.FC = () => {
         })}
       </View>
     )}
+  </View>
+)}
+
+{details.questions && details.questions.length > 0 && (
+  <View className="mx-4 mt-4">
+    <VerificationQuestions
+      questions={details.questions}
+      // onAnswersChange={handleAnswersChange}
+      readonly={true}
+      initialAnswers={questionAnswers}
+    />
   </View>
 )}
         {/* Documents Section */}

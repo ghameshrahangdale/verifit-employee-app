@@ -23,6 +23,13 @@ import { DocumentsSection } from '../DocumentsSection';
 import { BehaviorSection } from '../BehaviorSection';
 import { ReviewCommentsSection } from '../ReviewCommentsSection';
 import { DiscrepanciesSummary } from '../DiscrepanciesSummary';
+// Import component AND the Question type it exports
+import VerificationQuestions, { Question } from './VerificationQuestions';
+
+interface QuestionAnswerPayload {
+  requestQuestionId: string;
+  answer: string;
+}
 
 type HrReviewVerificationRouteProp = RouteProp<AppStackParamList, 'VerifyRequestScreen'>;
 
@@ -68,9 +75,16 @@ const VerifyRequestScreen: React.FC = () => {
     },
   });
 
+  // All question answers stored as strings (booleans normalised to "Yes"/"No")
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+
   useEffect(() => {
     fetchVerificationDetails();
   }, [verificationId]);
+
+  const handleAnswersChange = (answers: Record<string, string>) => {
+    setQuestionAnswers(answers);
+  };
 
   const fetchVerificationDetails = async () => {
     try {
@@ -197,7 +211,7 @@ const VerifyRequestScreen: React.FC = () => {
     }
 
     const discrepancy: Discrepancy = {
-      fieldName: fieldName,
+      fieldName,
       employeeClaimedValue: claimedValue,
       actualValue: field.actualValue,
       remarks: `Updated by HR during verification`,
@@ -313,8 +327,9 @@ const VerifyRequestScreen: React.FC = () => {
     try {
       setIsSubmitting(true);
 
-      // Check if all fields are reviewed
-      const allFieldsReviewed = Object.values(fieldStatus).every(field => field.confirmed !== null || field.showInput === false);
+      const allFieldsReviewed = Object.values(fieldStatus).every(
+        field => field.confirmed !== null || field.showInput === false
+      );
       if (!allFieldsReviewed) {
         Toast.show({ type: 'error', text1: 'Incomplete Review', text2: 'Please review all fields before submitting' });
         setIsSubmitting(false);
@@ -327,44 +342,58 @@ const VerifyRequestScreen: React.FC = () => {
         return;
       }
 
-      // Prepare documents confirmed array
-      const documentsConfirmed = details?.documents.map(doc => ({
-        id: doc.id,
-        confirmed: fieldStatus[`document_${doc.id}`]?.confirmed || false
-      })) || [];
+      // details.questions is now typed as Question[] which shares the exported type
+      const requiredQuestions: Question[] = (details?.questions ?? []).filter((q: Question) => q.required);
+      const unansweredRequired = requiredQuestions.filter(
+        q => !questionAnswers[q.id] || questionAnswers[q.id].trim() === ''
+      );
 
-      // Prepare salary confirmation status (overall salary confirmed if any salary field is confirmed)
-      const salaryConfirmed = Object.keys(fieldStatus).some(key =>
-        key.includes('salary_') && fieldStatus[key]?.confirmed === true
+      if (unansweredRequired.length > 0) {
+        Toast.show({
+          type: 'error',
+          text1: 'Required Questions Unanswered',
+          text2: `Please answer ${unansweredRequired.length} required question(s) before submitting`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Build payload – answers are already normalised strings
+      const questionsPayload: QuestionAnswerPayload[] = (details?.questions ?? []).map((q: Question) => ({
+        requestQuestionId: q.id,
+        answer: questionAnswers[q.id] ?? '',
+      }));
+
+      const documentsConfirmed = (details?.documents ?? []).map((doc: Document) => ({
+        id: doc.id,
+        confirmed: fieldStatus[`document_${doc.id}`]?.confirmed ?? false,
+      }));
+
+      const salaryConfirmed = Object.keys(fieldStatus).some(
+        key => key.includes('salary_') && fieldStatus[key]?.confirmed === true
       );
 
       const payload = {
         verificationMethod: reviewData.verificationMethod,
         comments: reviewData.comments,
-
-        // Individual field confirmations
-        companyNameConfirmed: fieldStatus['company_name']?.confirmed || false,
-        designationConfirmed: fieldStatus['designation']?.confirmed || false,
-        departmentConfirmed: fieldStatus['department']?.confirmed || false,
-        employmentTypeConfirmed: fieldStatus['employment_type']?.confirmed || false,
-        locationConfirmed: fieldStatus['location']?.confirmed || false,
-        startDateConfirmed: fieldStatus['start_date']?.confirmed || false,
-        endDateConfirmed: fieldStatus['end_date']?.confirmed || false,
-        reasonForLeavingConfirmed: fieldStatus['reason_for_leaving']?.confirmed || false,
-
-        // Combined confirmations
-        employmentConfirmed: fieldStatus['company_name']?.confirmed &&
-          fieldStatus['start_date']?.confirmed &&
-          fieldStatus['end_date']?.confirmed || false,
-        tenureConfirmed: fieldStatus['start_date']?.confirmed &&
-          fieldStatus['end_date']?.confirmed || false,
-        salaryConfirmed: salaryConfirmed,
-        behaviorConfirmed: true, // Always true as we're not implementing behavior confirmation yet
-
-        // Documents as array of objects
-        documentsConfirmed: documentsConfirmed,
-
-        // Additional data
+        companyNameConfirmed: fieldStatus['company_name']?.confirmed ?? false,
+        designationConfirmed: fieldStatus['designation']?.confirmed ?? false,
+        departmentConfirmed: fieldStatus['department']?.confirmed ?? false,
+        employmentTypeConfirmed: fieldStatus['employment_type']?.confirmed ?? false,
+        locationConfirmed: fieldStatus['location']?.confirmed ?? false,
+        startDateConfirmed: fieldStatus['start_date']?.confirmed ?? false,
+        endDateConfirmed: fieldStatus['end_date']?.confirmed ?? false,
+        reasonForLeavingConfirmed: fieldStatus['reason_for_leaving']?.confirmed ?? false,
+        employmentConfirmed:
+          (fieldStatus['company_name']?.confirmed &&
+            fieldStatus['start_date']?.confirmed &&
+            fieldStatus['end_date']?.confirmed) ?? false,
+        tenureConfirmed:
+          (fieldStatus['start_date']?.confirmed && fieldStatus['end_date']?.confirmed) ?? false,
+        salaryConfirmed,
+        behaviorConfirmed: true,
+        documentsConfirmed,
+        questionAnswers: questionsPayload,
         discrepancies: reviewData.discrepancies,
         behaviorReport: reviewData.behaviorReport,
       };
@@ -392,35 +421,28 @@ const VerifyRequestScreen: React.FC = () => {
             try {
               setIsSubmitting(true);
 
-              // Prepare documents confirmed array (all false for rejection)
-              const documentsConfirmed = details?.documents.map(doc => ({
+              const questionsPayload: QuestionAnswerPayload[] = (details?.questions ?? []).map((q: Question) => ({
+                requestQuestionId: q.id,
+                answer: questionAnswers[q.id] ?? '',
+              }));
+
+              const documentsConfirmed = (details?.documents ?? []).map(doc => ({
                 id: doc.id,
-                confirmed: false
-              })) || [];
+                confirmed: false,
+              }));
 
               const payload = {
                 verificationMethod: reviewData.verificationMethod,
                 status: 'REJECTED',
                 comments: reviewData.comments || 'Request rejected by HR',
-
-                // All confirmations set to false for rejection
                 companyNameConfirmed: false,
                 designationConfirmed: false,
-                departmentConfirmed: false,
-                employmentTypeConfirmed: false,
-                locationConfirmed: false,
-                startDateConfirmed: false,
-                endDateConfirmed: false,
-                reasonForLeavingConfirmed: false,
                 employmentConfirmed: false,
                 tenureConfirmed: false,
                 salaryConfirmed: false,
                 behaviorConfirmed: false,
-
-                // Documents as array of objects with all false
-                documentsConfirmed: documentsConfirmed,
-
-                // Additional data
+                documentsConfirmed,
+                questions: questionsPayload,
                 discrepancies: reviewData.discrepancies,
                 behaviorReport: reviewData.behaviorReport,
               };
@@ -449,30 +471,17 @@ const VerifyRequestScreen: React.FC = () => {
   };
 
   const handleResetField = (fieldKey: string) => {
-    // Reset the field status to initial state (null, no input)
     setFieldStatus(prev => ({
       ...prev,
-      [fieldKey]: {
-        confirmed: null,
-        showInput: false,
-        actualValue: ''
-      }
+      [fieldKey]: { confirmed: null, showInput: false, actualValue: '' }
     }));
-
-    // Remove any associated discrepancy from reviewData
     const fieldName = formatFieldName(fieldKey);
     setReviewData(prev => ({
       ...prev,
       discrepancies: prev.discrepancies.filter(d => d.fieldName !== fieldName)
     }));
-
     setActiveField(null);
-
-    Toast.show({
-      type: 'info',
-      text1: 'Field Reset',
-      text2: `${fieldName} can be reviewed again`
-    });
+    Toast.show({ type: 'info', text1: 'Field Reset', text2: `${fieldName} can be reviewed again` });
   };
 
   const handleRefresh = () => {
@@ -514,7 +523,14 @@ const VerifyRequestScreen: React.FC = () => {
       <Header title="Review Verification" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         <View className="bg-purple-50 mx-4 mt-4 p-4 rounded-2xl border border-purple-200">
           <View className="flex-row items-center justify-between">
@@ -522,9 +538,13 @@ const VerifyRequestScreen: React.FC = () => {
               <Feather name="clipboard" size={20} color={colors.primary} />
               <Text className="font-rubik-bold text-base text-primary-700 ml-2">Review Request</Text>
             </View>
-            <Text className="font-rubik text-xs text-gray-500">ID: {details.verificationRequest.id.substring(0, 8)}...</Text>
+            <Text className="font-rubik text-xs text-gray-500">
+              ID: {details.verificationRequest.id.substring(0, 8)}…
+            </Text>
           </View>
-          <Text className="font-rubik text-sm text-gray-600 mt-2">Requested on {formatDate(details.verificationRequest.requestedAt)}</Text>
+          <Text className="font-rubik text-sm text-gray-600 mt-2">
+            Requested on {formatDate(details.verificationRequest.requestedAt)}
+          </Text>
         </View>
 
         <EmploymentSection
@@ -576,6 +596,16 @@ const VerifyRequestScreen: React.FC = () => {
           onUpdateBehavior={handleUpdateBehavior}
           colors={colors}
         />
+
+        {details.questions && details.questions.length > 0 && (
+          <View className="mx-4 mt-4">
+            <VerificationQuestions
+              questions={details.questions as Question[]}
+              onAnswersChange={handleAnswersChange}
+              initialAnswers={questionAnswers}
+            />
+          </View>
+        )}
 
         <ReviewCommentsSection
           comments={reviewData.comments}
