@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +21,7 @@ import http from '../services/http.api';
 import Loader from '../components/ui/Loader';
 import SearchInput from '../components/ui/SearchInput';
 import AddEmployeeForm from '../components/AddEmployeeForm';
+import VerificationRequestForm, { DocumentFile, VerificationFormData } from '../components/employee/VerificationRequestForm';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppStackParamList } from '../navigation/AppStackNavigator';
 
@@ -63,6 +66,11 @@ const EmployeeListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  
+  // State for verification modal
+  const [isVerificationModalVisible, setIsVerificationModalVisible] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -135,8 +143,6 @@ const EmployeeListScreen: React.FC = () => {
     setSearchQuery('');
   };
 
-
-
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -148,6 +154,76 @@ const EmployeeListScreen: React.FC = () => {
 
   const handleViewEmployee = (id: string) => {
     navigation.navigate('EmployeeDetails', { employeeId: id });
+  };
+
+  const handleVerifyEmployee = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsVerificationModalVisible(true);
+  };
+
+  const handleSubmitVerificationRequest = async (data: VerificationFormData, documents: DocumentFile[]) => {
+    if (!selectedEmployee) return;
+    
+    setIsSubmittingVerification(true);
+    try {
+      const formData = new FormData();
+
+      const requestData = {
+        employeeId: selectedEmployee.id,
+        organizationId: data.organizationId,
+        designation: data.designation,
+        department: data.department,
+        employmentType: data.employmentType,
+        startDate: data.startDate,
+        endDate: data.endDate || undefined,
+        location: data.location,
+        reasonForLeaving: data.reasonForLeaving || undefined,
+        templateId: data.templateId || undefined,
+        salary: data.salary ? {
+          salaryType: data.salary.salaryType,
+          amount: data.salary.amount,
+          currency: data.salary.currency,
+          frequency: data.salary.frequency,
+        } : undefined,
+      };
+
+      formData.append('data', JSON.stringify(requestData));
+
+      documents.forEach((doc, index) => {
+        formData.append(`documents[${index}][file]`, {
+          uri: doc.uri,
+          name: doc.name,
+          type: doc.type,
+        } as any);
+
+        formData.append(`documents[${index}][type]`, doc.documentType);
+        formData.append(`documents[${index}][title]`, doc.title);
+      });
+
+      await http.post('/api/verification/employee/create-request', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: `Verification request submitted for ${selectedEmployee.firstName} ${selectedEmployee.lastName}`,
+      });
+
+      setIsVerificationModalVisible(false);
+      setSelectedEmployee(null);
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Submission Failed',
+        text2: error.response?.data?.message || 'Failed to submit verification request',
+      });
+      throw error;
+    } finally {
+      setIsSubmittingVerification(false);
+    }
   };
 
   // ─── REDESIGNED EMPLOYEE CARD ─────────────────────────────────────────────
@@ -271,7 +347,7 @@ const EmployeeListScreen: React.FC = () => {
           }}
         />
 
-        {/* Bottom Row: Meta info + View button */}
+        {/* Bottom Row: Meta info + Action Buttons */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Left meta: Joined date with label */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -288,7 +364,9 @@ const EmployeeListScreen: React.FC = () => {
             </Text>
           </View>
 
-        
+          {/* Action Buttons Container */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* View Button */}
             <TouchableOpacity
               style={{
                 flexDirection: 'row',
@@ -318,7 +396,40 @@ const EmployeeListScreen: React.FC = () => {
               </Text>
               <Feather name="arrow-right" size={12} color="#FFFFFF" />
             </TouchableOpacity>
-        
+
+            {/* Verify Button - Only show if not already verified */}
+            {!item.verificationStatus && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#10B981',
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 12,
+                  shadowColor: '#10B981',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                  elevation: 3,
+                }}
+                onPress={() => handleVerifyEmployee(item)}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Rubik-Medium',
+                    fontSize: 12,
+                    color: '#FFFFFF',
+                    marginRight: 4,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  Verify
+                </Text>
+                <Feather name="shield" size={12} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -463,12 +574,95 @@ const EmployeeListScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: 100, // extra space so FAB doesn't overlap last card
+          paddingBottom: 100,
         }}
       />
 
-      
+      {/* Add Employee Modal */}
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white rounded-t-3xl max-h-[90%]">
+            <AddEmployeeForm
+              onClose={() => setIsModalVisible(false)}
+              onSuccess={() => {
+                setIsModalVisible(false);
+                fetchEmployees(1, true);
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
 
+      {/* Verification Request Modal */}
+      <Modal
+        visible={isVerificationModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setIsVerificationModalVisible(false);
+          setSelectedEmployee(null);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <TouchableOpacity
+            className="flex-1 bg-black/45"
+            activeOpacity={1}
+            onPress={() => {
+              setIsVerificationModalVisible(false);
+              setSelectedEmployee(null);
+            }}
+          >
+            <View className="flex-1 justify-end">
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                className="bg-white rounded-t-3xl shadow-lg max-h-[90%]"
+              >
+                <View className="items-center pt-3">
+                  <View className="w-9 h-1 rounded-full bg-gray-200" />
+                </View>
+
+                <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
+                  <View>
+                    <Text className="font-rubik-bold text-xl text-gray-900">
+                      Verify Employee
+                    </Text>
+                    <Text className="font-rubik text-xs text-gray-400 mt-0.5">
+                      Submit verification request for {selectedEmployee?.firstName} {selectedEmployee?.lastName}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsVerificationModalVisible(false);
+                      setSelectedEmployee(null);
+                    }}
+                    className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
+                  >
+                    <Feather name="x" size={18} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+
+                <VerificationRequestForm
+                  onSubmit={handleSubmitVerificationRequest}
+                  onCancel={() => {
+                    setIsVerificationModalVisible(false);
+                    setSelectedEmployee(null);
+                  }}
+                  isLoading={isSubmittingVerification}
+                />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };

@@ -73,11 +73,7 @@ const EmploymentRecord: React.FC<EmploymentRecordProps> = ({ employeeId }) => {
     setData(response.data);
       
     } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Failed to Load Employment Records',
-        text2: error.response?.data?.message || 'Unable to fetch employment records',
-      });
+      
     } finally {
       setIsLoading(false);
     }

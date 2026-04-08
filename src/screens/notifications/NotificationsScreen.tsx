@@ -189,11 +189,11 @@ const NotificationsScreen: React.FC = () => {
         ]}
       >
         <View className="flex-row p-4">
-          <View
+          {/* <View
             className='mr-4 mt-1'
           >
             <Avatar imageUrl={item.employee.profileImage} rounded='corners' />
-          </View>
+          </View> */}
 
           <View style={{ flex: 1 }}>
             <View className="flex-row items-center mb-1">
