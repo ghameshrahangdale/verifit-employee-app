@@ -56,10 +56,8 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
   const canDelete = item.status !== 'VERIFIED' && item.status !== 'DISCREPANCIES' && item.status !== 'REJECTED' && isEmployee(userRole);
 
   // Check if this verification request belongs to the user's organization
-  const isSameOrganization = item.organizationId && user?.organizationId === item.organizationId; ;
-  console.log('User Organization ID:', user?.organizationId);
-  console.log('Request Organization ID:', item.organizationId);
-  console.log('Is Same Organization:', isSameOrganization);
+  const isSameOrganization = item.organizationId && user?.organizationId === item.organizationId && user?.role === ROLES.ADMIN; 
+  
 
   // Only show reject button for non-employees with PENDING status AND different organization
   const canReject = item.status === 'PENDING' && !isEmployee(userRole) && onReject && !isSameOrganization;

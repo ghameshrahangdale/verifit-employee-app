@@ -16,7 +16,7 @@ import OrganizationOnboardingScreen from '../screens/OrganizationOnboardingScree
 import { useAuth } from '../context/AuthContext';
 import TeamManagementScreen from '../screens/TeamManagementScreen';
 import EmployeeDetailsScreen from '../components/employee/EmployeeDetailsScreen';
-import EmployeeVerifications from '../components/employee/EmployeeVerifications';
+import EmployeeVerifications from '../components/employee/AllVerifications';
 import ViewEmployeeVerificationRequest from '../components/employee/ViewEmployeeVerificationRequest';
 import VerifyRequestScreen from '../components/employee/VerifyRequestScreen';
 import EditVerificationRequest from '../components/employee/EditVerificationRequest';

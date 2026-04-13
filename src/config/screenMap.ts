@@ -5,7 +5,7 @@ import FallbackScreen from '../screens/FallbackScreen';
 import EmployeeListScreen from '../screens/EmployeeListScreen';
 import VerifiedEmployeeListScreen from '../screens/VerifiedEmployeeListScreen';
 import TeamManagementScreen from '../screens/TeamManagementScreen';
-import EmployeeVerification from '../components/employee/EmployeeVerifications'; // Create this
+import EmployeeVerification from '../components/employee/AllVerifications'; // Create this
 import PendingInvitationsScreen from '../screens/PendingInvitationsScreen';
 import SettingsScreen from '../screens/SettingsScreen'; // Create this
 
