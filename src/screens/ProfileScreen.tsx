@@ -397,8 +397,11 @@ const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Full name */}
-          <Text className="font-rubik-bold text-xl text-gray-900 tracking-tight mb-2.5">
+          <Text className="font-rubik-bold text-xl text-gray-900 tracking-tight">
             {getFullName()}
+          </Text>
+          <Text className="font-rubik text-sm text-gray-600 tracking-tight mb-2.5">
+            {profile?.user?.email||""}
           </Text>
 
           {/* Role + verified badges */}

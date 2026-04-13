@@ -441,7 +441,7 @@ const EmployeeVerification: React.FC = () => {
   if (isLoading && verifications.length === 0) {
     return (
       <View className="flex-1 bg-gray-50">
-        <Header title="My Verifications" />
+        <Header title="All Verifications" />
         <Loader fullScreen />
       </View>
     );

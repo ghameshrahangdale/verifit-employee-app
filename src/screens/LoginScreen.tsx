@@ -125,7 +125,7 @@ const LoginScreen: React.FC = () => {
           >
             <View className="px-6 py-8">
               {/* Card */}
-              <View className="bg-white rounded-3xl px-6 py-8 shadow-xl border border-gray-100">
+              <View className="">
                 
                 {/* Logo */}
                 <View className="mb-6 items-center">

@@ -49,33 +49,48 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
   onDelete,
   onResubmit,
 }) => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const { colors } = useTheme();
   const statusConfig = getStatusConfig(item.status);
   const canEdit = item.status === 'PENDING' || item.status === 'DISCREPANCIES';
   const canDelete = item.status !== 'VERIFIED' && item.status !== 'DISCREPANCIES' && item.status !== 'REJECTED' && isEmployee(userRole);
-  
+
   // Check if this verification request belongs to the user's organization
-  const isSameOrganization = item.organizationId && user?.organizationId && item.organizationId === user.organizationId;
-  
+  const isSameOrganization = item.organizationId && user?.organizationId === item.organizationId; ;
+  console.log('User Organization ID:', user?.organizationId);
+  console.log('Request Organization ID:', item.organizationId);
+  console.log('Is Same Organization:', isSameOrganization);
+
   // Only show reject button for non-employees with PENDING status AND different organization
   const canReject = item.status === 'PENDING' && !isEmployee(userRole) && onReject && !isSameOrganization;
 
   return (
     <View className="bg-white rounded-2xl mx-4 mb-3 p-4 shadow-sm border border-gray-100">
-      {/* Header: Company + Status */}
-      <View className="flex-row items-start">
+      {/* Header: HR Email + Company Name */}
+      <View className="flex-row items-center">
         <View
-          className="w-12 h-12 rounded-xl items-center justify-center"
+          className="w-10 h-10 rounded-lg items-center justify-center"
           style={{ backgroundColor: colors.primary + '15' }}
         >
-          <Feather name="briefcase" size={22} color={colors.primary} />
+          <Feather name="briefcase" size={18} color={colors.primary} />
         </View>
 
         <View className="flex-1 ml-3">
-          <Text className="font-rubik-bold text-base text-gray-900">
-            {item.companyName}
-          </Text>
+          {/* Show HR Email if available, otherwise show Company Name */}
+          {item.hrEmail ? (
+            <>
+              <Text className="font-rubik-semibold text-sm text-gray-900">
+                {item.hrEmail}
+              </Text>
+              <Text className="font-rubik text-xs text-gray-500 mt-0.5">
+                {item.companyName}
+              </Text>
+            </>
+          ) : (
+            <Text className="font-rubik-semibold text-sm text-gray-900">
+              {item.companyName}
+            </Text>
+          )}
         </View>
 
         {/* Status Badge */}
@@ -87,67 +102,49 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
         </View>
       </View>
 
-      {/* Candidate Info Section - Only show for non-employees */}
-      {userRole && !isEmployee(userRole) && (
-        <View className="bg-blue-50/30 px-3 py-2 rounded-xl border border-blue-100/50 mt-3">
-          <Text className="font-rubik-medium text-xs text-gray-500 mb-1.5">Candidate Details</Text>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center flex-1">
-              <View className="flex-1">
-                <Text className="font-rubik-medium text-xs text-gray-900">
-                  {item.candidate?.name || 'N/A'}
-                </Text>
-                <Text className="font-rubik text-[10px] text-gray-500">
-                  {item.candidate?.email || 'N/A'}
-                </Text>
-                <Text className="font-rubik text-[10px] text-gray-500">
-                  {item.designation}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
+      {/* Employee Details Section - Combined for all users */}
+      <View className="bg-blue-50/30 px-3 py-2.5 rounded-xl border border-blue-100/50 mt-3">
+        <Text className="font-rubik-medium text-xs text-gray-500 mb-2">Employee Details</Text>
 
-      {/* Employment Details */}
-      <View className="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+        {/* Name */}
+        <View className="flex-row items-center mb-1.5">
+          <Feather name="user" size={12} color="#64748B" />
+          <Text className="font-rubik-medium text-xs text-gray-900 ml-2 flex-1">
+            {item.candidate?.name || 'N/A'}
+          </Text>
+        </View>
+
+        {/* Email */}
+        <View className="flex-row items-center mb-1.5">
+          <Feather name="mail" size={12} color="#64748B" />
+          <Text className="font-rubik text-xs text-gray-500 ml-2 flex-1">
+            {item.candidate?.email || 'N/A'}
+          </Text>
+        </View>
+
+        {/* Designation */}
+        <View className="flex-row items-center mb-1.5">
+          <Feather name="briefcase" size={12} color="#64748B" />
+          <Text className="font-rubik text-xs text-gray-500 ml-2 flex-1">
+            {item.designation}
+          </Text>
+        </View>
+
         {/* Employment Type */}
-        <View className="flex-row justify-between mb-2">
-          <View className="flex-row items-center">
-            <Feather name="users" size={12} color="#64748B" />
-            <Text className="font-rubik-medium text-xs text-gray-600 ml-1.5">
-              {getEmploymentTypeLabel(item.employmentType)}
-            </Text>
-          </View>
+        <View className="flex-row items-center mb-1.5">
+          <Feather name="users" size={12} color="#64748B" />
+          <Text className="font-rubik-medium text-xs text-gray-600 ml-2">
+            {getEmploymentTypeLabel(item.employmentType)}
+          </Text>
         </View>
 
-        {/* Dates */}
-        <View className="flex-row justify-between">
-          <View className="flex-row items-center">
-            <Feather name="calendar" size={12} color="#64748B" />
-            <Text className="font-rubik text-xs text-gray-500 ml-1.5">
-              Start: {formatDate(item.startDate)}
-            </Text>
-          </View>
-          {item.endDate && (
-            <View className="flex-row items-center">
-              <Feather name="calendar" size={12} color="#64748B" />
-              <Text className="font-rubik text-xs text-gray-500 ml-1.5">
-                End: {formatDate(item.endDate)}
-              </Text>
-            </View>
-          )}
+        {/* Duration */}
+        <View className="flex-row items-center mt-1.5">
+          <Feather name="clock" size={12} color="#64748B" />
+          <Text className="font-rubik text-xs text-gray-500 ml-2">
+            Period: {formatDate(item.startDate)} - {item.endDate ? formatDate(item.endDate) : 'Present'}
+          </Text>
         </View>
-
-        {/* HR Email */}
-        {item.hrEmail && (
-          <View className="mt-2 pt-2 border-t border-gray-200">
-            <Text className="font-rubik text-xs text-gray-400">HR Contact</Text>
-            <Text className="font-rubik-medium text-xs text-gray-700 mt-0.5">
-              {item.hrEmail}
-            </Text>
-          </View>
-        )}
       </View>
 
       {/* Request Info */}
@@ -157,22 +154,6 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
           Requested on: {formatDate(item.requestedAt)}
         </Text>
       </View>
-
-      {/* Comments/Feedback - if available */}
-      {item.comments && (
-        <View className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
-          <Text className="font-rubik-medium text-xs text-red-700">
-            Feedback: {item.comments}
-          </Text>
-          {item.status === 'REJECTED' && onResubmit && (
-            <TouchableOpacity onPress={() => onResubmit(item)} className="mt-2">
-              <Text className="font-rubik-medium text-xs text-red-600">
-                Tap to resubmit →
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
 
       {/* Action Buttons */}
       <View className="flex-row justify-end items-center mt-4 gap-2">
@@ -188,7 +169,7 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
         </TouchableOpacity>
 
         {/* Review Button - Only for non-employees with PENDING status AND different organization */}
-        {item.status === 'PENDING' && !isEmployee(userRole) && onReview && isSameOrganization && (
+        {item.status === 'PENDING' && !isEmployee(userRole) && onReview && !isSameOrganization && (
           <TouchableOpacity
             className="flex-row items-center bg-green-50 px-3.5 py-2 rounded-xl border border-green-200"
             onPress={() => onReview(item)}
@@ -201,7 +182,7 @@ const VerificationCard: React.FC<VerificationCardProps> = ({
         )}
 
         {/* Reject Button - Only for non-employees with PENDING status AND different organization */}
-        {item.status === 'PENDING' && !isEmployee(userRole) && onReject && isSameOrganization && (
+        {item.status === 'PENDING' && !isEmployee(userRole) && onReject && !isSameOrganization && (
           <TouchableOpacity
             className="flex-row items-center bg-red-50 px-3.5 py-2 rounded-xl border border-red-200"
             onPress={() => onReject(item)}

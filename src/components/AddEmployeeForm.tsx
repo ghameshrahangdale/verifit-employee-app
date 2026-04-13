@@ -193,7 +193,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
             label="Joining Date"
             value={formData.joiningDate}
             onChangeText={(text) => handleFieldChange('joiningDate', text)}
-            placeholder="YYYY-MM-DD"
+            placeholder="DD-MM-YYYY"
             type="date"
             error={formErrors.joiningDate}
             className="mb-6"

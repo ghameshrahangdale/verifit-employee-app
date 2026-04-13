@@ -1,6 +1,6 @@
 // src/navigation/Navigation.tsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext'; // Changed from '../hooks/useAuth'
+import { useAuth } from '../context/AuthContext';
 import AuthNavigator from './AuthNavigator';
 import AppStackNavigator from './AppStackNavigator';
 import SplashScreen from '../screens/SplashScreen';
@@ -8,10 +8,22 @@ import BiometricGate from '../screens/BiometricGateScreen';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
 import { Screen } from '../components/layout/Screen';
 
+const SPLASH_MIN_DURATION = 3000; // ms
+
 const Navigation: React.FC = () => {
-  const { isAuthenticated, isLoading, user } = useAuth(); // Removed isSigningUp as it might not exist in AuthContext
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { isBiometricEnabled, loadBiometricSettings } = useBiometricAuth();
+
   const [isBiometricLoaded, setIsBiometricLoaded] = useState(false);
+  const [minTimerDone, setMinTimerDone] = useState(false);
+
+  // Enforce minimum splash duration
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinTimerDone(true);
+    }, SPLASH_MIN_DURATION);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Load biometric settings
   useEffect(() => {
@@ -24,20 +36,20 @@ const Navigation: React.FC = () => {
         setIsBiometricLoaded(true);
       }
     };
-
     loadSettings();
   }, []);
 
-  if (isLoading || !isBiometricLoaded) {
+  // Show splash until BOTH the min timer AND all loading is done
+  const showSplash = !minTimerDone || isLoading || !isBiometricLoaded;
+
+  if (showSplash) {
     return <SplashScreen />;
   }
 
-  // Handle authentication states
   if (!isAuthenticated) {
     return <AuthNavigator />;
   }
 
-  // Check if biometric is enabled
   if (isBiometricEnabled) {
     return (
       <BiometricGate
@@ -50,10 +62,11 @@ const Navigation: React.FC = () => {
     );
   }
 
-  // If biometric is not enabled, go directly to app
-  return <Screen>
-    <AppStackNavigator />
-  </Screen>;
+  return (
+    <Screen>
+      <AppStackNavigator />
+    </Screen>
+  );
 };
 
 export default Navigation;
