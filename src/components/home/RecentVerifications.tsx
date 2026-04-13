@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, RefreshControl, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, RefreshControl, FlatList, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import Feather from 'react-native-vector-icons/Feather';
 import Avatar from '../ui/Avatar';
@@ -8,6 +8,8 @@ import Loader from '../ui/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppStackNavigator';
+import VerificationRequestForm, { DocumentFile, VerificationFormData } from '../employee/VerificationRequestForm';
+import Toast from 'react-native-toast-message';
 
 interface Employee {
   verificationStatus: any;
@@ -32,6 +34,11 @@ const RecentVerifications: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const navigation = useNavigation<NavigationProp<AppStackParamList>>()
+  
+  // State for verification modal
+  const [isVerificationModalVisible, setIsVerificationModalVisible] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -61,10 +68,82 @@ const RecentVerifications: React.FC = () => {
     fetchEmployees();
   }, []);
 
-   const handleViewEmployee = (id: string) => {
+  const handleViewEmployee = (id: string) => {
     navigation.navigate('EmployeeDetails', { employeeId: id });
   };
 
+  const handleVerifyEmployee = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsVerificationModalVisible(true);
+  };
+
+  const handleSubmitVerificationRequest = async (data: VerificationFormData, documents: DocumentFile[]) => {
+    if (!selectedEmployee) return;
+    
+    setIsSubmittingVerification(true);
+    try {
+      const formData = new FormData();
+
+      const requestData = {
+        employeeId: selectedEmployee.id,
+        organizationId: data.organizationId,
+        designation: data.designation,
+        department: data.department,
+        employmentType: data.employmentType,
+        startDate: data.startDate,
+        endDate: data.endDate || undefined,
+        location: data.location,
+        reasonForLeaving: data.reasonForLeaving || undefined,
+        templateId: data.templateId || undefined,
+        salary: data.salary ? {
+          salaryType: data.salary.salaryType,
+          amount: data.salary.amount,
+          currency: data.salary.currency,
+          frequency: data.salary.frequency,
+        } : undefined,
+      };
+
+      formData.append('data', JSON.stringify(requestData));
+
+      documents.forEach((doc, index) => {
+        formData.append(`documents[${index}][file]`, {
+          uri: doc.uri,
+          name: doc.name,
+          type: doc.type,
+        } as any);
+
+        formData.append(`documents[${index}][type]`, doc.documentType);
+        formData.append(`documents[${index}][title]`, doc.title);
+      });
+
+      await http.post('/api/verification/employee/create-request', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: `Verification request submitted for ${selectedEmployee.firstName} ${selectedEmployee.lastName}`,
+      });
+
+      setIsVerificationModalVisible(false);
+      setSelectedEmployee(null);
+      
+      // Refresh the employee list to update verification status
+      fetchEmployees();
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Submission Failed',
+        text2: error.response?.data?.message || 'Failed to submit verification request',
+      });
+      throw error;
+    } finally {
+      setIsSubmittingVerification(false);
+    }
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -93,159 +172,192 @@ const RecentVerifications: React.FC = () => {
         };
   };
 
-   const renderEmployeeCard = ({ item }: { item: Employee }) => {
-      const fullName = `${item.firstName} ${item.lastName}`.trim();
-      const imageUrl = item.profileImage;
-      const isCurrentUser = item.email === user?.email;
-  
-      return (
-        <View
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 20,
-            marginBottom: 12,
-            padding: 16,
-            shadowColor: '#64748B',
-            shadowOpacity: 0.08,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 3,
-            borderWidth: 1,
-            borderColor: '#F1F5F9',
-          }}
-        >
-          {/* Top Row: Avatar + Info + Verification Status Badge */}
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            {/* Avatar */}
-            <View style={{ position: 'relative' }}>
-              <View
-                style={{
-                  borderRadius: 50,
-                  overflow: 'hidden',
-                  backgroundColor: colors.primary + '15',
-                }}
-              >
-                <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
-              </View>
-            </View>
-  
-            {/* Name, Email */}
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                <Text
-                  style={{
-                    fontFamily: 'Rubik-Bold',
-                    fontSize: 15,
-                    color: '#0F172A',
-                    letterSpacing: -0.2,
-                  }}
-                >
-                  {fullName}
-                </Text>
-                {isCurrentUser && (
-                  <View
-                    style={{
-                      marginLeft: 6,
-                      paddingHorizontal: 7,
-                      paddingVertical: 2,
-                      backgroundColor: colors.primary + '18',
-                      borderRadius: 20,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: 'Rubik-Medium',
-                        fontSize: 10,
-                        color: colors.primary,
-                        letterSpacing: 0.3,
-                      }}
-                    >
-                      YOU
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={{
-                  fontFamily: 'Rubik-Regular',
-                  fontSize: 12.5,
-                  color: '#64748B',
-                  marginTop: 2,
-                }}
-                numberOfLines={1}
-              >
-                {item.email}
-              </Text>
-            </View>
-  
-            {/* Verification Status Badge (top-right) - Made smaller */}
+  const renderEmployeeCard = ({ item }: { item: Employee }) => {
+    const fullName = `${item.firstName} ${item.lastName}`.trim();
+    const imageUrl = item.profileImage;
+    const isCurrentUser = item.email === user?.email;
+
+    return (
+      <View
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 20,
+          marginBottom: 12,
+          padding: 16,
+          shadowColor: '#64748B',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+          borderWidth: 1,
+          borderColor: '#F1F5F9',
+        }}
+      >
+        {/* Top Row: Avatar + Info + Verification Status Badge */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          {/* Avatar */}
+          <View style={{ position: 'relative' }}>
             <View
               style={{
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 12,
-                backgroundColor: item.verificationStatus ? '#DCFCE7' : '#FEF3C7',
-                borderWidth: 1,
-                borderColor: item.verificationStatus ? '#86EFAC' : '#FCD34D',
-                alignSelf: 'flex-start',
+                borderRadius: 50,
+                overflow: 'hidden',
+                backgroundColor: colors.primary + '15',
               }}
+            >
+              <Avatar name={fullName} imageUrl={imageUrl} size="lg" />
+            </View>
+          </View>
+
+          {/* Name, Email */}
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text
+                style={{
+                  fontFamily: 'Rubik-Bold',
+                  fontSize: 15,
+                  color: '#0F172A',
+                  letterSpacing: -0.2,
+                }}
+              >
+                {fullName}
+              </Text>
+              {isCurrentUser && (
+                <View
+                  style={{
+                    marginLeft: 6,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2,
+                    backgroundColor: colors.primary + '18',
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'Rubik-Medium',
+                      fontSize: 10,
+                      color: colors.primary,
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    YOU
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={{
+                fontFamily: 'Rubik-Regular',
+                fontSize: 12.5,
+                color: '#64748B',
+                marginTop: 2,
+              }}
+              numberOfLines={1}
+            >
+              {item.email}
+            </Text>
+          </View>
+
+          {/* Verification Status Badge (top-right) - Made smaller */}
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 12,
+              backgroundColor: item.verificationStatus ? '#DCFCE7' : '#FEF3C7',
+              borderWidth: 1,
+              borderColor: item.verificationStatus ? '#86EFAC' : '#FCD34D',
+              alignSelf: 'flex-start',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Rubik-Medium',
+                fontSize: 9,
+                color: item.verificationStatus ? '#15803D' : '#92400E',
+                letterSpacing: 0.3,
+              }}
+            >
+              {item.verificationStatus ? 'VERIFIED' : 'NOT VERIFIED'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Divider */}
+        <View
+          style={{
+            height: 1,
+            backgroundColor: '#F1F5F9',
+            marginVertical: 12,
+          }}
+        />
+
+        {/* Bottom Row: Meta info + Action Buttons */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Left meta: Joined date with label */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Feather name="calendar" size={11} color="#94A3B8" />
+            <Text
+              style={{
+                fontFamily: 'Rubik-Regular',
+                fontSize: 11,
+                color: '#64748B',
+                marginLeft: 4,
+              }}
+            >
+              Joined: {formatDate(item.createdAt)}
+            </Text>
+          </View>
+
+          {/* Action Buttons Container */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* View button - shown for all employees */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.primary,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 12,
+                shadowColor: colors.primary,
+                shadowOpacity: 0.3,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 3,
+              }}
+              onPress={() => handleViewEmployee(item.id)}
             >
               <Text
                 style={{
                   fontFamily: 'Rubik-Medium',
-                  fontSize: 9,
-                  color: item.verificationStatus ? '#15803D' : '#92400E',
-                  letterSpacing: 0.3,
+                  fontSize: 12,
+                  color: '#FFFFFF',
+                  marginRight: 4,
+                  letterSpacing: 0.2,
                 }}
               >
-                {item.verificationStatus ? 'VERIFIED' : 'NOT VERIFIED'}
+                View
               </Text>
-            </View>
-          </View>
-  
-          {/* Divider */}
-          <View
-            style={{
-              height: 1,
-              backgroundColor: '#F1F5F9',
-              marginVertical: 12,
-            }}
-          />
-  
-          {/* Bottom Row: Meta info + View button */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            {/* Left meta: Joined date with label */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Feather name="calendar" size={11} color="#94A3B8" />
-              <Text
-                style={{
-                  fontFamily: 'Rubik-Regular',
-                  fontSize: 11,
-                  color: '#64748B',
-                  marginLeft: 4,
-                }}
-              >
-                Joined: {formatDate(item.createdAt)}
-              </Text>
-            </View>
-  
-            {/* View button — only for verified employees */}
-            {item.verificationStatus && (
+              <Feather name="arrow-right" size={12} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {/* Verify Button - Only show if not already verified */}
+            {!item.verificationStatus && (
               <TouchableOpacity
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: colors.primary,
+                  backgroundColor: '#10B981',
                   paddingHorizontal: 14,
                   paddingVertical: 7,
                   borderRadius: 12,
-                  shadowColor: colors.primary,
+                  shadowColor: '#10B981',
                   shadowOpacity: 0.3,
                   shadowRadius: 6,
                   shadowOffset: { width: 0, height: 3 },
                   elevation: 3,
                 }}
-                onPress={() => handleViewEmployee(item.id)}
+                onPress={() => handleVerifyEmployee(item)}
               >
                 <Text
                   style={{
@@ -256,15 +368,20 @@ const RecentVerifications: React.FC = () => {
                     letterSpacing: 0.2,
                   }}
                 >
-                  View
+                  Verify
                 </Text>
-                <Feather name="arrow-right" size={12} color="#FFFFFF" />
+                <Feather name="shield" size={12} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
         </View>
-      );
-    };
+      </View>
+    );
+  };
+
+  const handleViewAll = () => {
+    navigation.navigate('EmployeeList');
+  };
 
   if (isLoading && employees.length === 0) {
     return (
@@ -288,7 +405,11 @@ const RecentVerifications: React.FC = () => {
         <Text className="text-lg font-rubik-bold" style={{ color: colors.text }}>
           Employees List
         </Text>
-        <TouchableOpacity className="flex-row items-center" activeOpacity={0.7}>
+        <TouchableOpacity 
+          className="flex-row items-center" 
+          activeOpacity={0.7}
+          onPress={handleViewAll}
+        >
           <Text className="text-xs font-rubik" style={{ color: colors.primary }}>
             View All
           </Text>
@@ -319,6 +440,72 @@ const RecentVerifications: React.FC = () => {
           </View>
         }
       />
+
+      {/* Verification Request Modal */}
+      <Modal
+        visible={isVerificationModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setIsVerificationModalVisible(false);
+          setSelectedEmployee(null);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <TouchableOpacity
+            className="flex-1 bg-black/45"
+            activeOpacity={1}
+            onPress={() => {
+              setIsVerificationModalVisible(false);
+              setSelectedEmployee(null);
+            }}
+          >
+            <View className="flex-1 justify-end">
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                className="bg-white rounded-t-3xl shadow-lg max-h-[90%]"
+              >
+                <View className="items-center pt-3">
+                  <View className="w-9 h-1 rounded-full bg-gray-200" />
+                </View>
+
+                <View className="flex-row justify-between items-center px-6 pt-4 pb-4 border-b border-gray-100">
+                  <View>
+                    <Text className="font-rubik-bold text-xl text-gray-900">
+                      Verify Employee
+                    </Text>
+                    <Text className="font-rubik text-xs text-gray-400 mt-0.5">
+                      Submit verification request for {selectedEmployee?.firstName} {selectedEmployee?.lastName}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsVerificationModalVisible(false);
+                      setSelectedEmployee(null);
+                    }}
+                    className="w-9 h-9 rounded-xl bg-gray-100 items-center justify-center"
+                  >
+                    <Feather name="x" size={18} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+
+                <VerificationRequestForm
+                  onSubmit={handleSubmitVerificationRequest}
+                  onCancel={() => {
+                    setIsVerificationModalVisible(false);
+                    setSelectedEmployee(null);
+                  }}
+                  isLoading={isSubmittingVerification}
+                />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };

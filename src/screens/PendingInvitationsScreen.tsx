@@ -173,6 +173,7 @@ const PendingInvitationsScreen: React.FC = () => {
 
       // Remove from list
       setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+      handleRefresh();
     } catch (error: any) {
       Toast.show({
         type: 'error',

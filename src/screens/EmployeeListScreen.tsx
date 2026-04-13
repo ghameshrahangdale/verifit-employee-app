@@ -530,13 +530,7 @@ const EmployeeListScreen: React.FC = () => {
             ? `No employees matching "${searchQuery}"`
             : 'Add your first employee to get started'}
         </Text>
-        {!searchQuery && canAddEmployee && (
-          <Button
-            title="Add Employee"
-            className='mt-4'
-            onPress={() => setIsModalVisible(true)}
-          />
-        )}
+        
       </View>
     );
   };
@@ -578,25 +572,7 @@ const EmployeeListScreen: React.FC = () => {
         }}
       />
 
-      {/* Add Employee Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl max-h-[90%]">
-            <AddEmployeeForm
-              onClose={() => setIsModalVisible(false)}
-              onSuccess={() => {
-                setIsModalVisible(false);
-                fetchEmployees(1, true);
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
+      
 
       {/* Verification Request Modal */}
       <Modal

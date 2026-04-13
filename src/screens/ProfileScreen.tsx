@@ -411,11 +411,11 @@ const ProfileScreen: React.FC = () => {
               />
             )}
             {/* Verification Status Badge */}
-            <Badge
+            {/* <Badge
               label={profile?.user?.verificationStatus ? "✓ Verified" : "✗ Not Verified"}
               color={profile?.user?.verificationStatus ? "#059669" : "#DC2626"}
               bg={profile?.user?.verificationStatus ? "#ECFDF5" : "#FEF2F2"}
-            />
+            /> */}
           </View>
         </View>
 
@@ -516,8 +516,13 @@ const ProfileScreen: React.FC = () => {
                 <Input
                   label="Gender"
                   value={personalForm.gender}
-                  onChangeText={(text) => setPersonalForm(prev => ({ ...prev, gender: text }))}
-                  placeholder="Male / Female / Other"
+                  onChangeText={(value) => setPersonalForm(prev => ({ ...prev, gender: value }))}
+                  type="select"
+                  placeholder="Select Gender"
+                  options={[
+                    { label: 'Male', value: 'male' },
+                    { label: 'Female', value: 'female' },
+                  ]}
                 />
               </View>
 

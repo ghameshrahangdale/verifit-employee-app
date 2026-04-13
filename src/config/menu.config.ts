@@ -121,12 +121,12 @@ export const getMenuItems = (userRole?: UserRole): MenuItemConfig[] => {
       subtitle: 'Invite friends to try this app',
       action: 'share',
     },
-    {
-      icon: 'help-circle',
-      label: 'Help & Support',
-      subtitle: 'Get help or contact support',
-      route: 'Support',
-    },
+    // {
+    //   icon: 'help-circle',
+    //   label: 'Help & Support',
+    //   subtitle: 'Get help or contact support',
+    //   route: 'Support',
+    // },
   ];
 };
 

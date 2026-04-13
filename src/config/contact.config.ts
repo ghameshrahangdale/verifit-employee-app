@@ -1,5 +1,5 @@
 const contactConfig = {
-  brandName: 'RNIgnite',
+  brandName: 'Verifiit',
   email: 'support@gmail.com',
   website: 'https://verifiit.dev',
   phone: '+91 90000 00000',

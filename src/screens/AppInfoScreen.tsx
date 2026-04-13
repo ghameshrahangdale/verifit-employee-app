@@ -45,13 +45,7 @@ const AppInfoScreen: React.FC = () => {
             onPress={() => navigation.navigate('Terms')}
           />
 
-          <LegalRow
-            icon="file-text"
-            title="Documentation"
-            description="Explore guides and setup instructions"
-            color={colors.primary}
-            onPress={() => navigation.navigate('Documentation')}
-          />
+        
         </View>
 
         {/* Application Info after legal */}
