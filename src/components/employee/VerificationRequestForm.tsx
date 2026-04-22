@@ -15,6 +15,7 @@ import { pick } from '@react-native-documents/picker';
 import axios from 'axios';
 import http from '../../services/http.api';
 import QuestionTemplateSelector from './QuestionTemplateSelector';
+import { useAuth } from '../../context/AuthContext';
 
 interface VerificationRequestFormProps {
   onSubmit: (data: VerificationFormData, documents: DocumentFile[]) => Promise<void>;
@@ -147,6 +148,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   isEdit = false,
   initialDocuments,
 }) => {
+  const { user } = useAuth();
   const { colors } = useTheme();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -154,6 +156,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [companyPage, setCompanyPage] = useState(1);
   const [hasMoreCompanies, setHasMoreCompanies] = useState(true);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<VerificationFormData>(
     initialData || {
@@ -269,13 +272,14 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           newErrors.organizationId = 'Company is required';
         }
       } else {
-        if (!formData.companyName?.trim()) {
-          newErrors.companyName = 'Company name is required';
-        }
         if (!formData.hrEmail?.trim()) {
           newErrors.hrEmail = 'HR email is required';
         } else if (!/\S+@\S+\.\S+/.test(formData.hrEmail)) {
           newErrors.hrEmail = 'Invalid email format';
+        } else if (
+          formData.hrEmail.toLowerCase() === user?.email?.toLowerCase()
+        ) {
+          newErrors.hrEmail = 'You cannot send a verification request to yourself';
         }
       }
 
@@ -305,7 +309,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
         if (!salary.amount || salary.amount <= 0) {
           newErrors.salary = 'Valid salary amount is required';
         }
-        
+
       }
     }
 
@@ -330,37 +334,46 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   };
 
   const handleSubmit = async () => {
-  let companyName = '';
-  if (formData.verificationType === 'organization' && formData.organizationId) {
-    const selectedCompany = companies.find(c => c.id === formData.organizationId);
-    companyName = selectedCompany?.name || '';
-  } else if (formData.verificationType === 'hr') {
-    companyName = formData.companyName || '';
-  }
+    setSubmitError(null); // reset previous error
 
-  const finalData = {
-    ...formData,
-    companyName,
-    templateId: selectedTemplateId, // Include template ID
-    ...(formData.verificationType === 'organization' && {
-      organizationId: formData.organizationId,
-    }),
-    ...(formData.verificationType === 'hr' && {
-      hrEmail: formData.hrEmail,
-    }),
-    salary: formData.salary || undefined,
+    // 🚫 Prevent self verification
+    if (
+      formData.verificationType === 'hr' &&
+      formData.hrEmail?.toLowerCase() === user?.email?.toLowerCase()
+    ) {
+      setSubmitError("You cannot send a verification request to yourself.");
+      return;
+    }
+
+    let companyName = '';
+    if (formData.verificationType === 'organization' && formData.organizationId) {
+      const selectedCompany = companies.find(c => c.id === formData.organizationId);
+      companyName = selectedCompany?.name || '';
+    } else if (formData.verificationType === 'hr') {
+      companyName = formData.companyName || '';
+    }
+
+    const finalData = {
+      ...formData,
+      companyName,
+      templateId: selectedTemplateId,
+      ...(formData.verificationType === 'organization' && {
+        organizationId: formData.organizationId,
+      }),
+      ...(formData.verificationType === 'hr' && {
+        hrEmail: formData.hrEmail,
+      }),
+      salary: formData.salary || undefined,
+    };
+
+    try {
+      await onSubmit(finalData, documents);
+    } catch (error: any) {
+      setSubmitError(
+        error.response?.data?.message || 'Failed to submit verification request'
+      );
+    }
   };
-
-  try {
-    await onSubmit(finalData, documents);
-  } catch (error: any) {
-    Toast.show({
-      type: 'error',
-      text1: 'Submission Failed',
-      text2: error.response?.data?.message || 'Failed to submit verification request',
-    });
-  }
-};
   const updateField = (field: keyof VerificationFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -969,7 +982,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
           options={frequencyOptions}
         />
 
-     
+
       </View>
     </View>
   );
@@ -979,7 +992,7 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
       {/* Supporting Documents Section */}
       {renderSupportingDocuments()}
 
-      <View className="mt-6">
+      <View className="">
         <QuestionTemplateSelector
           organizationId={formData.organizationId}
           onTemplateSelect={handleTemplateSelect}
@@ -1002,45 +1015,50 @@ const VerificationRequestForm: React.FC<VerificationRequestFormProps> = ({
   };
 
   const renderStepButtons = () => {
-    if (currentStep === 3) {
-      return (
-        <View className="flex-col gap-3 mt-6">
-          <Button
-            title="Previous"
-            onPress={handlePrevious}
-            variant="outline"
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button
-            title={isEdit ? 'Update Request' : 'Submit Request'}
-            onPress={handleSubmit}
-            className="flex-1"
-            loading={isLoading}
-            disabled={isLoading}
-          />
-        </View>
-      );
-    }
-
     return (
-      <View className="flex-col gap-3 mt-6">
-        {currentStep > 1 && (
-          <Button
-            title="Previous"
-            onPress={handlePrevious}
-            variant="outline"
-            className="flex-1"
-            disabled={isLoading}
-          />
-        )}
-        <Button
-          title="Next"
-          onPress={handleNext}
-          className={currentStep > 1 ? "flex-1" : "w-full"}
-          disabled={isLoading}
+      <View className="mt-6">
 
-        />
+        {/* 🔴 Error Message */}
+        {submitError && (
+          <View className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+            <Text className="text-sm text-red-600 font-rubik">
+              {submitError}
+            </Text>
+          </View>
+        )}
+
+        {currentStep === 3 ? (
+          <View className="flex-col gap-3">
+            <Button
+              title="Previous"
+              onPress={handlePrevious}
+              variant="outline"
+              disabled={isLoading}
+            />
+            <Button
+              title={isEdit ? 'Update Request' : 'Submit Request'}
+              onPress={handleSubmit}
+              loading={isLoading}
+              disabled={isLoading}
+            />
+          </View>
+        ) : (
+          <View className="flex-col gap-3">
+            {currentStep > 1 && (
+              <Button
+                title="Previous"
+                onPress={handlePrevious}
+                variant="outline"
+                disabled={isLoading}
+              />
+            )}
+            <Button
+              title="Next"
+              onPress={handleNext}
+              disabled={isLoading}
+            />
+          </View>
+        )}
       </View>
     );
   };

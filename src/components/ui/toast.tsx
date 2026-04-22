@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Modal } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Logo from '../common/Logo';
 import { Images } from '../../config/logo.config';
@@ -15,11 +15,10 @@ const shadow = {
 export const toastConfig = {
   success: ({ text1, text2 }: any) => (
     <View
-      style={[shadow]}
+      style={[shadow, { zIndex: 99999 }]} // Add high zIndex
       className="w-[90%] bg-white rounded-xl px-3 py-2 flex-row items-center"
     >
-      {/* <Logo source={Images.logo_icon} size="sm" /> */}
-      <View className=" flex-1">
+      <View className="flex-1">
         <Text className="text-green-600 font-rubik-semibold text-sm">
           {text1}
         </Text>
@@ -34,7 +33,7 @@ export const toastConfig = {
 
   error: ({ text1, text2 }: any) => (
     <View
-      style={[shadow]}
+      style={[shadow, { zIndex: 9999 }]} // Add high zIndex
       className="w-[90%] bg-white rounded-xl px-3 py-2 flex-row items-center"
     >
       <Logo size="sm" />
@@ -53,7 +52,7 @@ export const toastConfig = {
 
   info: ({ text1, text2 }: any) => (
     <View
-      style={[shadow]}
+      style={[shadow, { zIndex: 99999 }]} // Add high zIndex
       className="w-[90%] bg-white rounded-xl px-3 py-2 flex-row items-center"
     >
       <Logo size="sm" />
