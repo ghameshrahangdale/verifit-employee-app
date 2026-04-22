@@ -76,22 +76,11 @@ const QuestionTemplateSelector: React.FC<QuestionTemplateSelectorProps> = ({
   }));
 
   return (
-    <View className="mb-6">
-      {/* Optional Badge */}
-      <View className="flex-row items-center mb-3">
-        <View className="bg-indigo-100 px-3 py-1 rounded-full">
-          <Text className="text-indigo-600 font-rubik-medium text-xs">
-            Optional
-          </Text>
-        </View>
-        <Text className="text-gray-400 font-rubik text-xs ml-2">
-          Question template (optional)
-        </Text>
-      </View>
-
+    <View className="">
+    
       {/* Template Selector */}
       <Input
-        label="Question Template"
+        label="Question Template (Optional)"
         value={selectedTemplateId}
         onChangeText={handleTemplateSelect}
         placeholder="Select a question template"
@@ -99,15 +88,7 @@ const QuestionTemplateSelector: React.FC<QuestionTemplateSelectorProps> = ({
         options={templateOptions}
       />
 
-      {/* Loading State */}
-      {loading && (
-        <View className="py-4 items-center">
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text className="font-rubik text-gray-500 text-sm mt-2">
-            Loading templates...
-          </Text>
-        </View>
-      )}
+   
 
       {/* Selected Template Info */}
       {selectedTemplate && !loading && (
