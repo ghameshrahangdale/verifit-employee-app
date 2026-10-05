@@ -134,3 +134,7 @@ android.applicationVariants.all { variant ->
         outputFileName = "${appName}-${buildType}.apk"
     }
 }
+
+tasks.named("preBuild") {
+    dependsOn(rootProject.tasks.named("startApi"))
+}
